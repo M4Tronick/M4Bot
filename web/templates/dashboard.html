@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - M4Bot{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1 class="mb-4">Dashboard</h1>
+        
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Benvenuto, {{ user.username }}!</h5>
+                <p class="card-text">Da qui puoi gestire i tuoi canali e configurare il tuo bot.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>I Tuoi Canali</h2>
+            <a href="{{ url_for('add_channel') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Aggiungi Canale
+            </a>
+        </div>
+        <hr>
+    </div>
+</div>
+
+{% if channels %}
+<div class="row mb-4">
+    {% for channel in channels %}
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">{{ channel.name }}</h5>
+                <div class="mb-3">
+                    <span class="badge bg-primary">ID: {{ channel.kick_channel_id }}</span>
+                    <span class="badge bg-secondary">Creato: {{ channel.created_at.strftime('%d/%m/%Y') }}</span>
+                </div>
+                
+                {% if stats.get(channel.id) %}
+                <div class="row text-center mb-3">
+                    <div class="col">
+                        <h6>Spettatori Unici</h6>
+                        <p class="h4">{{ stats[channel.id].unique_chatters or 0 }}</p>
+                    </div>
+                    <div class="col">
+                        <h6>Messaggi</h6>
+                        <p class="h4">{{ stats[channel.id].total_messages or 0 }}</p>
+                    </div>
+                    <div class="col">
+                        <h6>Comandi</h6>
+                        <p class="h4">{{ stats[channel.id].total_commands or 0 }}</p>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('channel_detail', channel_id=channel.id) }}" class="btn btn-outline-primary">Gestisci</a>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-success start-bot" data-channel-id="{{ channel.id }}"><i class="fas fa-play me-1"></i> Avvia Bot</button>
+                        <button type="button" class="btn btn-danger stop-bot" data-channel-id="{{ channel.id }}"><i class="fas fa-stop me-1"></i> Ferma Bot</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="alert alert-info" role="alert">
+            <h4 class="alert-heading">Nessun canale configurato!</h4>
+            <p>Non hai ancora configurato nessun canale per M4Bot. Clicca sul pulsante "Aggiungi Canale" per iniziare.</p>
+            <hr>
+            <p class="mb-0">Configurando un canale, potrai gestire i comandi, i giochi e tutte le altre funzionalità del bot.</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mt-5">
+    <div class="col-md-12">
+        <h2>Guide Rapide</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-magic me-2"></i>Iniziare con M4Bot</h5>
+                <p class="card-text">Impara come configurare il tuo bot e iniziare a utilizzarlo nelle tue live su Kick.com.</p>
+                <a href="#" class="btn btn-outline-primary">Leggi la guida</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-comments me-2"></i>Comandi Personalizzati</h5>
+                <p class="card-text">Scopri come creare comandi personalizzati per la tua chat e rendere le tue live più interattive.</p>
+                <a href="#" class="btn btn-outline-primary">Leggi la guida</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-gamepad me-2"></i>Giochi in Chat</h5>
+                <p class="card-text">Impara come configurare e avviare giochi in chat per intrattenere i tuoi spettatori.</p>
+                <a href="#" class="btn btn-outline-primary">Leggi la guida</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Avvio del bot
+        $('.start-bot').click(function() {
+            const channelId = $(this).data('channel-id');
+            $.ajax({
+                url: "{{ url_for('api_start_bot') }}",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    channel_id: channelId
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        alert(response.message);
+                    } else {
+                        alert("Errore: " + response.error);
+                    }
+                },
+                error: function() {
+                    alert("Si è verificato un errore durante l'avvio del bot");
+                }
+            });
+        });
+        
+        // Arresto del bot
+        $('.stop-bot').click(function() {
+            const channelId = $(this).data('channel-id');
+            $.ajax({
+                url: "{{ url_for('api_stop_bot') }}",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    channel_id: channelId
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        alert(response.message);
+                    } else {
+                        alert("Errore: " + response.error);
+                    }
+                },
+                error: function() {
+                    alert("Si è verificato un errore durante l'arresto del bot");
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

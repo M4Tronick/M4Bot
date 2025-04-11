@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block title %}M4Bot - Il Bot per Kick.com{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="py-5 text-center">
+    <div class="row py-lg-5">
+        <div class="col-lg-8 col-md-10 mx-auto">
+            <h1 class="fw-bold">M4Bot</h1>
+            <p class="lead text-muted">Il bot più completo e personalizzabile per Kick.com</p>
+            <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4">
+                <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg px-4 gap-3">Inizia Ora</a>
+                <a href="#features" class="btn btn-outline-secondary btn-lg px-4">Scopri di più</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section id="features" class="py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5">Funzionalità</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-comments fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">Comandi Personalizzati</h5>
+                        <p class="card-text">Crea e gestisci comandi personalizzati per la tua chat con cooldown, permessi e risposte dinamiche.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-gamepad fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">Giochi in Chat</h5>
+                        <p class="card-text">Intrattieni i tuoi spettatori con giochi interattivi come dadi, trivia, slot e molto altro.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-shield-alt fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">Moderazione</h5>
+                        <p class="card-text">Mantieni la tua chat pulita con strumenti di moderazione automatici e filtri personalizzabili.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-coins fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">Sistema di Punti</h5>
+                        <p class="card-text">Premia i tuoi spettatori con un sistema di punti personalizzato e classifiche competitive.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chart-bar fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">Statistiche</h5>
+                        <p class="card-text">Analizza l'attività della tua chat con statistiche dettagliate e report personalizzati.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-cogs fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">Integrazioni</h5>
+                        <p class="card-text">Integra il tuo bot con OBS e altri strumenti per migliorare la tua esperienza di streaming.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">Come Funziona</h2>
+        <div class="row align-items-center mb-5">
+            <div class="col-md-6">
+                <h3>1. Registrati e Connetti il Tuo Canale</h3>
+                <p>Crea un account su M4Bot e connetti il tuo canale Kick.com tramite l'autenticazione OAuth sicura.</p>
+            </div>
+            <div class="col-md-6">
+                <img src="{{ url_for('static', filename='img/step1.png') }}" alt="Registrazione" class="img-fluid rounded shadow">
+            </div>
+        </div>
+        <div class="row align-items-center mb-5">
+            <div class="col-md-6 order-md-2">
+                <h3>2. Personalizza il Tuo Bot</h3>
+                <p>Configura comandi personalizzati, giochi, moderazione e altre funzionalità attraverso il nostro pannello di controllo intuitivo.</p>
+            </div>
+            <div class="col-md-6 order-md-1">
+                <img src="{{ url_for('static', filename='img/step2.png') }}" alt="Personalizzazione" class="img-fluid rounded shadow">
+            </div>
+        </div>
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h3>3. Avvia il Bot e Goditi lo Streaming</h3>
+                <p>Avvia il bot e concentrati sul tuo streaming mentre M4Bot si occupa della gestione della chat e dell'intrattenimento degli spettatori.</p>
+            </div>
+            <div class="col-md-6">
+                <img src="{{ url_for('static', filename='img/step3.png') }}" alt="Avvio" class="img-fluid rounded shadow">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Testimonials Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5">Cosa Dicono i Nostri Utenti</h2>
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="{{ url_for('static', filename='img/user1.jpg') }}" alt="User 1" class="rounded-circle me-3" width="50">
+                            <div>
+                                <h5 class="card-title mb-0">Marco Rossi</h5>
+                                <small class="text-muted">Streamer su Kick.com</small>
+                            </div>
+                        </div>
+                        <p class="card-text">"M4Bot ha completamente trasformato le mie live. I giochi in chat hanno aumentato il coinvolgimento degli spettatori e le funzioni di moderazione mi hanno risparmiato molto tempo."</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="{{ url_for('static', filename='img/user2.jpg') }}" alt="User 2" class="rounded-circle me-3" width="50">
+                            <div>
+                                <h5 class="card-title mb-0">Giulia Bianchi</h5>
+                                <small class="text-muted">Content Creator</small>
+                            </div>
+                        </div>
+                        <p class="card-text">"Il sistema di punti e le statistiche dettagliate mi hanno aiutato a capire meglio la mia community. M4Bot è facile da usare e incredibilmente personalizzabile."</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="{{ url_for('static', filename='img/user3.jpg') }}" alt="User 3" class="rounded-circle me-3" width="50">
+                            <div>
+                                <h5 class="card-title mb-0">Luca Verdi</h5>
+                                <small class="text-muted">Gamer Professionista</small>
+                            </div>
+                        </div>
+                        <p class="card-text">"M4Bot è il miglior bot che abbia mai usato per le mie live su Kick. L'integrazione con OBS e la possibilità di creare comandi personalizzati lo rendono indispensabile."</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-5 text-center">
+    <div class="container">
+        <h2>Pronto a Migliorare le Tue Live?</h2>
+        <p class="lead mb-4">Unisciti a migliaia di streamer che utilizzano M4Bot per migliorare le loro live su Kick.com</p>
+        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">Registrati Ora</a>
+    </div>
+</section>
+{% endblock %}
