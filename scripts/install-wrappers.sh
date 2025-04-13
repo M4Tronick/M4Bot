@@ -9,6 +9,23 @@ check_root
 
 print_message "Installazione dei wrapper di M4Bot..."
 
+# Copia il file common.sh in /usr/local/bin/
+print_message "Copiando common.sh in /usr/local/bin/..."
+cp "$(dirname "$0")/common.sh" /usr/local/bin/
+chmod +x /usr/local/bin/common.sh
+print_success "File common.sh copiato con successo"
+
+# Crea la directory per i log se non esiste
+print_message "Controllo e creazione della directory per i log..."
+mkdir -p /opt/m4bot/bot/logs
+if [ -d "/opt/m4bot/bot" ]; then
+    chown -R m4bot:m4bot /opt/m4bot/bot/logs 2>/dev/null || true
+    chmod -R 755 /opt/m4bot/bot/logs
+    print_success "Directory dei log creata/verificata"
+else
+    print_warning "La directory /opt/m4bot/bot non esiste. Assicurati che sia creata durante l'installazione."
+fi
+
 # Installa i wrapper
 install_wrappers
 

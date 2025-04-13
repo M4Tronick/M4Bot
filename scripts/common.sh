@@ -88,22 +88,28 @@ create_wrapper() {
 #!/bin/bash
 # Script wrapper per $script_name
 
-# Imposta il percorso degli script
-SCRIPT_DIR="/root/M4Bot/scripts"
-
-# Verifica che esista la directory degli script
-if [ ! -d "\$SCRIPT_DIR" ]; then
-    echo "Errore: Directory degli script non trovata: \$SCRIPT_DIR"
-    exit 1
-fi
-
 # Verifica che esista lo script common.sh
-if [ ! -f "\$SCRIPT_DIR/common.sh" ]; then
-    echo "Errore: File common.sh non trovato in \$SCRIPT_DIR"
+if [ ! -f "/usr/local/bin/common.sh" ]; then
+    echo "Errore: File common.sh non trovato in /usr/local/bin/"
+    echo "Reinstallare gli script wrapper con sudo m4bot/scripts/install-wrappers.sh"
     exit 1
 fi
 
-# Esegui lo script corrispondente
+# Carica le funzioni comuni
+source "/usr/local/bin/common.sh"
+
+# Determina il percorso degli script
+SCRIPT_DIR="/root/M4Bot/scripts"
+if [ ! -d "\$SCRIPT_DIR" ]; then
+    # Prova un percorso alternativo
+    SCRIPT_DIR="\$(find /opt /root /home -name "M4Bot" -type d 2>/dev/null | head -n 1)/scripts"
+    if [ ! -d "\$SCRIPT_DIR" ]; then
+        echo "Errore: Directory degli script M4Bot non trovata"
+        exit 1
+    fi
+fi
+
+# Esegui lo script
 \$SCRIPT_DIR/$script_name.sh \$@
 EOF
 

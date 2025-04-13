@@ -9,6 +9,15 @@ check_root
 
 print_message "Avvio di M4Bot..."
 
+# Verifica che la directory dei log esista
+if [ ! -d "/opt/m4bot/bot/logs" ]; then
+    print_warning "La directory dei log non esiste, creazione in corso..."
+    mkdir -p /opt/m4bot/bot/logs
+    chown -R m4bot:m4bot /opt/m4bot/bot/logs 2>/dev/null || true
+    chmod -R 755 /opt/m4bot/bot/logs
+    print_success "Directory dei log creata"
+fi
+
 # Verifica che PostgreSQL e Nginx siano in esecuzione
 check_services
 
