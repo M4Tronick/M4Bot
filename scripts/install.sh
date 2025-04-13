@@ -61,7 +61,7 @@ apt-get update && apt-get upgrade -y
 
 # Installa le dipendenze di sistema
 print_message "Installazione delle dipendenze di sistema..."
-apt-get install -y python3 python3-pip python3-venv postgresql nginx certbot python3-certbot-nginx git
+apt-get install -y python3 python3-pip python3-venv postgresql nginx certbot python3-certbot-nginx git python3-bcrypt
 
 # Crea l'utente m4bot
 print_message "Creazione dell'utente m4bot..."
@@ -76,16 +76,180 @@ fi
 print_message "Creazione delle directory di installazione..."
 mkdir -p $INSTALL_DIR $WEB_DIR $BOT_DIR $LOGS_DIR $DB_DIR $SCRIPTS_DIR
 
+# Crea il file di funzioni comuni
+print_message "Creazione del file di funzioni comuni..."
+cat > $SCRIPTS_DIR/common.sh << EOF
+#!/bin/bash
+# Script con funzioni comuni per la gestione di M4Bot
+
+# Colori per output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Funzioni di utilità
+check_root() {
+    if [ "\$(id -u)" != "0" ]; then
+        echo -e "\${RED}Errore: Questo script deve essere eseguito come root\${NC}"
+        exit 1
+    fi
+}
+
+print_message() {
+    echo -e "\${BLUE}[M4Bot]\${NC} \$1"
+}
+
+print_error() {
+    echo -e "\${RED}[ERRORE]\${NC} \$1"
+    if [ -n "\$2" ]; then
+        exit \$2
+    fi
+}
+
+print_success() {
+    echo -e "\${GREEN}[SUCCESSO]\${NC} \$1"
+}
+
+print_warning() {
+    echo -e "\${YELLOW}[AVVISO]\${NC} \$1"
+}
+
+check_postgres() {
+    if ! systemctl is-active --quiet postgresql; then
+        print_warning "PostgreSQL non è in esecuzione, tentativo di avvio..."
+        systemctl start postgresql
+        if [ \$? -eq 0 ]; then
+            print_success "PostgreSQL avviato con successo"
+        else
+            print_error "Impossibile avviare PostgreSQL" 1
+        fi
+    else
+        print_success "PostgreSQL è in esecuzione"
+    fi
+}
+
+check_nginx() {
+    if ! systemctl is-active --quiet nginx; then
+        print_warning "Nginx non è in esecuzione, tentativo di avvio..."
+        systemctl start nginx
+        if [ \$? -eq 0 ]; then
+            print_success "Nginx avviato con successo"
+        else
+            print_error "Impossibile avviare Nginx" 1
+        fi
+    else
+        print_success "Nginx è in esecuzione"
+    fi
+}
+
+check_services() {
+    print_message "Controllo dei servizi..."
+    
+    # Controlla PostgreSQL
+    check_postgres
+    
+    # Controlla Nginx
+    check_nginx
+    
+    print_message "Stato dei servizi:"
+    systemctl status m4bot-bot.service --no-pager | grep Active
+    systemctl status m4bot-web.service --no-pager | grep Active
+    systemctl status nginx --no-pager | grep Active
+    systemctl status postgresql --no-pager | grep Active
+}
+EOF
+
+chmod +x $SCRIPTS_DIR/common.sh
+print_success "File common.sh creato"
+
+# Creiamo lo script setup_postgres.sh
+print_message "Creazione dello script di configurazione PostgreSQL..."
+cat > $SCRIPTS_DIR/setup_postgres.sh << EOF
+#!/bin/bash
+# Script per configurare il database PostgreSQL per M4Bot
+
+# Carica le funzioni comuni
+source "\$(dirname "\$0")/common.sh"
+
+# Verifica che l'utente sia root
+check_root
+
+print_message "Configurazione del database PostgreSQL..."
+
+# Verifica che PostgreSQL sia in esecuzione
+check_postgres
+
+# Parametri del database
+DB_NAME="m4bot_db"
+DB_USER="m4bot_user"
+DB_PASSWORD="m4bot_password"
+
+# Creiamo l'utente e il database PostgreSQL
+print_message "Creazione dell'utente database \$DB_USER..."
+su - postgres -c "psql -c \"CREATE USER \$DB_USER WITH PASSWORD '\$DB_PASSWORD';\"" || true
+
+print_message "Creazione del database \$DB_NAME..."
+su - postgres -c "psql -c \"CREATE DATABASE \$DB_NAME OWNER \$DB_USER;\"" || true
+
+print_message "Configurazione dei privilegi..."
+su - postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE \$DB_NAME TO \$DB_USER;\"" || true
+
+print_success "Database configurato con successo!"
+print_message "Nome database: \$DB_NAME"
+print_message "Utente database: \$DB_USER"
+EOF
+
+chmod +x $SCRIPTS_DIR/setup_postgres.sh
+print_success "Script setup_postgres.sh creato"
+
 # Clona o copia i file sorgente
 print_message "Copiando i file sorgente..."
 
 # È possibile usare git clone o copiare i file dalla directory corrente
 # Per questo esempio, copiamo i file dalla directory corrente
 # Assumendo che lo script sia nella directory principale del progetto
-cp -r ../bot/* $BOT_DIR/
-cp -r ../web/* $WEB_DIR/
-cp -r ../database/* $DB_DIR/
-cp -r ../scripts/* $SCRIPTS_DIR/
+
+# Copia i file del bot se esistono
+if [ -d "../bot" ]; then
+    cp -r ../bot/* $BOT_DIR/ 2>/dev/null || print_warning "Nessun file trovato in ../bot/"
+else
+    print_warning "Directory ../bot/ non trovata"
+fi
+
+# Copia i file web se esistono
+if [ -d "../web" ]; then
+    cp -r ../web/* $WEB_DIR/ 2>/dev/null || print_warning "Nessun file trovato in ../web/"
+else
+    print_warning "Directory ../web/ non trovata"
+fi
+
+# Crea la struttura della directory del database
+print_message "Creazione della struttura del database..."
+mkdir -p $DB_DIR/migrations
+
+# La directory database potrebbe non esistere, quindi controlliamo prima
+if [ -d "../database" ]; then
+    cp -r ../database/* $DB_DIR/ 2>/dev/null || print_warning "Nessun file trovato in ../database/"
+else
+    print_warning "Directory ../database/ non trovata, verrà creata una struttura vuota"
+    
+    # Crea un file README nel database
+    cat > $DB_DIR/README.md << EOF
+# Database M4Bot
+
+Questa directory contiene i file di database e le migrazioni per M4Bot.
+Creata automaticamente dallo script di installazione.
+EOF
+fi
+
+# Copia gli script se esistono
+if [ -d "../scripts" ]; then
+    cp -r ../scripts/* $SCRIPTS_DIR/ 2>/dev/null || print_warning "Nessun file trovato in ../scripts/"
+else
+    cp -r ./* $SCRIPTS_DIR/ 2>/dev/null || print_warning "Impossibile copiare gli script"
+fi
 
 # Crea un ambiente virtuale Python
 print_message "Creazione dell'ambiente virtuale Python..."
@@ -103,6 +267,159 @@ print_message "Configurazione del database PostgreSQL..."
 $SCRIPTS_DIR/setup_postgres.sh
 
 print_success "Database configurato"
+
+# Inizializzazione del database
+print_message "Inizializzazione del database e creazione delle tabelle..."
+# Eseguiamo lo script di inizializzazione con valori predefiniti
+DB_NAME="m4bot_db"
+DB_USER="m4bot_user"
+DB_PASSWORD="m4bot_password"
+ADMIN_USER="admin"
+ADMIN_EMAIL="admin@m4bot.it"
+ADMIN_PASSWORD="admin123"
+
+# Utilizziamo lo script init_database.sh ma senza richiesta di input
+cat > $SCRIPTS_DIR/init_db_auto.sh << EOF
+#!/bin/bash
+source \$(dirname "\$0")/common.sh
+check_root
+print_message "Inizializzazione automatica del database M4Bot..."
+
+# Parametri fissi
+DB_NAME="$DB_NAME"
+DB_USER="$DB_USER"
+DB_PASSWORD="$DB_PASSWORD"
+ADMIN_USER="$ADMIN_USER"
+ADMIN_EMAIL="$ADMIN_EMAIL"
+ADMIN_PASSWORD="$ADMIN_PASSWORD"
+
+# Creazione tabelle
+print_message "Creazione delle tabelle principali..."
+cat > /tmp/init_m4bot_tables.sql << EOSQL
+-- Tabella utenti
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    is_admin BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Tabella canali
+CREATE TABLE IF NOT EXISTS channels (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    owner_id INTEGER REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+-- Tabella comandi
+CREATE TABLE IF NOT EXISTS commands (
+    id SERIAL PRIMARY KEY,
+    channel_id INTEGER REFERENCES channels(id),
+    name VARCHAR(255) NOT NULL,
+    response TEXT,
+    cooldown INTEGER DEFAULT 0,
+    user_level VARCHAR(50) DEFAULT 'everyone',
+    enabled BOOLEAN DEFAULT TRUE,
+    is_advanced BOOLEAN DEFAULT FALSE,
+    custom_code TEXT,
+    usage_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE (channel_id, name)
+);
+
+-- Tabella messaggi chat
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id SERIAL PRIMARY KEY,
+    channel_id INTEGER REFERENCES channels(id),
+    user_id VARCHAR(255),
+    username VARCHAR(255),
+    content TEXT,
+    is_command BOOLEAN DEFAULT FALSE,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Tabella punti canale
+CREATE TABLE IF NOT EXISTS channel_points (
+    id SERIAL PRIMARY KEY,
+    channel_id INTEGER REFERENCES channels(id),
+    user_id VARCHAR(255),
+    points INTEGER DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE (channel_id, user_id)
+);
+
+-- Tabella impostazioni canale
+CREATE TABLE IF NOT EXISTS channel_settings (
+    id SERIAL PRIMARY KEY,
+    channel_id INTEGER REFERENCES channels(id) UNIQUE,
+    welcome_message TEXT,
+    prefix VARCHAR(10) DEFAULT '!',
+    chat_rules TEXT,
+    auto_mod_enabled BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Tabella predizioni
+CREATE TABLE IF NOT EXISTS predictions (
+    id SERIAL PRIMARY KEY,
+    channel_id INTEGER REFERENCES channels(id),
+    title VARCHAR(255) NOT NULL,
+    status VARCHAR(50) DEFAULT 'active',
+    options JSONB NOT NULL,
+    winner_option INTEGER,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    ends_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Tabella sessioni
+CREATE TABLE IF NOT EXISTS sessions (
+    id VARCHAR(255) PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    data JSONB,
+    expires_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Indici
+CREATE INDEX IF NOT EXISTS idx_chat_messages_channel_id ON chat_messages(channel_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_timestamp ON chat_messages(timestamp);
+CREATE INDEX IF NOT EXISTS idx_commands_channel_id ON commands(channel_id);
+CREATE INDEX IF NOT EXISTS idx_channel_points_channel_id ON channel_points(channel_id);
+EOSQL
+
+su - postgres -c "psql -d $DB_NAME -f /tmp/init_m4bot_tables.sql"
+if [ \$? -ne 0 ]; then
+    print_error "Errore nella creazione delle tabelle" 1
+fi
+
+# Pulizia
+rm -f /tmp/init_m4bot_tables.sql
+
+# Crea l'amministratore
+print_message "Creazione dell'utente amministratore predefinito..."
+# Genera hash della password
+PASS_HASH=\$(python3 -c "import bcrypt; print(bcrypt.hashpw('$ADMIN_PASSWORD'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8'))")
+
+# Inserisci l'utente admin
+su - postgres -c "psql -d $DB_NAME -c \"INSERT INTO users (username, email, password_hash, is_admin) VALUES ('$ADMIN_USER', '$ADMIN_EMAIL', '\$PASS_HASH', TRUE) ON CONFLICT (username) DO NOTHING;\""
+
+print_success "Database inizializzato con successo!"
+print_message "Utente admin: $ADMIN_USER"
+print_message "Email admin: $ADMIN_EMAIL"
+EOF
+
+chmod +x $SCRIPTS_DIR/init_db_auto.sh
+$SCRIPTS_DIR/init_db_auto.sh
+
+print_success "Database inizializzato"
 
 # Configurazione di Nginx
 print_message "Configurazione di Nginx..."
@@ -188,7 +505,28 @@ print_message "Configurazione dell'avvio automatico dei servizi..."
 systemctl enable m4bot-bot.service
 systemctl enable m4bot-web.service
 
+# Avvio dei servizi
+print_message "Avvio dei servizi M4Bot..."
+systemctl start postgresql
+systemctl start nginx
+systemctl start m4bot-bot.service
+systemctl start m4bot-web.service
+
+# Verifica dello stato dei servizi
+print_message "Verifica dello stato dei servizi..."
+systemctl status postgresql --no-pager | grep Active
+systemctl status nginx --no-pager | grep Active
+systemctl status m4bot-bot.service --no-pager | grep Active
+systemctl status m4bot-web.service --no-pager | grep Active
+
 print_success "Installazione completata con successo!"
-print_message "Per avviare M4Bot, esegui: m4bot-start"
-print_message "Per fermare M4Bot, esegui: m4bot-stop"
-print_message "Per controllare lo stato di M4Bot, esegui: m4bot-status"
+print_message "M4Bot è ora attivo e funzionante!"
+print_message "Puoi accedere all'interfaccia web all'indirizzo: https://m4bot.it"
+print_message "Credenziali di accesso:"
+print_message "  Username: $ADMIN_USER"
+print_message "  Password: $ADMIN_PASSWORD"
+print_message ""
+print_message "Per gestire M4Bot, usa i seguenti comandi:"
+print_message "  - m4bot-start:   Avvia i servizi"
+print_message "  - m4bot-stop:    Ferma i servizi"
+print_message "  - m4bot-status:  Controlla lo stato dei servizi"

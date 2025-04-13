@@ -36,9 +36,11 @@ execute_step() {
 # Esegui ogni fase dell'installazione
 execute_step "Aggiornamento del sistema" "apt-get update && apt-get upgrade -y"
 
-execute_step "Installazione dipendenze di sistema" "apt-get install -y python3 python3-pip python3-venv postgresql nginx certbot python3-certbot-nginx git"
+execute_step "Installazione dipendenze di sistema" "apt-get install -y python3 python3-pip python3-venv postgresql nginx certbot python3-certbot-nginx git python3-bcrypt"
 
 execute_step "Configurazione del database PostgreSQL" "$PWD/setup_postgres.sh"
+
+execute_step "Inizializzazione del database" "$PWD/init_database.sh"
 
 execute_step "Installazione dei wrapper di sistema" "$PWD/install-wrappers.sh"
 
