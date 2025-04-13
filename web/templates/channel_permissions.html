@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Gestione Permessi - M4Bot') }}{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/permissions.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">{{ _('Dashboard') }}</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('channel_detail', channel_id=channel_id) }}">{{ channel.name }}</a></li>
+                <li class="breadcrumb-item active">{{ _('Gestione Permessi') }}</li>
+            </ol>
+        </nav>
+        <h2><i class="fas fa-user-shield me-2"></i>{{ _('Gestione Permessi e Ruoli') }}</h2>
+        <p class="text-muted">{{ _('Configura chi può accedere e gestire le funzionalità del tuo canale.') }}</p>
+    </div>
+</div>
+
+<!-- Notifiche -->
+{% if error %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    {{ error }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+{% if success %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    {{ success }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+<div class="permissions-container">
+    <!-- Aggiungi Moderatore -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="fas fa-user-plus me-2"></i>{{ _('Aggiungi Utente con Permessi') }}</h4>
+        </div>
+        <div class="card-body">
+            <form method="post" class="add-user-form">
+                <input type="hidden" name="action" value="add_permission">
+                <div class="row g-3">
+                    <div class="col-md-5 position-relative">
+                        <label for="username" class="form-label">{{ _('Nome utente') }}</label>
+                        <input type="text" name="username" id="username" class="form-control" placeholder="{{ _('Cerca utente...') }}" required>
+                        <div class="add-user-results d-none" id="userSearchResults"></div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="role" class="form-label">{{ _('Ruolo') }}</label>
+                        <select name="role" id="role" class="form-select" required>
+                            <option value="" disabled selected>{{ _('Seleziona ruolo') }}</option>
+                            {% for role in available_roles %}
+                            <option value="{{ role }}">{{ _(role|capitalize) }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="d-block">&nbsp;</label>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-plus-circle me-1"></i>{{ _('Aggiungi') }}
+                        </button>
+                    </div>
+                </div>
+            </form>
+            
+            <!-- Tabella utenti con permessi -->
+            <div class="table-responsive mt-4">
+                <table class="table table-hover permissions-table">
+                    <thead>
+                        <tr>
+                            <th>{{ _('Utente') }}</th>
+                            <th>{{ _('Ruolo') }}</th>
+                            <th>{{ _('Data assegnazione') }}</th>
+                            <th>{{ _('Azioni') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mod in moderators %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="user-avatar">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <div>
+                                        <div>{{ mod.username }}</div>
+                                        <small class="text-muted">ID: {{ mod.user_id }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="user-role user-{{ mod.role }}">{{ _(mod.role|capitalize) }}</span>
+                            </td>
+                            <td>{{ mod.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-primary edit-role" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#editRoleModal"
+                                            data-user-id="{{ mod.user_id }}"
+                                            data-username="{{ mod.username }}"
+                                            data-role="{{ mod.role }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form method="post" class="d-inline" onsubmit="return confirmDelete(event)">
+                                        <input type="hidden" name="action" value="remove_permission">
+                                        <input type="hidden" name="permission_id" value="{{ mod.id }}">
+                                        <button type="submit" class="btn btn-outline-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center py-3">
+                                <i class="fas fa-users fa-2x text-muted mb-2"></i>
+                                <p>{{ _('Nessun utente con permessi speciali') }}</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Configurazione Ruoli -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="fas fa-user-tag me-2"></i>{{ _('Configurazione Ruoli') }}</h4>
+        </div>
+        <div class="card-body">
+            <p>{{ _('Configura quali permessi ha ogni ruolo nel tuo canale.') }}</p>
+            
+            <div class="role-grid row g-4 mt-2">
+                {% for role in available_roles %}
+                <div class="col-md-6">
+                    <div class="role-card role-{{ role }}">
+                        <div class="card-header">
+                            <div class="role-icon">
+                                <i class="fas fa-{{ 'crown' if role == 'admin' else 'shield-alt' if role == 'moderator' else 'star' if role == 'subscriber' else 'user' }}"></i>
+                            </div>
+                            <h5 class="role-title">{{ _(role|capitalize) }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post">
+                                <input type="hidden" name="action" value="update_role_permissions">
+                                <input type="hidden" name="role" value="{{ role }}">
+                                
+                                <ul class="permission-list">
+                                    {% for perm_key, perm_info in permissions.items() %}
+                                    <li class="permission-item">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" 
+                                                   type="checkbox" 
+                                                   id="{{ role }}_{{ perm_key }}" 
+                                                   name="perm_{{ role }}_{{ perm_key }}"
+                                                   {% if role_permissions.get(role) and perm_key in role_permissions[role] %}checked{% endif %}
+                                                   {% if role == 'admin' %}checked disabled{% endif %}>
+                                            <label class="form-check-label" for="{{ role }}_{{ perm_key }}"></label>
+                                        </div>
+                                        <div class="permission-info">
+                                            <p class="permission-name">{{ _(perm_info.name) }}</p>
+                                            <p class="permission-description">{{ _(perm_info.description) }}</p>
+                                        </div>
+                                        <div class="permission-tooltip" 
+                                             data-bs-toggle="tooltip" 
+                                             data-bs-placement="top" 
+                                             title="{{ _(perm_info.tooltip) }}">
+                                            <i class="fas fa-info-circle"></i>
+                                        </div>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                                
+                                <div class="text-end mt-3">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-1"></i>{{ _('Salva Permessi') }}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Impostazioni Avanzate -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="fas fa-cogs me-2"></i>{{ _('Impostazioni Avanzate') }}</h4>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                <input type="hidden" name="action" value="update_advanced_settings">
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="requireAuth" name="require_auth" {{ 'checked' if advanced_settings.require_auth else '' }}>
+                            <label class="form-check-label" for="requireAuth">{{ _('Richiedi autenticazione per tutte le azioni') }}</label>
+                        </div>
+                        <div class="form-text">{{ _('Se abilitato, tutte le azioni richiederanno l\'autenticazione, anche quelle normalmente disponibili a tutti.') }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="strictMode" name="strict_mode" {{ 'checked' if advanced_settings.strict_mode else '' }}>
+                            <label class="form-check-label" for="strictMode">{{ _('Modalità restrittiva') }}</label>
+                        </div>
+                        <div class="form-text">{{ _('Se abilitato, i ruoli avranno accesso solo alle funzionalità esplicitamente consentite.') }}</div>
+                    </div>
+                </div>
+                
+                <div class="form-group mb-4">
+                    <label for="defaultRole" class="form-label">{{ _('Ruolo predefinito per nuovi utenti') }}</label>
+                    <select class="form-select" id="defaultRole" name="default_role">
+                        {% for role in available_roles %}
+                        <option value="{{ role }}" {{ 'selected' if advanced_settings.default_role == role else '' }}>{{ _(role|capitalize) }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">{{ _('Il ruolo assegnato automaticamente a nuovi utenti nel tuo canale.') }}</div>
+                </div>
+                
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>{{ _('Salva Impostazioni') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modale Modifica Ruolo -->
+<div class="modal fade" id="editRoleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ _('Modifica Ruolo Utente') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post">
+                <input type="hidden" name="action" value="update_user_role">
+                <input type="hidden" name="user_id" id="editUserId">
+                
+                <div class="modal-body">
+                    <p>{{ _('Modifica il ruolo per') }} <strong id="editUsername"></strong></p>
+                    
+                    <div class="mb-3">
+                        <label for="editRole" class="form-label">{{ _('Ruolo') }}</label>
+                        <select class="form-select" id="editRole" name="role" required>
+                            {% for role in available_roles %}
+                            <option value="{{ role }}">{{ _(role|capitalize) }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Annulla') }}</button>
+                    <button type="submit" class="btn btn-primary">{{ _('Salva Modifiche') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inizializza tooltip per i dettagli dei permessi
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+        
+        // Gestione modale modifica ruolo
+        const editRoleButtons = document.querySelectorAll('.edit-role');
+        editRoleButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const userId = this.dataset.userId;
+                const username = this.dataset.username;
+                const role = this.dataset.role;
+                
+                document.getElementById('editUserId').value = userId;
+                document.getElementById('editUsername').textContent = username;
+                
+                const roleSelect = document.getElementById('editRole');
+                if (roleSelect) {
+                    for (let i = 0; i < roleSelect.options.length; i++) {
+                        if (roleSelect.options[i].value === role) {
+                            roleSelect.selectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+            });
+        });
+        
+        // Conferma eliminazione
+        function confirmDelete(event) {
+            if (!confirm("{{ _('Sei sicuro di voler rimuovere i permessi di questo utente?') }}")) {
+                event.preventDefault();
+                return false;
+            }
+            return true;
+        }
+        
+        // Ricerca utenti in tempo reale
+        const usernameInput = document.getElementById('username');
+        const searchResultsContainer = document.getElementById('userSearchResults');
+        
+        if (usernameInput) {
+            usernameInput.addEventListener('input', debounce(function() {
+                const query = this.value.trim();
+                
+                if (query.length < 2) {
+                    searchResultsContainer.classList.add('d-none');
+                    return;
+                }
+                
+                // Esegui ricerca API
+                fetch(`/api/users/search?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.users.length > 0) {
+                            // Mostra risultati
+                            searchResultsContainer.classList.remove('d-none');
+                            searchResultsContainer.innerHTML = '';
+                            
+                            data.users.forEach(user => {
+                                const item = document.createElement('div');
+                                item.className = 'user-result-item';
+                                item.innerHTML = `
+                                    <div class="user-result-avatar">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <div>
+                                        <div>${user.username}</div>
+                                        <small class="text-muted">${user.email}</small>
+                                    </div>
+                                `;
+                                
+                                item.addEventListener('click', function() {
+                                    usernameInput.value = user.username;
+                                    searchResultsContainer.classList.add('d-none');
+                                });
+                                
+                                searchResultsContainer.appendChild(item);
+                            });
+                        } else {
+                            // Nessun risultato
+                            searchResultsContainer.classList.remove('d-none');
+                            searchResultsContainer.innerHTML = `
+                                <div class="p-3 text-center">
+                                    <i class="fas fa-search me-1"></i> {{ _('Nessun utente trovato') }}
+                                </div>
+                            `;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error searching users:', error);
+                        searchResultsContainer.classList.add('d-none');
+                    });
+            }, 300));
+            
+            // Chiudi risultati cliccando fuori
+            document.addEventListener('click', function(event) {
+                if (!usernameInput.contains(event.target) && !searchResultsContainer.contains(event.target)) {
+                    searchResultsContainer.classList.add('d-none');
+                }
+            });
+        }
+        
+        // Funzione utility per debounce
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), wait);
+            };
+        }
+    });
+</script>
+{% endblock %} 

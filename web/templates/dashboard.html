@@ -1,173 +1,226 @@
 {% extends 'base.html' %}
 
-{% block title %}Dashboard - M4Bot{% endblock %}
+{% block title %}{{ _('Dashboard - M4Bot') }}{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard-customizer.css') }}">
+{% endblock %}
 
 {% block content %}
 <div class="row">
     <div class="col-md-12">
-        <h1 class="mb-4">Dashboard</h1>
-        
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Benvenuto, {{ user.username }}!</h5>
-                <p class="card-text">Da qui puoi gestire i tuoi canali e configurare il tuo bot.</p>
+        <h1 class="mb-4">{{ _('Dashboard') }}</h1>
+    </div>
+</div>
+
+<!-- Dashboard Controls -->
+<div class="dashboard-controls">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2>{{ _('Benvenuto,') }} {{ user.username }}!</h2>
+        <div class="dashboard-actions">
+            <button id="toggle-edit-mode" class="btn btn-outline-primary">
+                <i class="fas fa-edit me-1"></i>{{ _('Personalizza') }}
+            </button>
+            <button id="save-layout" class="btn btn-primary d-none">
+                <i class="fas fa-save me-1"></i>{{ _('Salva Layout') }}
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Customizable Dashboard -->
+<div id="customizable-dashboard">
+    <!-- Canali Attivi -->
+    <div class="dashboard-slot col-md-4">
+        <div id="card-channels" class="card dashboard-card" data-size="normal">
+            <div class="card-header">
+                <h4 class="mb-0">{{ _('I Tuoi Canali') }}</h4>
             </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <div class="col-md-12">
-        <div class="d-flex justify-content-between align-items-center">
-            <h2>I Tuoi Canali</h2>
-            <a href="{{ url_for('add_channel') }}" class="btn btn-primary">
-                <i class="fas fa-plus me-1"></i> Aggiungi Canale
-            </a>
-        </div>
-        <hr>
-    </div>
-</div>
-
-{% if channels %}
-<div class="row mb-4">
-    {% for channel in channels %}
-    <div class="col-md-4 mb-4">
-        <div class="card h-100 shadow-sm">
             <div class="card-body">
-                <h5 class="card-title">{{ channel.name }}</h5>
-                <div class="mb-3">
-                    <span class="badge bg-primary">ID: {{ channel.kick_channel_id }}</span>
-                    <span class="badge bg-secondary">Creato: {{ channel.created_at.strftime('%d/%m/%Y') }}</span>
+                {% if channels %}
+                <div class="channel-list">
+                    {% for channel in channels[:3] %}
+                    <div class="channel-item d-flex align-items-center mb-3">
+                        <div class="channel-icon me-3">
+                            <i class="fas fa-broadcast-tower fa-2x text-primary"></i>
+                        </div>
+                        <div class="channel-info flex-grow-1">
+                            <h5 class="mb-0">{{ channel.name }}</h5>
+                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                <span class="badge bg-{{ 'success' if channel.bot_enabled else 'danger' }}">
+                                    {{ _('Bot Attivo') if channel.bot_enabled else _('Bot Inattivo') }}
+                                </span>
+                                <a href="{{ url_for('channel_detail', channel_id=channel.id) }}" class="btn btn-sm btn-outline-primary">
+                                    {{ _('Gestisci') }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
-                
-                {% if stats.get(channel.id) %}
-                <div class="row text-center mb-3">
-                    <div class="col">
-                        <h6>Spettatori Unici</h6>
-                        <p class="h4">{{ stats[channel.id].unique_chatters or 0 }}</p>
-                    </div>
-                    <div class="col">
-                        <h6>Messaggi</h6>
-                        <p class="h4">{{ stats[channel.id].total_messages or 0 }}</p>
-                    </div>
-                    <div class="col">
-                        <h6>Comandi</h6>
-                        <p class="h4">{{ stats[channel.id].total_commands or 0 }}</p>
-                    </div>
+                {% if channels|length > 3 %}
+                <div class="text-center mt-3">
+                    <a href="#" class="btn btn-sm btn-outline-secondary">{{ _('Mostra tutti') }} ({{ channels|length }})</a>
                 </div>
                 {% endif %}
-                
-                <div class="d-grid gap-2">
-                    <a href="{{ url_for('channel_detail', channel_id=channel.id) }}" class="btn btn-outline-primary">Gestisci</a>
-                    <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-success start-bot" data-channel-id="{{ channel.id }}"><i class="fas fa-play me-1"></i> Avvia Bot</button>
-                        <button type="button" class="btn btn-danger stop-bot" data-channel-id="{{ channel.id }}"><i class="fas fa-stop me-1"></i> Ferma Bot</button>
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    <p class="mb-2">{{ _('Non hai ancora configurato nessun canale.') }}</p>
+                    <a href="{{ url_for('add_channel') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i>{{ _('Aggiungi Canale') }}
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Statistiche -->
+    <div class="dashboard-slot col-md-4">
+        <div id="card-stats" class="card dashboard-card" data-size="normal">
+            <div class="card-header">
+                <h4 class="mb-0">{{ _('Statistiche Globali') }}</h4>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <div class="stat-item">
+                            <div class="stat-value">{{ global_stats.total_messages or 0 }}</div>
+                            <div class="stat-label">{{ _('Messaggi') }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="stat-item">
+                            <div class="stat-value">{{ global_stats.unique_chatters or 0 }}</div>
+                            <div class="stat-label">{{ _('Utenti') }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-item">
+                            <div class="stat-value">{{ global_stats.total_commands or 0 }}</div>
+                            <div class="stat-label">{{ _('Comandi') }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-item">
+                            <div class="stat-value">{{ global_stats.streaming_hours or 0 }}</div>
+                            <div class="stat-label">{{ _('Ore Stream') }}</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    {% endfor %}
-</div>
-{% else %}
-<div class="row">
-    <div class="col-md-12">
-        <div class="alert alert-info" role="alert">
-            <h4 class="alert-heading">Nessun canale configurato!</h4>
-            <p>Non hai ancora configurato nessun canale per M4Bot. Clicca sul pulsante "Aggiungi Canale" per iniziare.</p>
-            <hr>
-            <p class="mb-0">Configurando un canale, potrai gestire i comandi, i giochi e tutte le altre funzionalità del bot.</p>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-<div class="row mt-5">
-    <div class="col-md-12">
-        <h2>Guide Rapide</h2>
-        <hr>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
+    
+    <!-- Attività Recente -->
+    <div class="dashboard-slot col-md-4">
+        <div id="card-activity" class="card dashboard-card" data-size="normal">
+            <div class="card-header">
+                <h4 class="mb-0">{{ _('Attività Recente') }}</h4>
+            </div>
             <div class="card-body">
-                <h5 class="card-title"><i class="fas fa-magic me-2"></i>Iniziare con M4Bot</h5>
-                <p class="card-text">Impara come configurare il tuo bot e iniziare a utilizzarlo nelle tue live su Kick.com.</p>
-                <a href="#" class="btn btn-outline-primary">Leggi la guida</a>
+                {% if recent_activity %}
+                <div class="timeline">
+                    {% for activity in recent_activity %}
+                    <div class="timeline-item">
+                        <div class="timeline-icon">
+                            <i class="fas {{ activity.icon }} text-{{ activity.color }}"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <p class="mb-0">{{ activity.message }}</p>
+                            <small class="text-muted">{{ activity.time }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-3">
+                    <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                    <p>{{ _('Nessuna attività recente da mostrare') }}</p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
+    
+    <!-- Comandi Popolari -->
+    <div class="dashboard-slot col-md-8">
+        <div id="card-commands" class="card dashboard-card" data-size="wide">
+            <div class="card-header">
+                <h4 class="mb-0">{{ _('I Comandi Più Usati') }}</h4>
+            </div>
             <div class="card-body">
-                <h5 class="card-title"><i class="fas fa-comments me-2"></i>Comandi Personalizzati</h5>
-                <p class="card-text">Scopri come creare comandi personalizzati per la tua chat e rendere le tue live più interattive.</p>
-                <a href="#" class="btn btn-outline-primary">Leggi la guida</a>
+                {% if popular_commands %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>{{ _('Comando') }}</th>
+                                <th>{{ _('Canale') }}</th>
+                                <th>{{ _('Utilizzi') }}</th>
+                                <th>{{ _('Ultima esecuzione') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cmd in popular_commands %}
+                            <tr>
+                                <td><code>{{ cmd.name }}</code></td>
+                                <td>{{ cmd.channel_name }}</td>
+                                <td>{{ cmd.usage_count }}</td>
+                                <td>{{ cmd.last_used }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-3">
+                    <i class="fas fa-terminal fa-3x text-muted mb-3"></i>
+                    <p>{{ _('Non hai ancora eseguito comandi') }}</p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
+    
+    <!-- Guide Rapide -->
+    <div class="dashboard-slot col-md-4">
+        <div id="card-guides" class="card dashboard-card" data-size="normal">
+            <div class="card-header">
+                <h4 class="mb-0">{{ _('Guide Rapide') }}</h4>
+            </div>
             <div class="card-body">
-                <h5 class="card-title"><i class="fas fa-gamepad me-2"></i>Giochi in Chat</h5>
-                <p class="card-text">Impara come configurare e avviare giochi in chat per intrattenere i tuoi spettatori.</p>
-                <a href="#" class="btn btn-outline-primary">Leggi la guida</a>
+                <div class="list-group">
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">{{ _('Iniziare con M4Bot') }}</h5>
+                            <small><i class="fas fa-arrow-right"></i></small>
+                        </div>
+                        <p class="mb-1">{{ _('Guida introduttiva per i nuovi utenti') }}</p>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">{{ _('Creare Comandi') }}</h5>
+                            <small><i class="fas fa-arrow-right"></i></small>
+                        </div>
+                        <p class="mb-1">{{ _('Come configurare comandi personalizzati') }}</p>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">{{ _('Giochi in Chat') }}</h5>
+                            <small><i class="fas fa-arrow-right"></i></small>
+                        </div>
+                        <p class="mb-1">{{ _('Configurare giochi interattivi') }}</p>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block extra_js %}
-<script>
-    $(document).ready(function() {
-        // Avvio del bot
-        $('.start-bot').click(function() {
-            const channelId = $(this).data('channel-id');
-            $.ajax({
-                url: "{{ url_for('api_start_bot') }}",
-                type: "POST",
-                contentType: "application/json",
-                data: JSON.stringify({
-                    channel_id: channelId
-                }),
-                success: function(response) {
-                    if (response.success) {
-                        alert(response.message);
-                    } else {
-                        alert("Errore: " + response.error);
-                    }
-                },
-                error: function() {
-                    alert("Si è verificato un errore durante l'avvio del bot");
-                }
-            });
-        });
-        
-        // Arresto del bot
-        $('.stop-bot').click(function() {
-            const channelId = $(this).data('channel-id');
-            $.ajax({
-                url: "{{ url_for('api_stop_bot') }}",
-                type: "POST",
-                contentType: "application/json",
-                data: JSON.stringify({
-                    channel_id: channelId
-                }),
-                success: function(response) {
-                    if (response.success) {
-                        alert(response.message);
-                    } else {
-                        alert("Errore: " + response.error);
-                    }
-                },
-                error: function() {
-                    alert("Si è verificato un errore durante l'arresto del bot");
-                }
-            });
-        });
-    });
-</script>
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/dashboard-customizer.js') }}"></script>
 {% endblock %}

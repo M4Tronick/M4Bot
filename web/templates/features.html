@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Funzionalità - M4Bot{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-5">
+        <div class="col-md-12 text-center">
+            <h1 class="display-4">Funzionalità di M4Bot</h1>
+            <p class="lead">Scopri tutte le potenti funzionalità che M4Bot offre per migliorare il tuo canale Kick.</p>
+        </div>
+    </div>
+
+    <!-- Gestione Comandi -->
+    <div class="row mb-5">
+        <div class="col-md-12">
+            <h2 class="border-bottom pb-2 mb-4">Gestione Comandi</h2>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title"><i class="fas fa-terminal text-primary me-2"></i>Comandi Personalizzati</h3>
+                    <p class="card-text">Crea un numero illimitato di comandi personalizzati per la tua chat con risposte dinamiche e variabili.</p>
+                    <ul class="list-group list-group-flush mb-3">
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Supporto per variabili come {user}, {channel}, {uptime}</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Impostazione di cooldown personalizzati per ogni comando</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Permessi utente configurabili (tutti, subscribers, moderatori, etc.)</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Contatore utilizzi e statistiche per comando</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title"><i class="fas fa-tools text-warning me-2"></i>Editor Visuale</h3>
+                    <p class="card-text">Crea comandi complessi senza scrivere codice grazie all'editor visuale drag-and-drop.</p>
+                    <ul class="list-group list-group-flush mb-3">
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Interfaccia intuitiva drag-and-drop</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Blocchi logici per condizioni, variabili e loop</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Anteprima in tempo reale del comando</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Esportazione e importazione di template</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Giochi e Interazione -->
+    <div class="row mb-5">
+        <div class="col-md-12">
+            <h2 class="border-bottom pb-2 mb-4">Giochi e Interazione</h2>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title"><i class="fas fa-gamepad text-success me-2"></i>Giochi in Chat</h3>
+                    <p class="card-text">Intrattieni i tuoi spettatori con una varietà di giochi interattivi integrati.</p>
+                    <ul class="list-group list-group-flush mb-3">
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Trivia con domande personalizzabili</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Roulette, Slot e giochi di fortuna</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Duelli tra spettatori</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Avventure cooperative come rapine in banca</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title"><i class="fas fa-coins text-warning me-2"></i>Sistema di Punti</h3>
+                    <p class="card-text">Premia i tuoi spettatori fedeli con un sistema di punti e classifiche.</p>
+                    <ul class="list-group list-group-flush mb-3">
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Punti per tempo di visione, messaggi e interazioni</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Classifiche competitive con premi automatici</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Sistema di livelli personalizzabile</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Integrazione con i giochi in chat</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Moderazione e Automazione -->
+    <div class="row mb-5">
+        <div class="col-md-12">
+            <h2 class="border-bottom pb-2 mb-4">Moderazione e Automazione</h2>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title"><i class="fas fa-shield-alt text-danger me-2"></i>Strumenti di Moderazione</h3>
+                    <p class="card-text">Mantieni la tua chat pulita e sicura con strumenti di moderazione avanzati.</p>
+                    <ul class="list-group list-group-flush mb-3">
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Filtri per spam, link e contenuti inappropriati</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Timeout e ban automatici per comportamenti scorretti</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Sistema di avvertimenti configurabile</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Log di moderazione completi</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title"><i class="fas fa-robot text-primary me-2"></i>Automazione</h3>
+                    <p class="card-text">Automatizza la tua stream con messaggi e azioni programmate.</p>
+                    <ul class="list-group list-group-flush mb-3">
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Messaggi programmati a intervalli personalizzabili</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Shoutout automatici per streamer e subscribers</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Avvisi per nuovi follower e iscritti</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Eventi basati sul tempo di streaming</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Integrazioni -->
+    <div class="row mb-5">
+        <div class="col-md-12">
+            <h2 class="border-bottom pb-2 mb-4">Integrazioni</h2>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title"><i class="fas fa-plug text-info me-2"></i>Webhook e API</h3>
+                    <p class="card-text">Integra M4Bot con altri servizi e applicazioni tramite webhook e API.</p>
+                    <ul class="list-group list-group-flush mb-3">
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>API RESTful per integrazione con servizi esterni</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Webhook per notifiche di eventi in tempo reale</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Supporto per integrazioni di terze parti</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Documentazione completa per sviluppatori</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title"><i class="fas fa-tv text-secondary me-2"></i>Integrazione OBS</h3>
+                    <p class="card-text">Controlla OBS Studio direttamente da M4Bot per un'esperienza di streaming senza interruzioni.</p>
+                    <ul class="list-group list-group-flush mb-3">
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Cambio di scene automatico o tramite comando</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Attivazione/disattivazione di sorgenti</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Controllo della registrazione e dello streaming</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Trigger per eventi come nuovi follower o iscritti</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiche e Analytics -->
+    <div class="row mb-5">
+        <div class="col-md-12">
+            <h2 class="border-bottom pb-2 mb-4">Statistiche e Analytics</h2>
+        </div>
+        <div class="col-md-12">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title"><i class="fas fa-chart-line text-success me-2"></i>Analisi Dettagliate</h3>
+                    <p class="card-text">Ottieni informazioni approfondite sulla tua community e sul rendimento del tuo canale.</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-group list-group-flush mb-3">
+                                <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Statistiche di engagement per messaggio e spettatore</li>
+                                <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Analisi dei picchi di attività per orario e giorno</li>
+                                <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Metriche di crescita dei follower e iscritti</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-group list-group-flush mb-3">
+                                <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Tracciamento dell'utilizzo dei comandi e giochi</li>
+                                <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Report esportabili in vari formati</li>
+                                <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Dashboard personalizzabile con grafici interattivi</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="row">
+        <div class="col-md-12 text-center mb-5">
+            <h2>Pronto a potenziare il tuo canale?</h2>
+            <p class="lead mb-4">Inizia subito a usare M4Bot e scopri tutte queste incredibili funzionalità!</p>
+            <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg me-3">Registrati Gratis</a>
+            <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-lg">Accedi</a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

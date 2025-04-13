@@ -1,17 +1,18 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}M4Bot - Bot per Kick.com{% endblock %}</title>
-    
+    <title>{% block title %}M4Bot{% endblock %}</title>
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    
+    {% block head %}{% endblock %}
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -19,70 +20,76 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">
-                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="M4Bot Logo" height="30" class="d-inline-block align-text-top me-2">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="M4Bot Logo" height="30">
                 M4Bot
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link {% if request.path == url_for('index') %}active{% endif %}" href="{{ url_for('index') }}">Home</a>
+                        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Home</a>
                     </li>
-                    {% if session.get('user_id') %}
                     <li class="nav-item">
-                        <a class="nav-link {% if request.path == url_for('dashboard') %}active{% endif %}" href="{{ url_for('dashboard') }}">Dashboard</a>
+                        <a class="nav-link {% if request.endpoint == 'features' %}active{% endif %}" href="{{ url_for('features') }}">Funzionalità</a>
+                    </li>
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">Dashboard</a>
                     </li>
                     {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="#features">Funzionalità</a>
-                    </li>
                 </ul>
-                <ul class="navbar-nav ms-auto">
-                    {% if session.get('user_id') %}
+                
+                <ul class="navbar-nav">
+                    {% if current_user.is_authenticated %}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-user me-1"></i> Account
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-1"></i> {{ current_user.username }}
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                            <li><a class="dropdown-item" href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('dashboard') }}"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-user-cog me-2"></i>Profilo</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                         </ul>
                     </li>
                     {% else %}
                     <li class="nav-item">
-                        <a class="nav-link {% if request.path == url_for('login') %}active{% endif %}" href="{{ url_for('login') }}">Accedi</a>
+                        <a class="nav-link {% if request.endpoint == 'login' %}active{% endif %}" href="{{ url_for('login') }}">Accedi</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.path == url_for('register') %}active{% endif %}" href="{{ url_for('register') }}">Registrati</a>
+                        <a class="nav-link {% if request.endpoint == 'register' %}active{% endif %}" href="{{ url_for('register') }}">Registrati</a>
                     </li>
                     {% endif %}
+                    
+                    <!-- Language Selector -->
+                    <li class="nav-item dropdown ms-2">
+                        <a class="nav-link dropdown-toggle" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-globe me-1"></i> {{ current_language_name }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                            {% for code, name in available_languages.items() %}
+                            <li><a class="dropdown-item {% if current_language == code %}active{% endif %}" href="?lang={{ code }}">{{ name }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                    
+                    <li class="nav-item ms-2">
+                        <div class="form-check form-switch pt-2">
+                            <input class="form-check-input" type="checkbox" id="darkModeToggle">
+                            <label class="form-check-label text-light" for="darkModeToggle"><i class="fas fa-moon"></i></label>
+                        </div>
+                    </li>
                 </ul>
             </div>
         </div>
     </nav>
 
-    <!-- Flash Messages -->
-    {% if request.args.get('error') %}
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        {{ request.args.get('error') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-    {% endif %}
-    
-    {% if request.args.get('success') %}
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        {{ request.args.get('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-    {% endif %}
-
     <!-- Main Content -->
-    <main class="container py-4">
+    <div class="container py-4">
         {% block content %}{% endblock %}
-    </main>
+    </div>
 
     <!-- Footer -->
     <footer class="bg-dark text-white py-4 mt-5">
@@ -90,45 +97,42 @@
             <div class="row">
                 <div class="col-md-4">
                     <h5>M4Bot</h5>
-                    <p>Il tuo bot personalizzabile per Kick.com</p>
+                    <p>Il bot più completo e personalizzabile per Kick.com</p>
                 </div>
                 <div class="col-md-4">
-                    <h5>Link utili</h5>
+                    <h5>Link Utili</h5>
                     <ul class="list-unstyled">
-                        <li><a href="#" class="text-white">Documentazione</a></li>
-                        <li><a href="#" class="text-white">Privacy Policy</a></li>
-                        <li><a href="#" class="text-white">Termini di servizio</a></li>
+                        <li><a href="{{ url_for('index') }}" class="text-decoration-none text-white-50">Home</a></li>
+                        <li><a href="{{ url_for('features') }}" class="text-decoration-none text-white-50">Funzionalità</a></li>
+                        <li><a href="#" class="text-decoration-none text-white-50">Documentazione</a></li>
+                        <li><a href="#" class="text-decoration-none text-white-50">Contatti</a></li>
                     </ul>
                 </div>
                 <div class="col-md-4">
-                    <h5>Contatti</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="mailto:info@m4bot.it" class="text-white">info@m4bot.it</a></li>
-                        <li><a href="https://m4bot.it" class="text-white">m4bot.it</a></li>
-                    </ul>
-                    <div class="mt-3">
-                        <a href="#" class="text-white me-2"><i class="fab fa-twitter"></i></a>
-                        <a href="#" class="text-white me-2"><i class="fab fa-discord"></i></a>
-                        <a href="#" class="text-white"><i class="fab fa-github"></i></a>
+                    <h5>Seguici</h5>
+                    <div class="d-flex">
+                        <a href="#" class="text-decoration-none text-white-50 me-3"><i class="fab fa-twitter fa-lg"></i></a>
+                        <a href="#" class="text-decoration-none text-white-50 me-3"><i class="fab fa-discord fa-lg"></i></a>
+                        <a href="#" class="text-decoration-none text-white-50 me-3"><i class="fab fa-github fa-lg"></i></a>
                     </div>
                 </div>
             </div>
             <hr>
             <div class="text-center">
-                <p class="mb-0">&copy; 2025 M4Bot. Tutti i diritti riservati.</p>
+                <p class="mb-0">&copy; 2023 M4Bot. Tutti i diritti riservati.</p>
             </div>
         </div>
     </footer>
 
-    <!-- Bootstrap JS Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.3.min.js"></script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    
+    {% block scripts %}{% endblock %}
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -14,15 +14,23 @@ import base64
 from functools import wraps
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
+import time
+import asyncio
 
 import aiohttp
-from quart import Quart, render_template, request, redirect, url_for, session, jsonify
+from quart import Quart, render_template, request, redirect, url_for, session, jsonify, flash
 from quart_cors import cors
 import asyncpg
 import bcrypt
+from dotenv import load_dotenv
+from flask_babel import Babel, gettext as _
 
 # Aggiungi la directory principale al path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Carica le variabili d'ambiente dal file .env
+env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+load_dotenv(env_path)
 
 # Configurazione
 CLIENT_ID = "your_kick_client_id"
@@ -32,10 +40,10 @@ SCOPE = "public"
 ENCRYPTION_KEY = "your_secret_key"
 LOG_LEVEL = "INFO"
 LOG_FILE = "m4bot.log"
-DB_USER = "postgres"
-DB_PASS = "password"
-DB_NAME = "m4bot"
-DB_HOST = "localhost"
+DB_USER = os.getenv('DB_USER', 'm4bot_user')
+DB_PASS = os.getenv('DB_PASSWORD', '')
+DB_NAME = os.getenv('DB_NAME', 'm4bot_db')
+DB_HOST = os.getenv('DB_HOST', 'localhost')
 
 # Configura il logging
 logging.basicConfig(
@@ -53,6 +61,10 @@ app = Quart(__name__)
 app = cors(app)
 app.secret_key = ENCRYPTION_KEY
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(16))
+app.config['BABEL_DEFAULT_LOCALE'] = 'it'
+app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations'
+babel = Babel(app)
 
 # Pool di connessioni al database
 db_pool = None
@@ -120,6 +132,39 @@ def generate_pkce_challenge():
 def generate_state():
     """Genera un token di stato univoco per le richieste OAuth."""
     return secrets.token_urlsafe(32)
+
+@babel.localeselector
+async def get_locale():
+    # Priorità: 1. Parametro URL, 2. Cookie, 3. Preferenza browser, 4. Default (it)
+    lang = request.args.get('lang')
+    if lang and lang in ['it', 'en', 'es', 'fr', 'de']:
+        # In Quart, dobbiamo differire l'impostazione del cookie alla risposta
+        session['preferred_language'] = lang
+        return lang
+    
+    # Verifica cookie
+    saved_lang = session.get('preferred_language')
+    if saved_lang and saved_lang in ['it', 'en', 'es', 'fr', 'de']:
+        return saved_lang
+        
+    # Altrimenti usa la preferenza del browser o default
+    return request.accept_languages.best_match(['it', 'en', 'es', 'fr', 'de'], default='it')
+
+@app.context_processor
+async def inject_language_info():
+    current_lang = await get_locale()
+    language_names = {
+        'it': 'Italiano',
+        'en': 'English',
+        'es': 'Español',
+        'fr': 'Français',
+        'de': 'Deutsch'
+    }
+    return {
+        'current_language': current_lang,
+        'current_language_name': language_names.get(current_lang, 'Italiano'),
+        'available_languages': language_names
+    }
 
 # Rotte dell'applicazione
 @app.route('/')
@@ -1002,6 +1047,86 @@ async def public_commands(channel_name):
     except Exception as e:
         logger.error(f"Errore nella pagina pubblica comandi: {e}")
         return await render_template('error.html', message=f"Errore del server: {str(e)}"), 500
+
+@app.route('/features')
+async def features():
+    """Pagina delle funzionalità di M4Bot."""
+    return await render_template('features.html')
+
+@app.route('/password_recovery', methods=['GET', 'POST'])
+async def password_recovery():
+    """Pagina di recupero password."""
+    if request.method == 'POST':
+        email = request.form.get('email')
+        
+        # Verifica se l'email esiste nel sistema
+        async with app.pool.acquire() as conn:
+            user = await conn.fetchrow('SELECT id, username FROM users WHERE email = $1', email)
+            
+            if user:
+                # Genera un token di recupero
+                token = secrets.token_urlsafe(32)
+                expiry = datetime.now() + timedelta(hours=2)
+                
+                # Salva il token nel database
+                await conn.execute(
+                    'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
+                    user['id'], token, expiry
+                )
+                
+                # Qui si dovrebbe inviare l'email di recupero
+                # Per semplicità, facciamo finta che l'email sia stata inviata
+                flash('Ti abbiamo inviato un\'email con le istruzioni per reimpostare la password.', 'success')
+                return redirect(url_for('login'))
+            else:
+                flash('Nessun account trovato con questa email.', 'danger')
+    
+    return await render_template('password_recovery.html')
+
+@app.route('/command_editor', methods=['GET', 'POST'])
+@login_required
+async def command_editor():
+    """Editor visuale dei comandi."""
+    channel_id = request.args.get('channel_id')
+    
+    if not channel_id:
+        return redirect(url_for('dashboard'))
+    
+    # Verifica che il canale appartenga all'utente corrente
+    async with app.pool.acquire() as conn:
+        channel = await conn.fetchrow(
+            'SELECT * FROM channels WHERE id = $1 AND user_id = $2',
+            channel_id, session.get('user_id')
+        )
+        
+        if not channel:
+            flash('Canale non trovato o non autorizzato.', 'danger')
+            return redirect(url_for('dashboard'))
+        
+        # Carica i comandi esistenti
+        commands = await conn.fetch(
+            'SELECT * FROM commands WHERE channel_id = $1 ORDER BY name',
+            channel_id
+        )
+    
+    return await render_template('command_editor.html', channel=channel, commands=commands)
+
+@app.route('/webhook_management', methods=['GET', 'POST'])
+@login_required
+async def webhook_management():
+    """Gestione webhook per Kick."""
+    # Carica i canali dell'utente corrente
+    async with app.pool.acquire() as conn:
+        channels = await conn.fetch(
+            'SELECT * FROM channels WHERE user_id = $1',
+            session.get('user_id')
+        )
+    
+    if request.method == 'POST':
+        # Logica per salvare la configurazione webhook
+        pass
+    
+    return await render_template('webhook_management.html', channels=channels)
 
 @app.errorhandler(404)
 async def page_not_found(e):

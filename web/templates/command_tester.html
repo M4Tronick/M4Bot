@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M4Bot - Tester Comandi</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/command_tester.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            {% include 'sidebar.html' %}
+            
+            <!-- Contenuto principale -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2"><i class="fas fa-terminal me-2"></i>Tester Comandi</h1>
+                    <div class="ws-status ws-disconnected" id="wsStatus">
+                        <i class="fas fa-circle"></i> Disconnesso
+                    </div>
+                </div>
+                
+                <!-- Form per testare i comandi -->
+                <div class="row">
+                    <div class="col-md-7">
+                        <div class="card mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <i class="fas fa-code me-2"></i>Comando da testare
+                            </div>
+                            <div class="card-body">
+                                <form id="commandForm">
+                                    <div class="mb-3">
+                                        <label for="commandName" class="form-label">Nome del comando</label>
+                                        <input type="text" class="form-control" id="commandName" required placeholder="Esempio: play, help, ban">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="commandParams" class="form-label">Parametri (opzionale)</label>
+                                        <input type="text" class="form-control" id="commandParams" placeholder="Parametri separati da spazi">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="userRole" class="form-label">Ruolo utente</label>
+                                        <select class="form-select" id="userRole">
+                                            <option value="user">Utente</option>
+                                            <option value="mod">Moderatore</option>
+                                            <option value="admin">Amministratore</option>
+                                            <option value="owner">Proprietario</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-primary" id="testBtn">
+                                        <i class="fas fa-play me-2"></i>Testa Comando
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" id="clearBtn">
+                                        <i class="fas fa-broom me-2"></i>Pulisci
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Cronologia test -->
+                        <div class="card test-history-container">
+                            <div class="card-header bg-info text-white">
+                                <i class="fas fa-history me-2"></i>Cronologia Test
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="test-history-list" id="testHistory">
+                                    <!-- La cronologia verrà popolata dinamicamente -->
+                                    <div class="p-4 text-center text-muted">
+                                        <i class="fas fa-info-circle mb-2" style="font-size: 2rem;"></i>
+                                        <p>Nessun test ancora eseguito</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-5">
+                        <!-- Anteprima -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-success text-white">
+                                <i class="fas fa-eye me-2"></i>Anteprima
+                            </div>
+                            <div class="card-body">
+                                <div class="preview-container" id="previewContainer">
+                                    <div class="text-center p-4">
+                                        <i class="fas fa-robot mb-3" style="font-size: 3rem; color: #5865f2;"></i>
+                                        <p>Testa un comando per vedere l'anteprima della risposta</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Suggerimenti -->
+                        <div class="card">
+                            <div class="card-header bg-warning text-dark">
+                                <i class="fas fa-lightbulb me-2"></i>Suggerimenti
+                            </div>
+                            <div class="card-body">
+                                <div class="tips-list">
+                                    <h5>Come usare il tester:</h5>
+                                    <ul>
+                                        <li>Inserisci il nome del comando senza il prefisso (ad es. "help" invece di "!help")</li>
+                                        <li>Per testare comandi con più parametri, separali con uno spazio</li>
+                                        <li>Seleziona un ruolo diverso per verificare l'effetto sulle autorizzazioni</li>
+                                        <li>Utilizza la cronologia per ritestare rapidamente i comandi precedenti</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/command_tester.js') }}"></script>
+</body>
+</html> 

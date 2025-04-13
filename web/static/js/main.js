@@ -54,6 +54,43 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Helper function to make standardized API calls
+    async function callApi(endpoint, method = 'GET', data = null, showLoader = true) {
+        try {
+            if (showLoader) {
+                showLoader();
+            }
+            
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            };
+            
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+            
+            const response = await fetch(endpoint, options);
+            const responseData = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(responseData.error || 'Si è verificato un errore nella richiesta');
+            }
+            
+            return responseData;
+        } catch (error) {
+            console.error('API Error:', error);
+            showToast('Errore', error.message, 'danger');
+            throw error;
+        } finally {
+            if (showLoader) {
+                hideLoader();
+            }
+        }
+    }
+
     // Handle API calls for bot start/stop
     const apiButtons = document.querySelectorAll('.api-action');
     if (apiButtons) {
@@ -68,33 +105,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> In corso...';
                     this.disabled = true;
                     
-                    const response = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ channel_id: channelId })
-                    });
+                    const data = await callApi(endpoint, 'POST', { channel_id: channelId }, false);
                     
-                    const data = await response.json();
-                    
-                    // Reset button state
-                    this.disabled = false;
-                    if (action === 'start') {
-                        this.innerHTML = '<i class="fas fa-play-circle me-2"></i>Avvia Bot';
-                    } else {
-                        this.innerHTML = '<i class="fas fa-stop-circle me-2"></i>Ferma Bot';
-                    }
-                    
-                    if (response.ok) {
-                        showToast('Successo', data.message, 'success');
-                    } else {
-                        showToast('Errore', data.error, 'danger');
-                    }
-                } catch (err) {
-                    console.error(err);
-                    showToast('Errore', 'Si è verificato un errore nella comunicazione con il server', 'danger');
-                    
+                    // Show success message
+                    showToast('Successo', data.message, 'success');
+                } catch (error) {
+                    // Error handling is done in the callApi function
+                } finally {
                     // Reset button state
                     this.disabled = false;
                     if (action === 'start') {
@@ -107,19 +124,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Gestione del toggle della dark mode
+    // Dark mode toggle
     const darkModeToggle = document.getElementById('darkModeToggle');
     if (darkModeToggle) {
-        // Controlla se è abilitata la modalità scura nel localStorage
+        // Check if dark mode is enabled in localStorage
         const isDarkMode = localStorage.getItem('darkMode') === 'true';
         
-        // Imposta il tema iniziale
+        // Set initial theme
         if (isDarkMode) {
             document.documentElement.setAttribute('data-bs-theme', 'dark');
             darkModeToggle.checked = true;
         }
         
-        // Gestione del cambio del tema
+        // Handle theme toggle
         darkModeToggle.addEventListener('change', function() {
             if (this.checked) {
                 document.documentElement.setAttribute('data-bs-theme', 'dark');
@@ -131,43 +148,43 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Funzione per mostrare il loader durante le richieste AJAX
+    // Function to show loader during API requests
     function showLoader() {
-        // Crea un elemento overlay per il loader
+        // Create overlay element for the loader
         const overlay = document.createElement('div');
         overlay.className = 'spinner-overlay';
         overlay.id = 'loadingSpinner';
         
-        // Crea il contenitore dello spinner
+        // Create spinner container
         const spinnerContainer = document.createElement('div');
         spinnerContainer.className = 'spinner-container';
         
-        // Crea lo spinner
+        // Create spinner
         const spinner = document.createElement('div');
         spinner.className = 'spinner-border text-primary';
         spinner.setAttribute('role', 'status');
         
-        // Crea il testo
+        // Create text
         const spinnerText = document.createElement('span');
         spinnerText.className = 'visually-hidden';
         spinnerText.textContent = 'Caricamento...';
         
-        // Aggiungi il messaggio sotto lo spinner
+        // Add message below spinner
         const message = document.createElement('p');
         message.className = 'mt-2';
         message.textContent = 'Caricamento in corso...';
         
-        // Assembla gli elementi
+        // Assemble elements
         spinner.appendChild(spinnerText);
         spinnerContainer.appendChild(spinner);
         spinnerContainer.appendChild(message);
         overlay.appendChild(spinnerContainer);
         
-        // Aggiungi l'overlay al body
+        // Add overlay to body
         document.body.appendChild(overlay);
     }
 
-    // Funzione per nascondere il loader
+    // Function to hide loader
     function hideLoader() {
         const loader = document.getElementById('loadingSpinner');
         if (loader) {
@@ -175,32 +192,25 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Configura AJAX per mostrare il loader durante le richieste
-    $(document).ajaxStart(function() {
-        showLoader();
-    }).ajaxStop(function() {
-        hideLoader();
-    });
-
-    // Gestione del form di aggiunta/modifica dei comandi
+    // Form validation for command form
     const commandForm = document.getElementById('commandForm');
     if (commandForm) {
         commandForm.addEventListener('submit', function(e) {
-            // Validazione del form
+            // Validate form
             const commandName = document.getElementById('commandName').value;
             if (!commandName.startsWith('!')) {
                 e.preventDefault();
-                alert('Il nome del comando deve iniziare con !');
+                showToast('Errore', 'Il nome del comando deve iniziare con !', 'danger');
                 return false;
             }
             
-            // Mostra il loader
+            // Show loader
             showLoader();
             return true;
         });
     }
 
-    // Funzione per confermare l'eliminazione
+    // Function to confirm deletion
     function confirmDelete(event, message) {
         if (!confirm(message || 'Sei sicuro di voler eliminare questo elemento?')) {
             event.preventDefault();
@@ -209,7 +219,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return true;
     }
 
-    // Aggiungi listener a tutti i pulsanti di eliminazione
+    // Add listeners to all delete buttons
     const deleteButtons = document.querySelectorAll('.delete-btn');
     deleteButtons.forEach(button => {
         button.addEventListener('click', function(e) {
@@ -217,22 +227,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Gestione dei grafici statistici (se presenti)
+    // Initialize statistics charts
     const statisticsCharts = document.querySelectorAll('.statistics-chart');
     statisticsCharts.forEach(chartCanvas => {
         const ctx = chartCanvas.getContext('2d');
         
-        // Recupera i dati dal data-attribute
+        // Get data from data-attribute
         const chartData = JSON.parse(chartCanvas.dataset.chartData || '{}');
         const chartType = chartCanvas.dataset.chartType || 'line';
         
-        // Configurazione del grafico
+        // Chart configuration
         const chartConfig = {
             type: chartType,
             data: {
                 labels: chartData.labels || [],
                 datasets: [{
-                    label: chartData.label || 'Dati',
+                    label: chartData.label || 'Data',
                     data: chartData.data || [],
                     backgroundColor: 'rgba(138, 67, 204, 0.2)',
                     borderColor: 'rgba(138, 67, 204, 1)',
@@ -250,11 +260,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         };
         
-        // Crea il grafico
+        // Create chart
         new Chart(ctx, chartConfig);
     });
     
-    // Gestione del toggle dello stato di un comando
+    // Command toggle switch handler
     const commandToggleSwitches = document.querySelectorAll('.command-toggle');
     commandToggleSwitches.forEach(toggle => {
         toggle.addEventListener('change', function() {
@@ -266,7 +276,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Funzione per copy to clipboard
+    // Copy to clipboard function
     function copyToClipboard(text) {
         const textarea = document.createElement('textarea');
         textarea.value = text;
@@ -276,14 +286,14 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.removeChild(textarea);
     }
     
-    // Aggiungi listener ai pulsanti di copia
+    // Add listeners to copy buttons
     const copyButtons = document.querySelectorAll('.copy-btn');
     copyButtons.forEach(button => {
         button.addEventListener('click', function() {
             const textToCopy = this.dataset.copyText;
             copyToClipboard(textToCopy);
             
-            // Feedback all'utente
+            // User feedback
             const originalText = this.innerHTML;
             this.innerHTML = '<i class="fas fa-check"></i> Copiato!';
             setTimeout(() => {
@@ -292,18 +302,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Inizializza il sidebar collapse
+    // Initialize sidebar collapse
     const sidebarToggle = document.getElementById('sidebarToggle');
     if (sidebarToggle) {
         sidebarToggle.addEventListener('click', function() {
             document.body.classList.toggle('sidebar-collapsed');
             
-            // Salva lo stato nel localStorage
+            // Save state in localStorage
             const isCollapsed = document.body.classList.contains('sidebar-collapsed');
             localStorage.setItem('sidebarCollapsed', isCollapsed);
         });
         
-        // Ripristina lo stato del sidebar dal localStorage
+        // Restore sidebar state from localStorage
         const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
         if (isCollapsed) {
             document.body.classList.add('sidebar-collapsed');
