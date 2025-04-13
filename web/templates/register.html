@@ -1,304 +1,55 @@
 {% extends 'base.html' %}
 
-{% block title %}Registrati{% endblock %}
-
-{% block head %}
-    {{ super() }}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern-theme.css') }}">
-    <style>
-        .register-container {
-            max-width: 550px;
-            margin: 60px auto;
-            padding: 30px;
-            background-color: var(--surface-color);
-            border-radius: 10px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-            transform: translateY(0);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .register-container:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
-        }
-        
-        .register-title {
-            text-align: center;
-            margin-bottom: 30px;
-            color: var(--text-color);
-            font-weight: 600;
-        }
-        
-        .register-form {
-            margin-top: 25px;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-            position: relative;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-        
-        .form-control {
-            background-color: var(--background-color-alt);
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            padding: 12px 15px;
-            border-radius: 6px;
-            width: 100%;
-            transition: all 0.3s;
-        }
-        
-        .form-control:focus {
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 3px rgba(var(--accent-color-rgb), 0.2);
-            outline: none;
-        }
-        
-        .btn-primary {
-            background-color: var(--accent-color);
-            border: none;
-            color: white;
-            padding: 12px;
-            border-radius: 6px;
-            width: 100%;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .btn-primary:hover {
-            background-color: var(--accent-color-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        
-        .register-footer {
-            margin-top: 25px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding-top: 20px;
-            border-top: 1px solid var(--border-color);
-            font-size: 0.9rem;
-        }
-        
-        .register-footer a {
-            color: var(--accent-color);
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-        
-        .register-footer a:hover {
-            color: var(--accent-color-dark);
-            text-decoration: underline;
-        }
-        
-        .alert {
-            padding: 12px 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            animation: fadeIn 0.3s ease;
-        }
-        
-        .alert-danger {
-            background-color: rgba(var(--danger-color-rgb), 0.1);
-            border-left: 4px solid var(--danger-color);
-            color: var(--danger-color);
-        }
-        
-        .alert-success {
-            background-color: rgba(var(--success-color-rgb), 0.1);
-            border-left: 4px solid var(--success-color);
-            color: var(--success-color);
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .password-strength {
-            margin-top: 10px;
-        }
-        
-        .progress {
-            height: 6px;
-            border-radius: 3px;
-            background-color: var(--background-color);
-            overflow: hidden;
-        }
-        
-        .progress-bar {
-            height: 100%;
-            border-radius: 3px;
-        }
-        
-        .password-feedback {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 5px;
-            font-size: 0.8rem;
-            color: var(--text-color-muted);
-        }
-    </style>
-{% endblock %}
+{% block title %}Registrati - M4Bot{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="register-container">
-        <h1 class="register-title">Crea il tuo account</h1>
-        
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        
-        <form class="register-form" method="POST">
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" class="form-control" id="username" name="username" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" class="form-control" id="email" name="email" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" class="form-control" id="password" name="password" required>
-                <div class="password-strength">
-                    <div class="progress">
-                        <div class="progress-bar" id="password-strength-bar" role="progressbar" style="width: 0%;"></div>
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow">
+            <div class="card-body p-5">
+                <h2 class="text-center mb-4">Registrati</h2>
+                
+                {% if error %}
+                <div class="alert alert-danger" role="alert">
+                    {{ error }}
+                </div>
+                {% endif %}
+                
+                <form method="post" action="{{ url_for('register') }}">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Nome utente</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
                     </div>
-                    <div class="password-feedback">
-                        <span id="password-strength-text"></span>
-                        <span>Usa almeno 8 caratteri con numeri e simboli</span>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
                     </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                        <div class="form-text">La password deve contenere almeno 8 caratteri.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">Conferma password</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="terms" name="terms" required>
+                        <label class="form-check-label" for="terms">Accetto i <a href="#" class="text-decoration-none">Termini di servizio</a> e la <a href="#" class="text-decoration-none">Privacy Policy</a></label>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Registrati</button>
+                    </div>
+                </form>
+                
+                <hr class="my-4">
+                
+                <div class="text-center">
+                    <p>Hai già un account?</p>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-primary">Accedi</a>
                 </div>
             </div>
-            
-            <div class="form-group">
-                <label for="confirm_password">Conferma Password</label>
-                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="channel_name">Nome del tuo canale Twitch (opzionale)</label>
-                <input type="text" class="form-control" id="channel_name" name="channel_name">
-            </div>
-            
-            <button type="submit" class="btn-primary">
-                Registrati
-            </button>
-        </form>
-        
-        <div class="register-footer">
-            <span>Hai già un account? <a href="{{ url_for('login') }}">Accedi qui</a></span>
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-    {{ super() }}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const passwordInput = document.getElementById('password');
-            const confirmPasswordInput = document.getElementById('confirm_password');
-            const strengthBar = document.getElementById('password-strength-bar');
-            const strengthText = document.getElementById('password-strength-text');
-            
-            // Valuta la forza della password
-            function evaluatePasswordStrength(password) {
-                let strength = 0;
-                
-                // Lunghezza minima
-                if (password.length >= 8) {
-                    strength += 25;
-                }
-                
-                // Contiene numeri
-                if (/\d/.test(password)) {
-                    strength += 25;
-                }
-                
-                // Contiene lettere minuscole e maiuscole
-                if (/[a-z]/.test(password) && /[A-Z]/.test(password)) {
-                    strength += 25;
-                }
-                
-                // Contiene caratteri speciali
-                if (/[^A-Za-z0-9]/.test(password)) {
-                    strength += 25;
-                }
-                
-                return strength;
-            }
-            
-            // Aggiorna l'indicatore di forza della password
-            function updateStrengthIndicator() {
-                const password = passwordInput.value;
-                const strength = evaluatePasswordStrength(password);
-                
-                strengthBar.style.width = strength + '%';
-                
-                if (strength < 25) {
-                    strengthBar.style.backgroundColor = '#ff6b6b'; // rosso
-                    strengthText.textContent = 'Molto debole';
-                } else if (strength < 50) {
-                    strengthBar.style.backgroundColor = '#ffaa45'; // arancione
-                    strengthText.textContent = 'Debole';
-                } else if (strength < 75) {
-                    strengthBar.style.backgroundColor = '#ffd43b'; // giallo
-                    strengthText.textContent = 'Media';
-                } else {
-                    strengthBar.style.backgroundColor = '#5cdb95'; // verde
-                    strengthText.textContent = 'Forte';
-                }
-            }
-            
-            // Verifica se le password corrispondono
-            function checkPasswordsMatch() {
-                const password = passwordInput.value;
-                const confirmPassword = confirmPasswordInput.value;
-                
-                if (confirmPassword && password !== confirmPassword) {
-                    confirmPasswordInput.classList.add('is-invalid');
-                } else {
-                    confirmPasswordInput.classList.remove('is-invalid');
-                }
-            }
-            
-            // Eventi
-            passwordInput.addEventListener('input', updateStrengthIndicator);
-            passwordInput.addEventListener('input', checkPasswordsMatch);
-            confirmPasswordInput.addEventListener('input', checkPasswordsMatch);
-            
-            // Validazione del form prima dell'invio
-            document.querySelector('.register-form').addEventListener('submit', function(e) {
-                const password = passwordInput.value;
-                const confirmPassword = confirmPasswordInput.value;
-                
-                if (password !== confirmPassword) {
-                    e.preventDefault();
-                    alert('Le password non corrispondono');
-                }
-                
-                if (evaluatePasswordStrength(password) < 25) {
-                    e.preventDefault();
-                    alert('La password è troppo debole');
-                }
-            });
-        });
-    </script>
 {% endblock %}
