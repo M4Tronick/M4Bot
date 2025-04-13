@@ -1,0 +1,1002 @@
+{% extends 'base.html' %}
+
+{% block title %}Calendario Streaming{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern-theme.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css">
+    <style>
+        .calendar-container {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            margin-top: 20px;
+            height: calc(100vh - 180px);
+        }
+        
+        @media (max-width: 992px) {
+            .calendar-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .calendar-main {
+            background-color: var(--surface-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .calendar-sidebar {
+            background-color: var(--surface-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        
+        .fc {
+            height: 100%;
+        }
+        
+        .fc-view {
+            background-color: var(--background-color-alt);
+        }
+        
+        .fc .fc-toolbar-title {
+            font-size: 1.5rem;
+            color: var(--text-color);
+        }
+        
+        .fc .fc-button-primary {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+        
+        .fc .fc-button-primary:hover {
+            background-color: var(--accent-color-dark);
+            border-color: var(--accent-color-dark);
+        }
+        
+        .fc .fc-button-primary:disabled {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            opacity: 0.6;
+        }
+        
+        .fc .fc-daygrid-day.fc-day-today {
+            background-color: rgba(var(--accent-color-rgb), 0.15);
+        }
+        
+        .fc .fc-daygrid-day-frame {
+            min-height: 100px;
+        }
+        
+        .fc-event {
+            cursor: pointer;
+            transition: transform 0.2s;
+            border-left: 4px solid var(--accent-color);
+            padding: 5px;
+        }
+        
+        .fc-event:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .fc-event-title {
+            font-weight: 500;
+        }
+        
+        .fc-event-time {
+            opacity: 0.8;
+            font-size: 0.9em;
+        }
+        
+        .stream-form {
+            margin-bottom: 30px;
+        }
+        
+        .form-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background-color: var(--background-color);
+            color: var(--text-color);
+            transition: all 0.2s;
+        }
+        
+        .form-control:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(var(--accent-color-rgb), 0.3);
+            outline: none;
+        }
+        
+        .action-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+            width: 100%;
+        }
+        
+        .action-button.primary {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        
+        .action-button.primary:hover {
+            background-color: var(--accent-color-dark);
+            transform: translateY(-2px);
+        }
+        
+        .action-button.secondary {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+        }
+        
+        .action-button.secondary:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+        
+        .upcoming-streams {
+            margin-top: 20px;
+        }
+        
+        .upcoming-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .stream-item {
+            padding: 12px;
+            background-color: var(--background-color-alt);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid;
+            transition: all 0.2s;
+        }
+        
+        .stream-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stream-item.gaming { border-left-color: #9147ff; }
+        .stream-item.irl { border-left-color: #ff6b6b; }
+        .stream-item.creative { border-left-color: #4cc3ff; }
+        .stream-item.special { border-left-color: #ffcd56; }
+        
+        .stream-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .stream-time {
+            font-size: 0.9rem;
+            color: var(--text-color-muted);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .stream-category {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+        }
+        
+        .stream-category.gaming { background-color: rgba(145, 71, 255, 0.2); color: #9147ff; }
+        .stream-category.irl { background-color: rgba(255, 107, 107, 0.2); color: #ff6b6b; }
+        .stream-category.creative { background-color: rgba(76, 195, 255, 0.2); color: #4cc3ff; }
+        .stream-category.special { background-color: rgba(255, 205, 86, 0.2); color: #ffcd56; }
+        
+        .stream-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .stream-action {
+            padding: 5px;
+            background-color: var(--background-color);
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-color-muted);
+            transition: all 0.2s;
+        }
+        
+        .stream-action:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+        
+        .color-picker-container {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .color-option {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .color-option:hover, .color-option.selected {
+            transform: scale(1.1);
+            border-color: white;
+        }
+        
+        .color-option.gaming { background-color: #9147ff; }
+        .color-option.irl { background-color: #ff6b6b; }
+        .color-option.creative { background-color: #4cc3ff; }
+        .color-option.special { background-color: #ffcd56; }
+        
+        .notification-options {
+            margin-top: 15px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .checkbox-group label {
+            margin-left: 8px;
+            margin-bottom: 0;
+        }
+        
+        .modal-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        
+        .modal-background.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal-content {
+            background-color: var(--surface-color);
+            border-radius: 8px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+            width: 450px;
+            max-width: 90%;
+            transform: translateY(20px);
+            transition: all 0.3s;
+        }
+        
+        .modal-background.active .modal-content {
+            transform: translateY(0);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: var(--text-color-muted);
+            transition: color 0.2s;
+        }
+        
+        .close-modal:hover {
+            color: var(--danger-color);
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="page-title">Calendario Streaming</h1>
+    <p class="page-description">Pianifica e gestisci i tuoi stream per massimizzare la visibilità e l'interazione.</p>
+    
+    <div class="calendar-container">
+        <div class="calendar-main">
+            <div id="calendar"></div>
+        </div>
+        
+        <div class="calendar-sidebar">
+            <div class="stream-form">
+                <h3 class="form-title">Pianifica un nuovo stream</h3>
+                
+                <div class="form-group">
+                    <label for="streamTitle">Titolo</label>
+                    <input type="text" id="streamTitle" class="form-control" placeholder="Titolo dello stream">
+                </div>
+                
+                <div class="form-group">
+                    <label for="streamDescription">Descrizione</label>
+                    <textarea id="streamDescription" class="form-control" rows="3" placeholder="Descrizione dello stream"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="streamCategory">Categoria</label>
+                    <select id="streamCategory" class="form-control">
+                        <option value="gaming">Gaming</option>
+                        <option value="irl">IRL</option>
+                        <option value="creative">Creative</option>
+                        <option value="special">Evento Speciale</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="streamDate">Data</label>
+                    <input type="date" id="streamDate" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label for="streamTime">Ora di inizio</label>
+                    <input type="time" id="streamTime" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label for="streamDuration">Durata (ore)</label>
+                    <input type="number" id="streamDuration" class="form-control" min="1" max="24" value="3">
+                </div>
+                
+                <div class="notification-options">
+                    <label>Notifiche automatiche:</label>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="notifyDiscord" checked>
+                        <label for="notifyDiscord">Discord</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="notifyTwitter" checked>
+                        <label for="notifyTwitter">Twitter</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="notifyTelegram">
+                        <label for="notifyTelegram">Telegram</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="notifyEmail">
+                        <label for="notifyEmail">Email</label>
+                    </div>
+                </div>
+                
+                <button class="action-button primary mt-4" id="addStreamBtn">
+                    <i class="fas fa-plus"></i> Aggiungi Stream
+                </button>
+            </div>
+            
+            <div class="upcoming-streams">
+                <h3 class="upcoming-title">Prossimi stream</h3>
+                <div id="upcomingStreamsList">
+                    <!-- Gli stream saranno aggiunti qui dinamicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per dettagli stream -->
+<div class="modal-background" id="streamModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">Dettagli Stream</h3>
+            <button class="close-modal" id="closeModal">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Contenuto modale -->
+        </div>
+        <div class="modal-footer">
+            <button class="action-button secondary" id="deleteStreamBtn">
+                <i class="fas fa-trash"></i> Elimina
+            </button>
+            <button class="action-button primary" id="editStreamBtn">
+                <i class="fas fa-edit"></i> Modifica
+            </button>
+            <button class="action-button primary" id="saveModalBtn">
+                <i class="fas fa-save"></i> Salva
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Riferimenti agli elementi DOM
+            const calendarEl = document.getElementById('calendar');
+            const streamForm = document.querySelector('.stream-form');
+            const streamTitleInput = document.getElementById('streamTitle');
+            const streamDescriptionInput = document.getElementById('streamDescription');
+            const streamCategorySelect = document.getElementById('streamCategory');
+            const streamDateInput = document.getElementById('streamDate');
+            const streamTimeInput = document.getElementById('streamTime');
+            const streamDurationInput = document.getElementById('streamDuration');
+            const addStreamBtn = document.getElementById('addStreamBtn');
+            const upcomingStreamsList = document.getElementById('upcomingStreamsList');
+            
+            // Elementi del modal
+            const streamModal = document.getElementById('streamModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            const closeModal = document.getElementById('closeModal');
+            const deleteStreamBtn = document.getElementById('deleteStreamBtn');
+            const editStreamBtn = document.getElementById('editStreamBtn');
+            const saveModalBtn = document.getElementById('saveModalBtn');
+            
+            // Inizializza il calendario
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                themeSystem: 'standard',
+                selectable: true,
+                selectMirror: true,
+                dayMaxEvents: true,
+                locale: 'it',
+                firstDay: 1, // Lunedì come primo giorno della settimana
+                buttonText: {
+                    today: 'Oggi',
+                    month: 'Mese',
+                    week: 'Settimana',
+                    day: 'Giorno'
+                },
+                eventTimeFormat: {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                },
+                eventClick: function(info) {
+                    showEventDetails(info.event);
+                },
+                dateClick: function(info) {
+                    // Imposta la data selezionata nel form
+                    streamDateInput.value = info.dateStr;
+                    // Focus sul titolo
+                    streamTitleInput.focus();
+                },
+                select: function(info) {
+                    // Imposta la data selezionata nel form
+                    streamDateInput.value = info.startStr;
+                    // Focus sul titolo
+                    streamTitleInput.focus();
+                },
+                events: [
+                    // Eventi di esempio
+                    {
+                        id: '1',
+                        title: 'Playthrough Elden Ring',
+                        start: '2023-06-10T19:00:00',
+                        end: '2023-06-10T23:00:00',
+                        description: 'Continuo la mia avventura in Elden Ring, oggi affronteremo il boss finale!',
+                        category: 'gaming',
+                        color: '#9147ff'
+                    },
+                    {
+                        id: '2',
+                        title: 'Just Chatting con i follower',
+                        start: '2023-06-15T20:00:00',
+                        end: '2023-06-15T22:00:00',
+                        description: 'Sessione relax di chiacchiere con i follower e giochi vari',
+                        category: 'irl',
+                        color: '#ff6b6b'
+                    },
+                    {
+                        id: '3',
+                        title: 'Disegno digitale - Character Design',
+                        start: '2023-06-20T18:00:00',
+                        end: '2023-06-20T21:00:00',
+                        description: 'Sessione di disegno digitale con Procreate, creeremo un nuovo personaggio',
+                        category: 'creative',
+                        color: '#4cc3ff'
+                    },
+                    {
+                        id: '4',
+                        title: 'Celebrazione 1000 Follower!',
+                        start: '2023-06-25T20:00:00',
+                        end: '2023-06-25T23:59:00',
+                        description: 'Stream speciale per festeggiare i 1000 follower! Giochi, giveaway e sorprese',
+                        category: 'special',
+                        color: '#ffcd56'
+                    }
+                ]
+            });
+            
+            // Renderizza il calendario
+            calendar.render();
+            
+            // Imposta data di default a oggi
+            const today = new Date();
+            streamDateInput.valueAsDate = today;
+            streamTimeInput.value = '20:00';
+            
+            // Aggiungi stream al calendario
+            addStreamBtn.addEventListener('click', function() {
+                if (!validateForm()) {
+                    return;
+                }
+                
+                const title = streamTitleInput.value;
+                const description = streamDescriptionInput.value;
+                const category = streamCategorySelect.value;
+                const date = streamDateInput.value;
+                const time = streamTimeInput.value;
+                const duration = parseInt(streamDurationInput.value);
+                
+                // Crea oggetti data per inizio e fine
+                const startDate = new Date(`${date}T${time}`);
+                const endDate = new Date(startDate.getTime() + duration * 60 * 60 * 1000);
+                
+                // Colore basato sulla categoria
+                let color;
+                switch(category) {
+                    case 'gaming': color = '#9147ff'; break;
+                    case 'irl': color = '#ff6b6b'; break;
+                    case 'creative': color = '#4cc3ff'; break;
+                    case 'special': color = '#ffcd56'; break;
+                    default: color = '#9147ff';
+                }
+                
+                // Aggiungi evento al calendario
+                const eventId = Date.now().toString();
+                calendar.addEvent({
+                    id: eventId,
+                    title: title,
+                    start: startDate,
+                    end: endDate,
+                    description: description,
+                    category: category,
+                    color: color
+                });
+                
+                // Aggiorna la lista degli stream imminenti
+                updateUpcomingStreams();
+                
+                // Reset del form
+                streamTitleInput.value = '';
+                streamDescriptionInput.value = '';
+                streamCategorySelect.value = 'gaming';
+                
+                // Mostra notifica
+                showNotification(`Stream "${title}" programmato per ${formatDate(startDate)}`);
+            });
+            
+            // Validazione del form
+            function validateForm() {
+                let isValid = true;
+                
+                if (!streamTitleInput.value.trim()) {
+                    streamTitleInput.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    streamTitleInput.classList.remove('is-invalid');
+                }
+                
+                if (!streamDateInput.value) {
+                    streamDateInput.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    streamDateInput.classList.remove('is-invalid');
+                }
+                
+                if (!streamTimeInput.value) {
+                    streamTimeInput.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    streamTimeInput.classList.remove('is-invalid');
+                }
+                
+                return isValid;
+            }
+            
+            // Funzione per mostrare i dettagli dell'evento
+            function showEventDetails(event) {
+                // Imposta titolo del modal
+                modalTitle.textContent = event.title;
+                
+                // Formatta le date
+                const startDate = event.start;
+                const endDate = event.end || new Date(startDate.getTime() + 3 * 60 * 60 * 1000);
+                const formattedStart = formatDate(startDate);
+                const formattedEnd = formatTime(endDate);
+                
+                // Costruisci il contenuto del modal
+                modalBody.innerHTML = `
+                    <div class="stream-category ${event.extendedProps.category}">${getCategoryName(event.extendedProps.category)}</div>
+                    <div class="stream-time">
+                        <i class="far fa-clock"></i> ${formattedStart} - ${formattedEnd}
+                    </div>
+                    <p>${event.extendedProps.description || 'Nessuna descrizione disponibile'}</p>
+                    
+                    <div class="form-group mt-4">
+                        <label>Notifiche programmate:</label>
+                        <div>
+                            <span class="badge bg-success">30 minuti prima</span>
+                            <span class="badge bg-success">Inizio stream</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group mt-3">
+                        <label>Link rapidi:</label>
+                        <div class="d-flex gap-2 mt-2">
+                            <button class="action-button secondary" onclick="copyToClipboard('https://twitch.tv/tuocanale')">
+                                <i class="fas fa-link"></i> Copia link
+                            </button>
+                            <button class="action-button secondary" onclick="window.open('https://dashboard.twitch.tv', '_blank')">
+                                <i class="fas fa-external-link-alt"></i> Dashboard
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // Salva l'ID dell'evento nel modal per riferimento
+                streamModal.dataset.eventId = event.id;
+                
+                // Mostra i pulsanti appropriati
+                editStreamBtn.style.display = 'block';
+                deleteStreamBtn.style.display = 'block';
+                saveModalBtn.style.display = 'none';
+                
+                // Apri il modal
+                streamModal.classList.add('active');
+            }
+            
+            // Funzione per ottenere il nome della categoria
+            function getCategoryName(category) {
+                switch(category) {
+                    case 'gaming': return 'Gaming';
+                    case 'irl': return 'IRL';
+                    case 'creative': return 'Creative';
+                    case 'special': return 'Evento Speciale';
+                    default: return 'Gaming';
+                }
+            }
+            
+            // Funzione per formattare la data e l'ora
+            function formatDate(date) {
+                const options = { 
+                    weekday: 'long', 
+                    day: 'numeric', 
+                    month: 'long', 
+                    hour: '2-digit', 
+                    minute: '2-digit'
+                };
+                return date.toLocaleDateString('it-IT', options);
+            }
+            
+            // Funzione per formattare solo l'ora
+            function formatTime(date) {
+                const options = { hour: '2-digit', minute: '2-digit' };
+                return date.toLocaleTimeString('it-IT', options);
+            }
+            
+            // Gestori per il modal
+            closeModal.addEventListener('click', function() {
+                streamModal.classList.remove('active');
+            });
+            
+            // Chiudi il modal cliccando al di fuori
+            streamModal.addEventListener('click', function(e) {
+                if (e.target === streamModal) {
+                    streamModal.classList.remove('active');
+                }
+            });
+            
+            // Elimina stream
+            deleteStreamBtn.addEventListener('click', function() {
+                const eventId = streamModal.dataset.eventId;
+                if (confirm('Sei sicuro di voler eliminare questo stream?')) {
+                    const event = calendar.getEventById(eventId);
+                    if (event) {
+                        event.remove();
+                        updateUpcomingStreams();
+                        showNotification('Stream eliminato con successo');
+                    }
+                    streamModal.classList.remove('active');
+                }
+            });
+            
+            // Modifica stream
+            editStreamBtn.addEventListener('click', function() {
+                const eventId = streamModal.dataset.eventId;
+                const event = calendar.getEventById(eventId);
+                
+                if (event) {
+                    // Costruisci il form di modifica
+                    modalBody.innerHTML = `
+                        <div class="form-group">
+                            <label for="editTitle">Titolo</label>
+                            <input type="text" id="editTitle" class="form-control" value="${event.title}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="editDescription">Descrizione</label>
+                            <textarea id="editDescription" class="form-control" rows="3">${event.extendedProps.description || ''}</textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="editCategory">Categoria</label>
+                            <select id="editCategory" class="form-control">
+                                <option value="gaming" ${event.extendedProps.category === 'gaming' ? 'selected' : ''}>Gaming</option>
+                                <option value="irl" ${event.extendedProps.category === 'irl' ? 'selected' : ''}>IRL</option>
+                                <option value="creative" ${event.extendedProps.category === 'creative' ? 'selected' : ''}>Creative</option>
+                                <option value="special" ${event.extendedProps.category === 'special' ? 'selected' : ''}>Evento Speciale</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="editDate">Data</label>
+                            <input type="date" id="editDate" class="form-control" value="${event.start.toISOString().split('T')[0]}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="editTime">Ora di inizio</label>
+                            <input type="time" id="editTime" class="form-control" value="${event.start.toTimeString().substring(0, 5)}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="editDuration">Durata (ore)</label>
+                            <input type="number" id="editDuration" class="form-control" min="1" max="24" value="3">
+                        </div>
+                    `;
+                    
+                    // Nascondi pulsanti non necessari
+                    editStreamBtn.style.display = 'none';
+                    saveModalBtn.style.display = 'block';
+                }
+            });
+            
+            // Salva modifiche
+            saveModalBtn.addEventListener('click', function() {
+                const eventId = streamModal.dataset.eventId;
+                const event = calendar.getEventById(eventId);
+                
+                if (event) {
+                    // Recupera i valori dal form
+                    const editTitle = document.getElementById('editTitle').value;
+                    const editDescription = document.getElementById('editDescription').value;
+                    const editCategory = document.getElementById('editCategory').value;
+                    const editDate = document.getElementById('editDate').value;
+                    const editTime = document.getElementById('editTime').value;
+                    const editDuration = parseInt(document.getElementById('editDuration').value);
+                    
+                    // Calcola le nuove date
+                    const startDate = new Date(`${editDate}T${editTime}`);
+                    const endDate = new Date(startDate.getTime() + editDuration * 60 * 60 * 1000);
+                    
+                    // Colore basato sulla categoria
+                    let color;
+                    switch(editCategory) {
+                        case 'gaming': color = '#9147ff'; break;
+                        case 'irl': color = '#ff6b6b'; break;
+                        case 'creative': color = '#4cc3ff'; break;
+                        case 'special': color = '#ffcd56'; break;
+                        default: color = '#9147ff';
+                    }
+                    
+                    // Aggiorna l'evento
+                    event.setProp('title', editTitle);
+                    event.setStart(startDate);
+                    event.setEnd(endDate);
+                    event.setProp('color', color);
+                    event.setExtendedProp('description', editDescription);
+                    event.setExtendedProp('category', editCategory);
+                    
+                    // Aggiorna la lista degli stream imminenti
+                    updateUpcomingStreams();
+                    
+                    // Chiudi il modal
+                    streamModal.classList.remove('active');
+                    
+                    // Mostra notifica
+                    showNotification('Stream aggiornato con successo');
+                }
+            });
+            
+            // Aggiorna la lista degli stream imminenti
+            function updateUpcomingStreams() {
+                // Recupera tutti gli eventi
+                const events = calendar.getEvents();
+                
+                // Filtra solo quelli futuri
+                const now = new Date();
+                const futureEvents = events.filter(event => event.start > now);
+                
+                // Ordina per data di inizio
+                futureEvents.sort((a, b) => a.start - b.start);
+                
+                // Prendi solo i prossimi 5
+                const upcomingEvents = futureEvents.slice(0, 5);
+                
+                // Pulisci la lista
+                upcomingStreamsList.innerHTML = '';
+                
+                // Se non ci sono eventi futuri
+                if (upcomingEvents.length === 0) {
+                    upcomingStreamsList.innerHTML = '<p class="text-muted">Nessun stream programmato</p>';
+                    return;
+                }
+                
+                // Popola la lista
+                upcomingEvents.forEach(event => {
+                    const streamItem = document.createElement('div');
+                    streamItem.className = `stream-item ${event.extendedProps.category}`;
+                    
+                    const startDate = event.start;
+                    const formattedDate = formatDate(startDate);
+                    
+                    streamItem.innerHTML = `
+                        <div class="stream-title">${event.title}</div>
+                        <div class="stream-time"><i class="far fa-clock"></i> ${formattedDate}</div>
+                        <span class="stream-category ${event.extendedProps.category}">${getCategoryName(event.extendedProps.category)}</span>
+                        <div class="stream-actions">
+                            <button class="stream-action view-btn" data-id="${event.id}">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="stream-action edit-btn" data-id="${event.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="stream-action delete-btn" data-id="${event.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                    
+                    upcomingStreamsList.appendChild(streamItem);
+                });
+                
+                // Aggiungi gestori eventi per i pulsanti
+                document.querySelectorAll('.view-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const eventId = this.dataset.id;
+                        const event = calendar.getEventById(eventId);
+                        if (event) {
+                            showEventDetails(event);
+                        }
+                    });
+                });
+                
+                document.querySelectorAll('.edit-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const eventId = this.dataset.id;
+                        const event = calendar.getEventById(eventId);
+                        if (event) {
+                            streamModal.dataset.eventId = eventId;
+                            showEventDetails(event);
+                            editStreamBtn.click();
+                        }
+                    });
+                });
+                
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const eventId = this.dataset.id;
+                        if (confirm('Sei sicuro di voler eliminare questo stream?')) {
+                            const event = calendar.getEventById(eventId);
+                            if (event) {
+                                event.remove();
+                                updateUpcomingStreams();
+                                showNotification('Stream eliminato con successo');
+                            }
+                        }
+                    });
+                });
+            }
+            
+            // Funzione per mostrare notifiche
+            function showNotification(message) {
+                const notification = document.createElement('div');
+                notification.className = 'alert alert-success position-fixed top-0 end-0 m-3';
+                notification.style.zIndex = '9999';
+                notification.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <span>${message}</span>
+                    </div>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Animazione di entrata
+                setTimeout(() => {
+                    notification.style.animation = 'fadeIn 0.3s forwards';
+                }, 10);
+                
+                // Rimuovi la notifica dopo alcuni secondi
+                setTimeout(() => {
+                    notification.style.animation = 'fadeOut 0.3s forwards';
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 300);
+                }, 3000);
+            }
+            
+            // Funzione per copiare negli appunti
+            window.copyToClipboard = function(text) {
+                navigator.clipboard.writeText(text).then(function() {
+                    showNotification('Link copiato negli appunti');
+                }).catch(function(err) {
+                    console.error('Errore nel copiare il testo: ', err);
+                });
+            };
+            
+            // Inizializza la lista degli stream imminenti
+            updateUpcomingStreams();
+        });
+    </script>
+{% endblock %} 

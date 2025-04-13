@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Comandi per {{ channel_name }} - M4Bot{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0"><i class="fas fa-terminal me-2"></i>Comandi per il canale: {{ channel_name }}</h2>
+                </div>
+                <div class="card-body">
+                    {% if commands %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Comando</th>
+                                    <th>Descrizione</th>
+                                    <th>Cooldown</th>
+                                    <th>Livello Utente</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cmd in commands %}
+                                <tr>
+                                    <td><code>{{ cmd.name }}</code></td>
+                                    <td>{{ cmd.response }}</td>
+                                    <td>{{ cmd.cooldown }} secondi</td>
+                                    <td>
+                                        {% if cmd.user_level == 'everyone' %}
+                                            <span class="badge bg-success">Tutti</span>
+                                        {% elif cmd.user_level == 'subscriber' %}
+                                            <span class="badge bg-primary">Subscriber</span>
+                                        {% elif cmd.user_level == 'moderator' %}
+                                            <span class="badge bg-warning">Moderatori</span>
+                                        {% elif cmd.user_level == 'broadcaster' %}
+                                            <span class="badge bg-danger">Solo Streamer</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>Non ci sono comandi configurati per questo canale.
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-robot me-1"></i>Questi comandi possono essere utilizzati nella chat di 
+                        <a href="https://kick.com/{{ channel_name }}" target="_blank">kick.com/{{ channel_name }}</a>
+                    </p>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informazioni sui comandi</h4>
+                </div>
+                <div class="card-body">
+                    <ul>
+                        <li><strong>Cooldown</strong>: Tempo di attesa tra gli utilizzi dello stesso comando.</li>
+                        <li><strong>Livello Utente</strong>: Indica chi può utilizzare un comando:
+                            <ul>
+                                <li><span class="badge bg-success">Tutti</span>: Qualsiasi utente nella chat</li>
+                                <li><span class="badge bg-primary">Subscriber</span>: Solo gli iscritti al canale</li>
+                                <li><span class="badge bg-warning">Moderatori</span>: Solo i moderatori del canale</li>
+                                <li><span class="badge bg-danger">Solo Streamer</span>: Solo il proprietario del canale</li>
+                            </ul>
+                        </li>
+                    </ul>
+                    
+                    <div class="alert alert-primary mt-3">
+                        <i class="fas fa-lightbulb me-2"></i>Suggerimento: Alcuni comandi potrebbero accettare parametri aggiuntivi. 
+                        Ad esempio: <code>!comando argomento</code>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-home me-1"></i>Torna alla Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

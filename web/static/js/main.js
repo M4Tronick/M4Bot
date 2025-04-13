@@ -1,20 +1,111 @@
 /**
- * M4Bot - main.js
- * Script principale per l'interfaccia web di M4Bot
+ * M4Bot - Main JavaScript file
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Inizializza i tooltips di Bootstrap
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
+    // Enable tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
     });
 
-    // Inizializza i popovers di Bootstrap
-    const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-    popoverTriggerList.map(function (popoverTriggerEl) {
-        return new bootstrap.Popover(popoverTriggerEl);
+    // Enable popovers
+    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+        return new bootstrap.Popover(popoverTriggerEl)
     });
+
+    // Auto-hide alerts after 5 seconds
+    setTimeout(function() {
+        var alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
+        alerts.forEach(function(alert) {
+            var bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        });
+    }, 5000);
+
+    // Command edit functionality
+    const editButtons = document.querySelectorAll('.edit-command');
+    if (editButtons) {
+        editButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                const name = this.getAttribute('data-name');
+                const response = this.getAttribute('data-response');
+                const cooldown = this.getAttribute('data-cooldown');
+                const userLevel = this.getAttribute('data-user-level');
+                
+                // Update form fields
+                document.getElementById('name').value = name;
+                document.getElementById('response').value = response;
+                document.getElementById('cooldown').value = cooldown;
+                
+                const userLevelSelect = document.getElementById('user_level');
+                if (userLevelSelect) {
+                    userLevelSelect.value = userLevel;
+                }
+                
+                // Scroll to form
+                const commandForm = document.querySelector('.card-header');
+                if (commandForm) {
+                    commandForm.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    }
+
+    // Handle API calls for bot start/stop
+    const apiButtons = document.querySelectorAll('.api-action');
+    if (apiButtons) {
+        apiButtons.forEach(button => {
+            button.addEventListener('click', async function() {
+                const action = this.getAttribute('data-action');
+                const channelId = this.getAttribute('data-channel');
+                const endpoint = `/api/bot/${action}`;
+                
+                try {
+                    // Show spinner
+                    this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> In corso...';
+                    this.disabled = true;
+                    
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ channel_id: channelId })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    // Reset button state
+                    this.disabled = false;
+                    if (action === 'start') {
+                        this.innerHTML = '<i class="fas fa-play-circle me-2"></i>Avvia Bot';
+                    } else {
+                        this.innerHTML = '<i class="fas fa-stop-circle me-2"></i>Ferma Bot';
+                    }
+                    
+                    if (response.ok) {
+                        showToast('Successo', data.message, 'success');
+                    } else {
+                        showToast('Errore', data.error, 'danger');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast('Errore', 'Si è verificato un errore nella comunicazione con il server', 'danger');
+                    
+                    // Reset button state
+                    this.disabled = false;
+                    if (action === 'start') {
+                        this.innerHTML = '<i class="fas fa-play-circle me-2"></i>Avvia Bot';
+                    } else {
+                        this.innerHTML = '<i class="fas fa-stop-circle me-2"></i>Ferma Bot';
+                    }
+                }
+            });
+        });
+    }
 
     // Gestione del toggle della dark mode
     const darkModeToggle = document.getElementById('darkModeToggle');
@@ -219,3 +310,38 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+
+// Helper function to show toasts
+function showToast(title, message, type) {
+    const toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        // Create toast container if it doesn't exist
+        const container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(container);
+    }
+    
+    const toastId = 'toast-' + Date.now();
+    const html = `
+    <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header bg-${type} text-white">
+            <strong class="me-auto">${title}</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            ${message}
+        </div>
+    </div>
+    `;
+    
+    document.getElementById('toast-container').insertAdjacentHTML('beforeend', html);
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement);
+    toast.show();
+    
+    // Auto-remove toast from DOM after it's hidden
+    toastElement.addEventListener('hidden.bs.toast', function() {
+        toastElement.remove();
+    });
+}

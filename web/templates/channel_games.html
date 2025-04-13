@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Giochi in Chat - {{ channel.name }} - M4Bot{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('channel_detail', channel_id=channel.id) }}">{{ channel.name }}</a></li>
+                <li class="breadcrumb-item active">Giochi in Chat</li>
+            </ol>
+        </nav>
+        <h2><i class="fas fa-gamepad me-2"></i>Giochi in Chat per {{ channel.name }}</h2>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+{% if success %}
+<div class="alert alert-success">{{ success }}</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-dice me-2"></i>Avvia un Gioco</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="action" value="start_game">
+                    
+                    <div class="mb-3">
+                        <label for="game_type" class="form-label">Seleziona il Gioco</label>
+                        <select class="form-select" id="game_type" name="game_type" required>
+                            <option value="" selected disabled>Scegli un gioco...</option>
+                            <option value="trivia">Trivia</option>
+                            <option value="roulette">Roulette</option>
+                            <option value="slots">Slot Machine</option>
+                            <option value="heist">Rapina in Banca</option>
+                            <option value="duels">Duelli</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="min_points" class="form-label">Punti minimi per partecipare</label>
+                        <input type="number" class="form-control" id="min_points" name="min_points" value="10" min="0">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="duration" class="form-label">Durata (secondi)</label>
+                        <input type="number" class="form-control" id="duration" name="duration" value="60" min="30" max="300">
+                        <div class="form-text">Tempo disponibile per partecipare al gioco</div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Avvia Gioco</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-trophy me-2"></i>I Nostri Giochi</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="mb-0">Trivia</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Quiz a risposta multipla su vari argomenti. I vincitori guadagnano punti!</p>
+                                <p><strong>Comando:</strong> <code>!trivia</code></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-danger text-white">
+                                <h5 class="mb-0">Roulette</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Scommetti i tuoi punti su rosso o nero. Vinci il doppio se indovini!</p>
+                                <p><strong>Comando:</strong> <code>!roulette [punti] [colore]</code></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-warning">
+                                <h5 class="mb-0">Slot Machine</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Tenta la fortuna alle slot machine! Allinea i simboli per vincere.</p>
+                                <p><strong>Comando:</strong> <code>!slots [punti]</code></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0">Rapina in Banca</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Unisciti ad altri spettatori per una rapina! Più partecipanti, maggiori probabilità di successo.</p>
+                                <p><strong>Comando:</strong> <code>!heist [punti]</code></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Statistiche Giochi</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    Le statistiche dei giochi saranno disponibili dopo aver avviato alcuni giochi nel canale.
+                </div>
+                
+                <!-- In futuro, qui verranno visualizzate statistiche dei giochi come:
+                - Giochi più popolari
+                - Vincitori più frequenti
+                - Punti totali vinti/persi
+                - Etc. -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

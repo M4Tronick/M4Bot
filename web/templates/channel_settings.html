@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Impostazioni Canale - {{ channel.name }} - M4Bot{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('channel_detail', channel_id=channel.id) }}">{{ channel.name }}</a></li>
+                <li class="breadcrumb-item active">Impostazioni</li>
+            </ol>
+        </nav>
+        <h2><i class="fas fa-cog me-2"></i>Impostazioni per {{ channel.name }}</h2>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+{% if success %}
+<div class="alert alert-success">{{ success }}</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Impostazioni del Bot</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="welcome_message" class="form-label">Messaggio di benvenuto</label>
+                            <input type="text" class="form-control" id="welcome_message" name="welcome_message" value="{{ settings.welcome_message }}">
+                            <div class="form-text">Inserisci {user} dove vuoi che appaia il nome utente.</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="bot_prefix" class="form-label">Prefisso comandi</label>
+                            <input type="text" class="form-control" id="bot_prefix" name="bot_prefix" value="{{ settings.bot_prefix }}">
+                            <div class="form-text">Il carattere che precede i comandi (solitamente '!').</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="points_per_minute" class="form-label">Punti per minuto</label>
+                            <input type="number" class="form-control" id="points_per_minute" name="points_per_minute" value="{{ settings.points_per_minute }}" min="1" max="100">
+                            <div class="form-text">Quanti punti guadagnano gli utenti per ogni minuto di permanenza in chat.</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="command_cooldown" class="form-label">Cooldown predefinito (secondi)</label>
+                            <input type="number" class="form-control" id="command_cooldown" name="command_cooldown" value="{{ settings.command_cooldown }}" min="0" max="300">
+                            <div class="form-text">Tempo di attesa predefinito tra l'uso dello stesso comando.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="mod_only_commands" class="form-label">Comandi solo per moderatori</label>
+                        <input type="text" class="form-control" id="mod_only_commands" name="mod_only_commands" value="{{ settings.mod_only_commands }}">
+                        <div class="form-text">Elenco di comandi separati da spazi che possono essere usati solo dai moderatori.</div>
+                    </div>
+                    
+                    <div class="mb-3 form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="auto_shoutout" name="auto_shoutout" value="true" {% if settings.auto_shoutout == 'true' %}checked{% endif %}>
+                        <label class="form-check-label" for="auto_shoutout">Attiva auto-shoutout per gli streamer</label>
+                        <div class="form-text">Quando attivo, il bot darà automaticamente uno shoutout agli streamer che entrano in chat.</div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Salva impostazioni</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Dettagli Canale - {{ channel.name }} - M4Bot{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">{{ channel.name }}</li>
+            </ol>
+        </nav>
+        <h2><i class="fas fa-tv me-2"></i>{{ channel.name }}</h2>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+{% if success %}
+<div class="alert alert-success">{{ success }}</div>
+{% endif %}
+
+<div class="row">
+    <!-- Statistiche del canale -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Statistiche Generali</h4>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <div class="text-center">
+                        <h3 class="mb-0">{{ stats.unique_chatters }}</h3>
+                        <p class="text-muted">Utenti Unici</p>
+                    </div>
+                    <div class="text-center">
+                        <h3 class="mb-0">{{ stats.total_messages }}</h3>
+                        <p class="text-muted">Messaggi Totali</p>
+                    </div>
+                    <div class="text-center">
+                        <h3 class="mb-0">{{ stats.total_commands }}</h3>
+                        <p class="text-muted">Comandi Usati</p>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <p class="mb-0">
+                    <strong>ID Canale Kick:</strong> {{ channel.kick_channel_id }}<br>
+                    <strong>Creato:</strong> {{ channel.created_at.strftime('%d/%m/%Y') }}<br>
+                    <strong>Top User:</strong> {{ stats.top_user or 'Nessuno' }}
+                </p>
+                
+                <div class="mt-3">
+                    <a href="{{ url_for('channel_stats', channel_id=channel.id) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-chart-line me-1"></i>Statistiche Dettagliate
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Comandi -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-terminal me-2"></i>Comandi</h4>
+            </div>
+            <div class="card-body">
+                {% if commands %}
+                <ul class="list-group list-group-flush">
+                    {% for cmd in commands[:5] %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <code>{{ cmd.name }}</code>
+                            <small class="text-muted d-block">{{ cmd.response[:30] }}{% if cmd.response|length > 30 %}...{% endif %}</small>
+                        </div>
+                        <span class="badge bg-{% if cmd.enabled %}success{% else %}danger{% endif %} rounded-pill">
+                            {{ cmd.usage_count }} utilizzi
+                        </span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                
+                {% if commands|length > 5 %}
+                <div class="alert alert-info mt-3 mb-0">
+                    Visualizzati 5 su {{ commands|length }} comandi.
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="alert alert-warning">
+                    Non hai ancora creato comandi per questo canale.
+                </div>
+                {% endif %}
+                
+                <div class="mt-3">
+                    <a href="{{ url_for('manage_commands', channel_id=channel.id) }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-cogs me-1"></i>Gestisci Comandi
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Impostazioni -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-cog me-2"></i>Impostazioni</h4>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Prefisso Comandi</strong>
+                            <small class="text-muted d-block">Il prefisso usato per i comandi</small>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">{{ settings.get('bot_prefix', '!') }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Punti per minuto</strong>
+                            <small class="text-muted d-block">Punti guadagnati per ogni minuto in chat</small>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">{{ settings.get('points_per_minute', '1') }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Auto-Shoutout</strong>
+                            <small class="text-muted d-block">Annuncio automatico di streamer</small>
+                        </div>
+                        <span class="badge bg-{{ 'success' if settings.get('auto_shoutout') == 'true' else 'danger' }} rounded-pill">
+                            {{ 'Attivo' if settings.get('auto_shoutout') == 'true' else 'Disattivato' }}
+                        </span>
+                    </li>
+                </ul>
+                
+                <div class="mt-3">
+                    <a href="{{ url_for('channel_settings', channel_id=channel.id) }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-cogs me-1"></i>Gestisci Impostazioni
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Pulsanti Rapidi -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-bolt me-2"></i>Azioni Rapide</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('channel_games', channel_id=channel.id) }}" class="btn btn-primary d-block">
+                            <i class="fas fa-gamepad me-2"></i>Giochi in Chat
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="https://kick.com/{{ channel.name }}" target="_blank" class="btn btn-success d-block">
+                            <i class="fas fa-external-link-alt me-2"></i>Visualizza Canale
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <button class="btn btn-danger d-block api-action" data-action="stop" data-channel="{{ channel.id }}">
+                            <i class="fas fa-stop-circle me-2"></i>Ferma Bot
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <button class="btn btn-primary d-block api-action" data-action="start" data-channel="{{ channel.id }}">
+                            <i class="fas fa-play-circle me-2"></i>Avvia Bot
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gestione pulsanti API
+        const apiButtons = document.querySelectorAll('.api-action');
+        
+        apiButtons.forEach(button => {
+            button.addEventListener('click', async function() {
+                const action = this.getAttribute('data-action');
+                const channelId = this.getAttribute('data-channel');
+                const endpoint = `/api/bot/${action}`;
+                
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ channel_id: channelId })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        alert(data.message);
+                    } else {
+                        alert('Errore: ' + data.error);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Si è verificato un errore nella comunicazione con il server');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

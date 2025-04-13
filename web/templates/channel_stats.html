@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}Statistiche - {{ channel.name }} - M4Bot{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        transition: all 0.3s ease;
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    
+    .chart-container {
+        height: 300px;
+        position: relative;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('channel_detail', channel_id=channel.id) }}">{{ channel.name }}</a></li>
+                <li class="breadcrumb-item active">Statistiche</li>
+            </ol>
+        </nav>
+        <h2><i class="fas fa-chart-line me-2"></i>Statistiche per {{ channel.name }}</h2>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Statistiche principali -->
+    <div class="col-md-3 mb-4">
+        <div class="card stats-card text-center h-100">
+            <div class="card-body">
+                <i class="fas fa-users text-primary mb-2" style="font-size: 2.5rem;"></i>
+                <h5 class="card-title">Utenti Unici</h5>
+                <h2 class="display-5 fw-bold">{{ stats.unique_chatters }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card stats-card text-center h-100">
+            <div class="card-body">
+                <i class="fas fa-comment-dots text-success mb-2" style="font-size: 2.5rem;"></i>
+                <h5 class="card-title">Messaggi Totali</h5>
+                <h2 class="display-5 fw-bold">{{ stats.total_messages }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card stats-card text-center h-100">
+            <div class="card-body">
+                <i class="fas fa-terminal text-danger mb-2" style="font-size: 2.5rem;"></i>
+                <h5 class="card-title">Comandi Usati</h5>
+                <h2 class="display-5 fw-bold">{{ stats.total_commands }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card stats-card text-center h-100">
+            <div class="card-body">
+                <i class="fas fa-cogs text-info mb-2" style="font-size: 2.5rem;"></i>
+                <h5 class="card-title">Comandi Configurati</h5>
+                <h2 class="display-5 fw-bold">{{ stats.command_count }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Grafico attività per ora del giorno -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-clock me-2"></i>Attività per Ora del Giorno</h4>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="hourlyActivityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Comandi più usati -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-terminal me-2"></i>Comandi Più Usati</h4>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="commandsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Top chatters -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-crown me-2"></i>Top Chatters</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Utente</th>
+                                <th>Messaggi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for chatter in top_chatters %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ chatter.username }}</td>
+                                <td>{{ chatter.message_count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top per punti -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-star me-2"></i>Top Punti</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Utente</th>
+                                <th>Punti</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in top_points %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ user.username }}</td>
+                                <td>{{ user.points }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Dati di esempio per i grafici (in una versione reale verrebbero caricati dal backend)
+        const hourlyData = {
+            labels: ['00:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', 
+                     '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'],
+            datasets: [{
+                label: 'Messaggi',
+                data: [10, 5, 3, 2, 1, 0, 2, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 65, 70, 65, 50, 30, 20],
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        };
+        
+        const commandsData = {
+            labels: ['!help', '!uptime', '!points', '!rank', '!dice'],
+            datasets: [{
+                label: 'Utilizzi',
+                data: [120, 90, 80, 60, 40],
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(153, 102, 255, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)'
+                ],
+                borderWidth: 1
+            }]
+        };
+        
+        // Grafico attività per ora
+        const hourlyCtx = document.getElementById('hourlyActivityChart').getContext('2d');
+        new Chart(hourlyCtx, {
+            type: 'bar',
+            data: hourlyData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Numero messaggi'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Ora del giorno'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Grafico comandi più usati
+        const commandsCtx = document.getElementById('commandsChart').getContext('2d');
+        new Chart(commandsCtx, {
+            type: 'pie',
+            data: commandsData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

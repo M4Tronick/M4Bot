@@ -1,0 +1,736 @@
+{% extends 'base.html' %}
+
+{% block title %}Integrazione OBS - M4Bot{% endblock %}
+
+{% block extra_css %}
+<style>
+    .scene-item, .source-item {
+        cursor: pointer;
+        padding: 10px;
+        margin-bottom: 5px;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    .scene-item:hover, .source-item:hover {
+        background-color: #f0f0f0;
+    }
+    .scene-item.active, .source-item.active {
+        background-color: #0d6efd;
+        color: white;
+    }
+    .connection-status {
+        font-weight: bold;
+    }
+    .status-connected {
+        color: #198754;
+    }
+    .status-disconnected {
+        color: #dc3545;
+    }
+    .overlay-preview {
+        background-color: #333;
+        border-radius: 8px;
+        padding: 15px;
+        color: white;
+        min-height: 150px;
+    }
+    .card-header .badge {
+        float: right;
+    }
+    #eventLog {
+        max-height: 200px;
+        overflow-y: auto;
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 4px;
+        font-family: monospace;
+    }
+    .log-entry {
+        margin-bottom: 5px;
+        padding: 5px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .log-time {
+        color: #6c757d;
+        font-size: 0.85em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Integrazione OBS</h1>
+    
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> Per utilizzare questa funzionalità, è necessario installare il plugin OBS WebSocket e configurarlo correttamente.
+        <a href="https://github.com/obsproject/obs-websocket/releases" target="_blank" class="alert-link">Scarica qui</a>.
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-plug me-2"></i>Connessione OBS
+                </div>
+                <div class="card-body">
+                    <form id="obsConnectionForm">
+                        <div class="mb-3">
+                            <label for="obsAddress" class="form-label">Indirizzo WebSocket</label>
+                            <input type="text" class="form-control" id="obsAddress" value="localhost:4455" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="obsPassword" class="form-label">Password (se impostata)</label>
+                            <input type="password" class="form-control" id="obsPassword">
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary" id="connectButton">
+                                <i class="fas fa-link me-2"></i>Connetti
+                            </button>
+                            <button type="button" class="btn btn-outline-danger" id="disconnectButton" disabled>
+                                <i class="fas fa-unlink me-2"></i>Disconnetti
+                            </button>
+                        </div>
+                    </form>
+                    <div class="mt-3">
+                        <span>Stato: </span>
+                        <span class="connection-status status-disconnected" id="connectionStatus">Disconnesso</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-cog me-2"></i>Impostazioni Overlay
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tipo di Eventi</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="showFollowers" checked>
+                            <label class="form-check-label" for="showFollowers">
+                                Nuovi follower
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="showDonations" checked>
+                            <label class="form-check-label" for="showDonations">
+                                Donazioni
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="showCommands" checked>
+                            <label class="form-check-label" for="showCommands">
+                                Comandi eseguiti
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="overlayDuration" class="form-label">Durata overlay (secondi)</label>
+                        <input type="number" class="form-control" id="overlayDuration" value="5" min="1" max="60">
+                    </div>
+                    <div class="mb-3">
+                        <label for="overlayStyle" class="form-label">Stile</label>
+                        <select class="form-select" id="overlayStyle">
+                            <option value="minimal">Minimale</option>
+                            <option value="animated" selected>Animato</option>
+                            <option value="gaming">Gaming</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-success" id="saveOverlaySettings">
+                        <i class="fas fa-save me-2"></i>Salva Impostazioni
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-desktop me-2"></i>Scene OBS
+                    <span class="badge bg-secondary" id="sceneCount">0</span>
+                </div>
+                <div class="card-body">
+                    <div id="scenesList" class="list-group mb-3">
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-spinner fa-spin me-2"></i>Connettiti a OBS per vedere le scene
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <button class="btn btn-outline-primary" id="refreshScenes" disabled>
+                            <i class="fas fa-sync-alt me-2"></i>Aggiorna
+                        </button>
+                        <button class="btn btn-outline-success" id="startStreaming" disabled>
+                            <i class="fas fa-play me-2"></i>Avvia Streaming
+                        </button>
+                        <button class="btn btn-outline-danger" id="stopStreaming" disabled>
+                            <i class="fas fa-stop me-2"></i>Ferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-layer-group me-2"></i>Sorgenti
+                    <span class="badge bg-secondary" id="sourceCount">0</span>
+                </div>
+                <div class="card-body">
+                    <div id="sourcesList" class="list-group">
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-spinner fa-spin me-2"></i>Seleziona una scena per vedere le sorgenti
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-eye me-2"></i>Anteprima Overlay
+                </div>
+                <div class="card-body">
+                    <div class="overlay-preview" id="overlayPreview">
+                        <div class="text-center py-4">
+                            <i class="fas fa-tv fa-2x mb-3"></i>
+                            <p>L'anteprima dell'overlay apparirà qui</p>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary mt-3" id="testOverlay">
+                        <i class="fas fa-vial me-2"></i>Testa Overlay
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <i class="fas fa-history me-2"></i>Log Eventi
+        </div>
+        <div class="card-body">
+            <div id="eventLog">
+                <div class="log-entry">
+                    <span class="log-time">[00:00:00]</span> Sistema inizializzato. In attesa di connessione a OBS...
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <h3>Come utilizzare l'integrazione OBS</h3>
+        <ol>
+            <li>Assicurati di aver installato il plugin <strong>OBS WebSocket</strong> (versione 5.x o superiore)</li>
+            <li>In OBS vai su Tools > WebSocket Server Settings e assicurati che sia abilitato</li>
+            <li>Inserisci l'indirizzo e la password (se configurata) e clicca "Connetti"</li>
+            <li>Una volta connesso, potrai controllare le scene e le sorgenti direttamente da questa pagina</li>
+            <li>Configura gli overlay per gli eventi della chat per migliorare le tue dirette</li>
+            <li>Utilizza l'URL specifico dell'overlay come sorgente Browser in OBS per visualizzare gli eventi</li>
+        </ol>
+        <div class="alert alert-success">
+            <i class="fas fa-link me-2"></i>URL Overlay per OBS: 
+            <code id="overlayUrl">{{ url_for('obs_overlay', _external=True) }}</code>
+            <button class="btn btn-sm btn-outline-dark ms-2" id="copyOverlayUrl">
+                <i class="fas fa-copy"></i> Copia
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Funzioni per la connessione OBS WebSocket
+    let obsSocket = null;
+    let currentScene = null;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gestione form di connessione
+        document.getElementById('obsConnectionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            connectToOBS();
+        });
+        
+        // Gestione disconnessione
+        document.getElementById('disconnectButton').addEventListener('click', function() {
+            disconnectFromOBS();
+        });
+        
+        // Tasto aggiorna scene
+        document.getElementById('refreshScenes').addEventListener('click', function() {
+            if (obsSocket && obsSocket.readyState === WebSocket.OPEN) {
+                getScenes();
+            }
+        });
+        
+        // Tasto test overlay
+        document.getElementById('testOverlay').addEventListener('click', function() {
+            showTestOverlay();
+        });
+        
+        // Tasto copia URL overlay
+        document.getElementById('copyOverlayUrl').addEventListener('click', function() {
+            const overlayUrl = document.getElementById('overlayUrl').textContent;
+            navigator.clipboard.writeText(overlayUrl).then(function() {
+                addLogEntry('URL Overlay copiato negli appunti');
+            });
+        });
+        
+        // Controlli di streaming
+        document.getElementById('startStreaming').addEventListener('click', function() {
+            startStreaming();
+        });
+        
+        document.getElementById('stopStreaming').addEventListener('click', function() {
+            stopStreaming();
+        });
+        
+        // Salva impostazioni overlay
+        document.getElementById('saveOverlaySettings').addEventListener('click', function() {
+            saveOverlaySettings();
+        });
+    });
+    
+    function connectToOBS() {
+        const address = document.getElementById('obsAddress').value;
+        const password = document.getElementById('obsPassword').value;
+        
+        // Assicuriamoci che l'indirizzo abbia il formato corretto
+        let wsAddress = address;
+        if (!wsAddress.startsWith('ws://')) {
+            wsAddress = 'ws://' + wsAddress;
+        }
+        
+        // Chiudi la connessione esistente se presente
+        if (obsSocket) {
+            obsSocket.close();
+        }
+        
+        // Crea una nuova connessione WebSocket
+        try {
+            obsSocket = new WebSocket(wsAddress);
+            
+            obsSocket.onopen = function() {
+                // Autenticazione (ove necessaria)
+                if (password) {
+                    // Implementazione auth OBS-WebSocket v5
+                    const authRequest = {
+                        "op": 1,
+                        "d": {
+                            "rpcVersion": 1
+                        }
+                    };
+                    obsSocket.send(JSON.stringify(authRequest));
+                } else {
+                    updateConnectionStatus(true);
+                    getScenes();
+                }
+            };
+            
+            obsSocket.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                handleOBSMessage(message);
+            };
+            
+            obsSocket.onclose = function() {
+                updateConnectionStatus(false);
+                addLogEntry('Disconnesso da OBS WebSocket');
+            };
+            
+            obsSocket.onerror = function(error) {
+                addLogEntry('Errore di connessione: ' + error.message);
+                updateConnectionStatus(false);
+            };
+        } catch (error) {
+            addLogEntry('Errore durante la creazione della connessione: ' + error.message);
+        }
+    }
+    
+    function disconnectFromOBS() {
+        if (obsSocket) {
+            obsSocket.close();
+            obsSocket = null;
+        }
+        updateConnectionStatus(false);
+    }
+    
+    function updateConnectionStatus(connected) {
+        const statusElement = document.getElementById('connectionStatus');
+        const connectButton = document.getElementById('connectButton');
+        const disconnectButton = document.getElementById('disconnectButton');
+        const refreshButton = document.getElementById('refreshScenes');
+        const startStreamingButton = document.getElementById('startStreaming');
+        const stopStreamingButton = document.getElementById('stopStreaming');
+        
+        if (connected) {
+            statusElement.textContent = 'Connesso';
+            statusElement.classList.remove('status-disconnected');
+            statusElement.classList.add('status-connected');
+            
+            connectButton.disabled = true;
+            disconnectButton.disabled = false;
+            refreshButton.disabled = false;
+            startStreamingButton.disabled = false;
+            stopStreamingButton.disabled = false;
+            
+            addLogEntry('Connesso a OBS WebSocket');
+        } else {
+            statusElement.textContent = 'Disconnesso';
+            statusElement.classList.remove('status-connected');
+            statusElement.classList.add('status-disconnected');
+            
+            connectButton.disabled = false;
+            disconnectButton.disabled = true;
+            refreshButton.disabled = true;
+            startStreamingButton.disabled = true;
+            stopStreamingButton.disabled = true;
+            
+            // Reset UI
+            document.getElementById('scenesList').innerHTML = 
+                '<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>Connettiti a OBS per vedere le scene</div>';
+            document.getElementById('sourcesList').innerHTML = 
+                '<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>Seleziona una scena per vedere le sorgenti</div>';
+            document.getElementById('sceneCount').textContent = '0';
+            document.getElementById('sourceCount').textContent = '0';
+        }
+    }
+    
+    function handleOBSMessage(message) {
+        // Gestione messaggi WebSocket v5
+        if (message.op === 0) {
+            // Eventi
+            if (message.d && message.d.eventType) {
+                handleOBSEvent(message.d);
+            }
+        } else if (message.op === 1) {
+            // Hello (richiede auth)
+            if (message.d && message.d.authentication) {
+                addLogEntry('Autenticazione richiesta');
+                // TODO: implementare l'autenticazione con challenge
+            } else {
+                updateConnectionStatus(true);
+                getScenes();
+            }
+        } else if (message.op === 2) {
+            // Identified
+            updateConnectionStatus(true);
+            getScenes();
+        } else if (message.op === 7) {
+            // RequestResponse
+            handleOBSResponse(message.d);
+        }
+    }
+    
+    function handleOBSEvent(event) {
+        if (event.eventType === 'CurrentProgramSceneChanged') {
+            currentScene = event.sceneName;
+            updateScenesList([{ sceneName: currentScene }], currentScene);
+            addLogEntry('Scena cambiata a: ' + currentScene);
+        } else if (event.eventType === 'StreamStateChanged') {
+            const streaming = event.outputActive;
+            addLogEntry(streaming ? 'Streaming avviato' : 'Streaming fermato');
+        } else if (event.eventType === 'SceneItemVisibilityChanged') {
+            addLogEntry('Visibilità sorgente cambiata: ' + event.itemName);
+        }
+    }
+    
+    function handleOBSResponse(response) {
+        if (response.requestType === 'GetSceneList') {
+            if (response.responseData) {
+                const scenes = response.responseData.scenes;
+                currentScene = response.responseData.currentProgramSceneName;
+                updateScenesList(scenes, currentScene);
+                addLogEntry('Scene caricate: ' + scenes.length);
+            }
+        } else if (response.requestType === 'GetSceneItemList') {
+            if (response.responseData) {
+                const sources = response.responseData.sceneItems;
+                updateSourcesList(sources);
+                addLogEntry('Sorgenti caricate: ' + sources.length);
+            }
+        } else if (response.requestType === 'StartStream') {
+            addLogEntry('Comando avvio streaming inviato');
+        } else if (response.requestType === 'StopStream') {
+            addLogEntry('Comando stop streaming inviato');
+        }
+    }
+    
+    function getScenes() {
+        if (obsSocket && obsSocket.readyState === WebSocket.OPEN) {
+            const request = {
+                "op": 6,
+                "d": {
+                    "requestType": "GetSceneList",
+                    "requestId": generateRequestId()
+                }
+            };
+            obsSocket.send(JSON.stringify(request));
+        }
+    }
+    
+    function getSources(sceneName) {
+        if (obsSocket && obsSocket.readyState === WebSocket.OPEN) {
+            const request = {
+                "op": 6,
+                "d": {
+                    "requestType": "GetSceneItemList",
+                    "requestId": generateRequestId(),
+                    "requestData": {
+                        "sceneName": sceneName
+                    }
+                }
+            };
+            obsSocket.send(JSON.stringify(request));
+        }
+    }
+    
+    function setCurrentScene(sceneName) {
+        if (obsSocket && obsSocket.readyState === WebSocket.OPEN) {
+            const request = {
+                "op": 6,
+                "d": {
+                    "requestType": "SetCurrentProgramScene",
+                    "requestId": generateRequestId(),
+                    "requestData": {
+                        "sceneName": sceneName
+                    }
+                }
+            };
+            obsSocket.send(JSON.stringify(request));
+            addLogEntry('Cambio scena a: ' + sceneName);
+        }
+    }
+    
+    function toggleSourceVisibility(sceneName, sourceName, enabled) {
+        if (obsSocket && obsSocket.readyState === WebSocket.OPEN) {
+            const request = {
+                "op": 6,
+                "d": {
+                    "requestType": "SetSceneItemEnabled",
+                    "requestId": generateRequestId(),
+                    "requestData": {
+                        "sceneName": sceneName,
+                        "sceneItemName": sourceName,
+                        "sceneItemEnabled": enabled
+                    }
+                }
+            };
+            obsSocket.send(JSON.stringify(request));
+            addLogEntry(`Sorgente ${sourceName} ${enabled ? 'attivata' : 'disattivata'}`);
+        }
+    }
+    
+    function startStreaming() {
+        if (obsSocket && obsSocket.readyState === WebSocket.OPEN) {
+            const request = {
+                "op": 6,
+                "d": {
+                    "requestType": "StartStream",
+                    "requestId": generateRequestId()
+                }
+            };
+            obsSocket.send(JSON.stringify(request));
+        }
+    }
+    
+    function stopStreaming() {
+        if (obsSocket && obsSocket.readyState === WebSocket.OPEN) {
+            const request = {
+                "op": 6,
+                "d": {
+                    "requestType": "StopStream",
+                    "requestId": generateRequestId()
+                }
+            };
+            obsSocket.send(JSON.stringify(request));
+        }
+    }
+    
+    function updateScenesList(scenes, currentSceneName) {
+        const scenesList = document.getElementById('scenesList');
+        scenesList.innerHTML = '';
+        
+        scenes.forEach(scene => {
+            const isActive = scene.sceneName === currentSceneName;
+            const sceneItem = document.createElement('div');
+            sceneItem.classList.add('scene-item');
+            sceneItem.classList.add('list-group-item');
+            if (isActive) {
+                sceneItem.classList.add('active');
+            }
+            
+            sceneItem.innerHTML = `
+                <i class="fas fa-film me-2"></i>
+                ${scene.sceneName}
+                ${isActive ? '<span class="badge bg-light text-dark float-end">Attiva</span>' : ''}
+            `;
+            
+            sceneItem.addEventListener('click', function() {
+                setCurrentScene(scene.sceneName);
+                getSources(scene.sceneName);
+            });
+            
+            scenesList.appendChild(sceneItem);
+        });
+        
+        document.getElementById('sceneCount').textContent = scenes.length;
+    }
+    
+    function updateSourcesList(sources) {
+        const sourcesList = document.getElementById('sourcesList');
+        sourcesList.innerHTML = '';
+        
+        if (sources.length === 0) {
+            sourcesList.innerHTML = '<div class="text-center text-muted py-3">Nessuna sorgente trovata in questa scena</div>';
+            document.getElementById('sourceCount').textContent = '0';
+            return;
+        }
+        
+        sources.forEach(source => {
+            const sourceItem = document.createElement('div');
+            sourceItem.classList.add('source-item');
+            sourceItem.classList.add('list-group-item');
+            
+            sourceItem.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><i class="fas ${source.sourceKind === 'browser_source' ? 'fa-globe' : 'fa-image'} me-2"></i> ${source.sourceName}</span>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="source_${source.sceneItemId}" ${source.sceneItemEnabled ? 'checked' : ''}>
+                    </div>
+                </div>
+            `;
+            
+            sourcesList.appendChild(sourceItem);
+            
+            // Aggiungi event listener per il toggle
+            const toggleSwitch = document.getElementById(`source_${source.sceneItemId}`);
+            toggleSwitch.addEventListener('change', function(e) {
+                toggleSourceVisibility(currentScene, source.sourceName, e.target.checked);
+            });
+        });
+        
+        document.getElementById('sourceCount').textContent = sources.length;
+    }
+    
+    function showTestOverlay() {
+        const overlayPreview = document.getElementById('overlayPreview');
+        const style = document.getElementById('overlayStyle').value;
+        const duration = document.getElementById('overlayDuration').value;
+        const eventTypes = [];
+        
+        if (document.getElementById('showFollowers').checked) eventTypes.push('follower');
+        if (document.getElementById('showDonations').checked) eventTypes.push('donation');
+        if (document.getElementById('showCommands').checked) eventTypes.push('command');
+        
+        if (eventTypes.length === 0) {
+            addLogEntry('Seleziona almeno un tipo di evento per testare l\'overlay');
+            return;
+        }
+        
+        // Scegli un tipo di evento casuale tra quelli selezionati
+        const eventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+        let html = '';
+        
+        const username = 'Spettatore' + Math.floor(Math.random() * 1000);
+        
+        switch (eventType) {
+            case 'follower':
+                html = `
+                    <div class="overlay-${style} follower-event">
+                        <div class="overlay-icon"><i class="fas fa-heart text-danger"></i></div>
+                        <div class="overlay-text">
+                            <div class="overlay-title">Nuovo Follower!</div>
+                            <div class="overlay-message">${username} ha iniziato a seguire</div>
+                        </div>
+                    </div>
+                `;
+                addLogEntry(`Test overlay: Nuovo follower - ${username}`);
+                break;
+            case 'donation':
+                const amount = Math.floor(Math.random() * 50) + 5;
+                html = `
+                    <div class="overlay-${style} donation-event">
+                        <div class="overlay-icon"><i class="fas fa-gift text-success"></i></div>
+                        <div class="overlay-text">
+                            <div class="overlay-title">Donazione!</div>
+                            <div class="overlay-message">${username} ha donato €${amount}</div>
+                        </div>
+                    </div>
+                `;
+                addLogEntry(`Test overlay: Donazione di €${amount} - ${username}`);
+                break;
+            case 'command':
+                const commands = ['!punti', '!dado', '!saluta', '!gioco'];
+                const command = commands[Math.floor(Math.random() * commands.length)];
+                html = `
+                    <div class="overlay-${style} command-event">
+                        <div class="overlay-icon"><i class="fas fa-terminal text-primary"></i></div>
+                        <div class="overlay-text">
+                            <div class="overlay-title">Comando Usato</div>
+                            <div class="overlay-message">${username} ha usato ${command}</div>
+                        </div>
+                    </div>
+                `;
+                addLogEntry(`Test overlay: Comando ${command} - ${username}`);
+                break;
+        }
+        
+        overlayPreview.innerHTML = html;
+        
+        // Dopo il tempo impostato, rimuovi l'overlay
+        setTimeout(() => {
+            overlayPreview.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-tv fa-2x mb-3"></i>
+                    <p>L'anteprima dell'overlay apparirà qui</p>
+                </div>
+            `;
+        }, duration * 1000);
+    }
+    
+    function saveOverlaySettings() {
+        const settings = {
+            showFollowers: document.getElementById('showFollowers').checked,
+            showDonations: document.getElementById('showDonations').checked,
+            showCommands: document.getElementById('showCommands').checked,
+            duration: document.getElementById('overlayDuration').value,
+            style: document.getElementById('overlayStyle').value
+        };
+        
+        // Salva le impostazioni tramite API
+        fetch('/api/save_overlay_settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(settings)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                addLogEntry('Impostazioni overlay salvate con successo');
+            } else {
+                addLogEntry('Errore nel salvare le impostazioni: ' + data.error);
+            }
+        })
+        .catch(error => {
+            addLogEntry('Errore di rete: ' + error);
+        });
+    }
+    
+    function addLogEntry(message) {
+        const log = document.getElementById('eventLog');
+        const date = new Date();
+        const time = date.toTimeString().split(' ')[0];
+        
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+        entry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
+        
+        log.appendChild(entry);
+        log.scrollTop = log.scrollHeight;
+    }
+    
+    function generateRequestId() {
+        return Math.random().toString(36).substring(2, 15);
+    }
+</script>
+{% endblock %} 

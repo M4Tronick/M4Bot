@@ -1,60 +1,52 @@
 #!/bin/bash
 # Script per fermare M4Bot
 
-# Colori per output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Carica le funzioni comuni
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/common.sh"
 
-# Funzione per stampare messaggi
-print_message() {
-    echo -e "${BLUE}[M4Bot]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERRORE]${NC} $1"
-}
-
-print_success() {
-    echo -e "${GREEN}[SUCCESSO]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[ATTENZIONE]${NC} $1"
-}
+# Verificare che lo script sia eseguito come root
+check_root
 
 print_message "Arresto di M4Bot..."
 
-# Controlla se l'utente è root
-if [ "$(id -u)" != "0" ]; then
-   print_error "Questo script deve essere eseguito come root" 
-   exit 1
+# Controlla se i servizi sono in esecuzione
+if ! is_service_active "m4bot-bot.service" && ! is_service_active "m4bot-web.service"; then
+    print_warning "I servizi M4Bot non sono in esecuzione"
+    exit 0
 fi
 
-# Arresto dei servizi
-if systemctl is-active --quiet m4bot-bot.service; then
-    systemctl stop m4bot-bot.service
-    if [ $? -eq 0 ]; then
-        print_success "Bot arrestato con successo"
-    else
-        print_error "Impossibile arrestare il bot"
-    fi
+# Chiedi conferma prima di continuare
+read -p "Sei sicuro di voler fermare M4Bot? (s/n): " confirm_stop
+if [ "$confirm_stop" != "s" ]; then
+    print_message "Operazione annullata"
+    exit 0
+fi
+
+# Ferma i servizi
+print_step "Arresto del servizio web..."
+systemctl stop m4bot-web.service
+if ! is_service_active "m4bot-web.service"; then
+    print_success "Servizio web fermato con successo"
 else
-    print_warning "Il servizio bot non è in esecuzione"
+    print_error "Impossibile fermare il servizio web"
 fi
 
-if systemctl is-active --quiet m4bot-web.service; then
-    systemctl stop m4bot-web.service
-    if [ $? -eq 0 ]; then
-        print_success "Web app arrestata con successo"
-    else
-        print_error "Impossibile arrestare la web app"
-    fi
+print_step "Arresto del servizio bot..."
+systemctl stop m4bot-bot.service
+if ! is_service_active "m4bot-bot.service"; then
+    print_success "Servizio bot fermato con successo"
 else
-    print_warning "Il servizio web non è in esecuzione"
+    print_error "Impossibile fermare il servizio bot"
 fi
 
-print_message "Tutti i servizi di M4Bot sono stati arrestati"
-print_message "Per avviare M4Bot, esegui: m4bot-start"
+# Verifica finale
+if ! is_service_active "m4bot-bot.service" && ! is_service_active "m4bot-web.service"; then
+    print_success "M4Bot è stato fermato completamente"
+else
+    print_warning "Alcuni servizi potrebbero essere ancora in esecuzione"
+    systemctl status m4bot-bot.service --no-pager
+    systemctl status m4bot-web.service --no-pager
+fi
+
+print_info "Puoi avviare M4Bot con: m4bot-start"

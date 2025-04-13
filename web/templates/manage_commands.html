@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Gestione Comandi - {{ channel.name }} - M4Bot{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('channel_detail', channel_id=channel.id) }}">{{ channel.name }}</a></li>
+                <li class="breadcrumb-item active">Gestione Comandi</li>
+            </ol>
+        </nav>
+        <h2><i class="fas fa-terminal me-2"></i>Gestione Comandi per {{ channel.name }}</h2>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+{% if success %}
+<div class="alert alert-success">{{ success }}</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Aggiungi/Modifica Comando</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="action" value="add">
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Nome del comando</label>
+                        <input type="text" class="form-control" id="name" name="name" required placeholder="es. !help">
+                        <div class="form-text">Il comando deve iniziare con ! (es. !help, !uptime, !points)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="response" class="form-label">Risposta</label>
+                        <textarea class="form-control" id="response" name="response" rows="3" required placeholder="Contenuto della risposta..."></textarea>
+                        <div class="form-text">
+                            Variabili disponibili: {user}, {channel}, {uptime}, {followage}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="cooldown" class="form-label">Cooldown (secondi)</label>
+                            <input type="number" class="form-control" id="cooldown" name="cooldown" value="5" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="user_level" class="form-label">Livello utente</label>
+                            <select class="form-select" id="user_level" name="user_level">
+                                <option value="everyone">Tutti</option>
+                                <option value="subscriber">Subscribers</option>
+                                <option value="moderator">Moderatori</option>
+                                <option value="broadcaster">Solo Streamer</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Salva Comando</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-list me-2"></i>Comandi Esistenti</h4>
+            </div>
+            <div class="card-body">
+                {% if commands %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Comando</th>
+                                <th>Risposta</th>
+                                <th>Cooldown</th>
+                                <th>Utilizzi</th>
+                                <th>Stato</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cmd in commands %}
+                            <tr>
+                                <td><code>{{ cmd.name }}</code></td>
+                                <td>
+                                    {% if cmd.response|length > 50 %}
+                                    {{ cmd.response[:50] }}...
+                                    {% else %}
+                                    {{ cmd.response }}
+                                    {% endif %}
+                                </td>
+                                <td>{{ cmd.cooldown }}s</td>
+                                <td>{{ cmd.usage_count }}</td>
+                                <td>
+                                    {% if cmd.enabled %}
+                                    <span class="badge bg-success">Attivo</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Disattivato</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-outline-primary edit-command" 
+                                                data-id="{{ cmd.id }}" 
+                                                data-name="{{ cmd.name }}" 
+                                                data-response="{{ cmd.response }}" 
+                                                data-cooldown="{{ cmd.cooldown }}" 
+                                                data-user-level="{{ cmd.user_level }}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        
+                                        <form method="POST" class="d-inline" onsubmit="return confirm('Sei sicuro di voler eliminare questo comando?');">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="command_id" value="{{ cmd.id }}">
+                                            <button type="submit" class="btn btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                        
+                                        <form method="POST" class="d-inline">
+                                            <input type="hidden" name="action" value="toggle">
+                                            <input type="hidden" name="command_id" value="{{ cmd.id }}">
+                                            <button type="submit" class="btn btn-outline-{% if cmd.enabled %}warning{% else %}success{% endif %}">
+                                                <i class="fas fa-{% if cmd.enabled %}pause{% else %}play{% endif %}"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    Non hai ancora creato nessun comando. Utilizza il form a sinistra per creare il tuo primo comando!
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gestione pulsanti di modifica
+        const editButtons = document.querySelectorAll('.edit-command');
+        
+        editButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                const name = this.getAttribute('data-name');
+                const response = this.getAttribute('data-response');
+                const cooldown = this.getAttribute('data-cooldown');
+                const userLevel = this.getAttribute('data-user-level');
+                
+                // Popola il form con i dati del comando
+                document.getElementById('name').value = name;
+                document.getElementById('response').value = response;
+                document.getElementById('cooldown').value = cooldown;
+                document.getElementById('user_level').value = userLevel;
+                
+                // Scorri fino al form
+                document.querySelector('.card-header').scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+    });
+</script>
+{% endblock %}

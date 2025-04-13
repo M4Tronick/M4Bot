@@ -1,0 +1,658 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestione Webhook Kick - M4Bot{% endblock %}
+
+{% block extra_css %}
+<style>
+    .webhook-badge {
+        font-size: 0.75rem;
+    }
+    .webhook-card {
+        border-left: 4px solid var(--primary-color);
+    }
+    .webhook-event-item {
+        border-radius: var(--border-radius);
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+        transition: all var(--transition-speed) ease;
+    }
+    .webhook-event-item:hover {
+        background-color: rgba(0,0,0,0.03);
+    }
+    .webhook-log-item {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.85rem;
+        padding: 0.5rem;
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+    .webhook-log-item pre {
+        margin-bottom: 0;
+        white-space: pre-wrap;
+    }
+    .webhook-log-success {
+        border-left: 3px solid var(--success-color);
+    }
+    .webhook-log-error {
+        border-left: 3px solid var(--danger-color);
+    }
+    .webhook-log-info {
+        border-left: 3px solid var(--secondary-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Gestione Webhook Kick</h1>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Torna alla Dashboard
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Pannello sinistro: Configurazione webhook -->
+        <div class="col-lg-7">
+            <div class="card webhook-card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-plug me-2"></i>Configura Webhook
+                </div>
+                <div class="card-body">
+                    <form id="webhookConfigForm" method="post">
+                        <div class="mb-3">
+                            <label for="channelSelect" class="form-label">Seleziona Canale</label>
+                            <select class="form-select" id="channelSelect" name="channel_id" required>
+                                <option value="" selected disabled>Seleziona un canale...</option>
+                                {% for channel in channels %}
+                                <option value="{{ channel.id }}">{{ channel.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="webhookEndpoint" class="form-label">Endpoint Webhook</label>
+                            <div class="input-group">
+                                <span class="input-group-text">https://</span>
+                                <input type="text" class="form-control" id="webhookEndpoint" name="webhook_url" 
+                                       placeholder="tuodominio.com/api/webhook/kick" required>
+                                <button class="btn btn-outline-secondary" type="button" id="testEndpointBtn">
+                                    <i class="fas fa-vial me-1"></i>Test
+                                </button>
+                            </div>
+                            <small class="text-muted">L'URL completo dove Kick invierà le notifiche</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="secretKey" class="form-label">Chiave Segreta (Secret)</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="secretKey" name="secret_key" 
+                                       placeholder="Chiave segreta per verificare le richieste" required>
+                                <button class="btn btn-outline-secondary" type="button" id="generateSecretBtn">
+                                    <i class="fas fa-key me-1"></i>Genera
+                                </button>
+                            </div>
+                            <small class="text-muted">Utilizzata per verificare l'autenticità delle richieste in arrivo</small>
+                        </div>
+
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Eventi da Sottoscrivere</span>
+                                    <div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllEventsBtn">Tutti</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllEventsBtn">Nessuno</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row" id="eventCheckboxes">
+                                    <div class="col-md-6">
+                                        <div class="webhook-event-item">
+                                            <div class="form-check">
+                                                <input class="form-check-input event-checkbox" type="checkbox" name="events[]" value="livestream.online" id="eventLivestreamOnline">
+                                                <label class="form-check-label" for="eventLivestreamOnline">
+                                                    Streaming avviato
+                                                </label>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="webhook-event-item">
+                                            <div class="form-check">
+                                                <input class="form-check-input event-checkbox" type="checkbox" name="events[]" value="livestream.offline" id="eventLivestreamOffline">
+                                                <label class="form-check-label" for="eventLivestreamOffline">
+                                                    Streaming terminato
+                                                </label>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="webhook-event-item">
+                                            <div class="form-check">
+                                                <input class="form-check-input event-checkbox" type="checkbox" name="events[]" value="follower.new" id="eventFollowerNew">
+                                                <label class="form-check-label" for="eventFollowerNew">
+                                                    Nuovo follower
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="webhook-event-item">
+                                            <div class="form-check">
+                                                <input class="form-check-input event-checkbox" type="checkbox" name="events[]" value="channel.updated" id="eventChannelUpdated">
+                                                <label class="form-check-label" for="eventChannelUpdated">
+                                                    Canale aggiornato
+                                                </label>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="webhook-event-item">
+                                            <div class="form-check">
+                                                <input class="form-check-input event-checkbox" type="checkbox" name="events[]" value="chatroom.message" id="eventChatroomMessage">
+                                                <label class="form-check-label" for="eventChatroomMessage">
+                                                    Nuovo messaggio in chat
+                                                </label>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="webhook-event-item">
+                                            <div class="form-check">
+                                                <input class="form-check-input event-checkbox" type="checkbox" name="events[]" value="subscription.new" id="eventSubscriptionNew">
+                                                <label class="form-check-label" for="eventSubscriptionNew">
+                                                    Nuova iscrizione
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary" id="saveWebhookBtn">
+                                <i class="fas fa-save me-2"></i>Salva Configurazione
+                            </button>
+                            <button type="button" class="btn btn-danger" id="deleteWebhookBtn" style="display: none;">
+                                <i class="fas fa-trash-alt me-2"></i>Elimina Webhook
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pannello destro: Status e logs -->
+        <div class="col-lg-5">
+            <div class="card webhook-card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-info-circle me-2"></i>Stato Webhook
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div id="webhookStatus" class="me-3">
+                            <span class="badge bg-secondary webhook-badge">Non configurato</span>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary" id="refreshStatusBtn">
+                                <i class="fas fa-sync-alt me-1"></i>Aggiorna Stato
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="webhook-info mb-3">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Ultimo evento:</strong></p>
+                                <p id="lastEventTime" class="text-muted">Nessuno</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Eventi ricevuti:</strong></p>
+                                <p id="eventsCount" class="text-muted">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <h5 class="card-title">Eventi Sottoscritti</h5>
+                        <div id="subscribedEvents" class="mb-3">
+                            <div class="text-muted">Nessun evento sottoscritto</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card webhook-card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-list-alt me-2"></i>Ultimi Eventi Ricevuti
+                    </div>
+                    <button class="btn btn-sm btn-light" id="clearLogsBtn">
+                        <i class="fas fa-broom me-1"></i>Pulisci
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div id="webhookLogs" class="webhook-logs" style="max-height: 350px; overflow-y: auto;">
+                        <div class="webhook-log-item webhook-log-info p-3 text-center">
+                            <span>Seleziona un canale per visualizzare i log</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal di conferma eliminazione -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Conferma Eliminazione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Sei sicuro di voler eliminare questa configurazione webhook?</p>
+                <p class="text-danger">Questa azione interromperà tutti gli eventi in arrivo da Kick.com e non può essere annullata.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Elimina</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal di risultato test -->
+<div class="modal fade" id="testResultModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Risultato Test Endpoint</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="testResultContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Riferimenti elementi UI
+        const channelSelect = document.getElementById('channelSelect');
+        const webhookConfigForm = document.getElementById('webhookConfigForm');
+        const generateSecretBtn = document.getElementById('generateSecretBtn');
+        const deleteWebhookBtn = document.getElementById('deleteWebhookBtn');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const selectAllEventsBtn = document.getElementById('selectAllEventsBtn');
+        const deselectAllEventsBtn = document.getElementById('deselectAllEventsBtn');
+        const testEndpointBtn = document.getElementById('testEndpointBtn');
+        const refreshStatusBtn = document.getElementById('refreshStatusBtn');
+        const clearLogsBtn = document.getElementById('clearLogsBtn');
+        
+        // Modals
+        const deleteConfirmModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+        const testResultModal = new bootstrap.Modal(document.getElementById('testResultModal'));
+        
+        // Variabili stato
+        let currentWebhookConfig = null;
+        
+        // Event Listeners
+        channelSelect.addEventListener('change', loadChannelWebhookConfig);
+        webhookConfigForm.addEventListener('submit', saveWebhookConfig);
+        generateSecretBtn.addEventListener('click', generateSecret);
+        deleteWebhookBtn.addEventListener('click', showDeleteConfirmation);
+        confirmDeleteBtn.addEventListener('click', deleteWebhookConfig);
+        selectAllEventsBtn.addEventListener('click', selectAllEvents);
+        deselectAllEventsBtn.addEventListener('click', deselectAllEvents);
+        testEndpointBtn.addEventListener('click', testEndpoint);
+        refreshStatusBtn.addEventListener('click', refreshStatus);
+        clearLogsBtn.addEventListener('click', clearLogs);
+        
+        // Funzione per generare una chiave segreta casuale
+        function generateSecret() {
+            const randomSecret = Math.random().toString(36).substring(2, 15) + 
+                                 Math.random().toString(36).substring(2, 15);
+            document.getElementById('secretKey').value = randomSecret;
+        }
+        
+        // Carica configurazione webhook per il canale selezionato
+        async function loadChannelWebhookConfig() {
+            const channelId = channelSelect.value;
+            if (!channelId) return;
+            
+            try {
+                const response = await fetch(`/api/webhook/config/${channelId}`);
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    currentWebhookConfig = data.config;
+                    
+                    // Popola il form con i dati esistenti
+                    document.getElementById('webhookEndpoint').value = 
+                        currentWebhookConfig.webhook_url || '';
+                    document.getElementById('secretKey').value = 
+                        currentWebhookConfig.secret_key || '';
+                    
+                    // Gestisci checkbox eventi
+                    const eventCheckboxes = document.querySelectorAll('.event-checkbox');
+                    eventCheckboxes.forEach(checkbox => {
+                        checkbox.checked = 
+                            currentWebhookConfig.events && 
+                            currentWebhookConfig.events.includes(checkbox.value);
+                    });
+                    
+                    // Aggiorna UI pulsante elimina
+                    deleteWebhookBtn.style.display = currentWebhookConfig.id ? 'block' : 'none';
+                    
+                    // Aggiorna pannello stato
+                    updateStatusPanel(currentWebhookConfig);
+                    
+                    // Carica log eventi
+                    loadWebhookLogs(channelId);
+                } else {
+                    // Resetta il form per nuova configurazione
+                    webhookConfigForm.reset();
+                    deleteWebhookBtn.style.display = 'none';
+                    
+                    // Resetta pannello stato
+                    document.getElementById('webhookStatus').innerHTML = 
+                        '<span class="badge bg-secondary webhook-badge">Non configurato</span>';
+                    document.getElementById('lastEventTime').textContent = 'Nessuno';
+                    document.getElementById('eventsCount').textContent = '0';
+                    document.getElementById('subscribedEvents').innerHTML = 
+                        '<div class="text-muted">Nessun evento sottoscritto</div>';
+                    
+                    // Svuota i log
+                    document.getElementById('webhookLogs').innerHTML = 
+                        '<div class="webhook-log-item webhook-log-info p-3 text-center"><span>Nessun log disponibile</span></div>';
+                }
+            } catch (error) {
+                console.error('Errore nel caricamento della configurazione webhook:', error);
+                alert('Errore nel caricamento della configurazione webhook');
+            }
+        }
+        
+        // Salva configurazione webhook
+        async function saveWebhookConfig(e) {
+            e.preventDefault();
+            
+            const channelId = channelSelect.value;
+            if (!channelId) {
+                alert('Seleziona un canale');
+                return;
+            }
+            
+            // Raccogli eventi selezionati
+            const eventCheckboxes = document.querySelectorAll('.event-checkbox:checked');
+            const selectedEvents = Array.from(eventCheckboxes).map(cb => cb.value);
+            
+            if (selectedEvents.length === 0) {
+                alert('Seleziona almeno un evento da sottoscrivere');
+                return;
+            }
+            
+            // Prepara dati da inviare
+            const formData = new FormData(webhookConfigForm);
+            const webhookData = {
+                channel_id: channelId,
+                webhook_url: formData.get('webhook_url'),
+                secret_key: formData.get('secret_key'),
+                events: selectedEvents
+            };
+            
+            // Se stiamo aggiornando, includi l'ID
+            if (currentWebhookConfig && currentWebhookConfig.id) {
+                webhookData.id = currentWebhookConfig.id;
+            }
+            
+            try {
+                const response = await fetch('/api/webhook/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(webhookData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    alert('Configurazione webhook salvata con successo');
+                    
+                    // Ricarica configurazione
+                    loadChannelWebhookConfig();
+                } else {
+                    alert(`Errore: ${data.error || 'Si è verificato un errore durante il salvataggio'}`);
+                }
+            } catch (error) {
+                console.error('Errore nel salvataggio della configurazione webhook:', error);
+                alert('Errore nel salvataggio della configurazione webhook');
+            }
+        }
+        
+        // Mostra modale di conferma eliminazione
+        function showDeleteConfirmation() {
+            deleteConfirmModal.show();
+        }
+        
+        // Elimina configurazione webhook
+        async function deleteWebhookConfig() {
+            const channelId = channelSelect.value;
+            if (!channelId || !currentWebhookConfig || !currentWebhookConfig.id) {
+                alert('Nessuna configurazione webhook da eliminare');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/webhook/config/${currentWebhookConfig.id}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    alert('Configurazione webhook eliminata con successo');
+                    
+                    // Chiudi la modale
+                    deleteConfirmModal.hide();
+                    
+                    // Resetta form e stato
+                    webhookConfigForm.reset();
+                    loadChannelWebhookConfig();
+                } else {
+                    alert(`Errore: ${data.error || 'Si è verificato un errore durante l\'eliminazione'}`);
+                }
+            } catch (error) {
+                console.error('Errore nell\'eliminazione della configurazione webhook:', error);
+                alert('Errore nell\'eliminazione della configurazione webhook');
+            }
+        }
+        
+        // Seleziona tutti gli eventi
+        function selectAllEvents() {
+            const eventCheckboxes = document.querySelectorAll('.event-checkbox');
+            eventCheckboxes.forEach(checkbox => checkbox.checked = true);
+        }
+        
+        // Deseleziona tutti gli eventi
+        function deselectAllEvents() {
+            const eventCheckboxes = document.querySelectorAll('.event-checkbox');
+            eventCheckboxes.forEach(checkbox => checkbox.checked = false);
+        }
+        
+        // Testa endpoint webhook
+        async function testEndpoint() {
+            const endpoint = document.getElementById('webhookEndpoint').value;
+            if (!endpoint) {
+                alert('Inserisci un endpoint da testare');
+                return;
+            }
+            
+            const testUrl = `https://${endpoint}`;
+            
+            try {
+                document.getElementById('testResultContent').innerHTML = 
+                    '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Test in corso...</p></div>';
+                
+                testResultModal.show();
+                
+                const response = await fetch('/api/webhook/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url: testUrl })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    document.getElementById('testResultContent').innerHTML = `
+                        <div class="alert alert-success">
+                            <h5><i class="fas fa-check-circle me-2"></i>Test completato con successo!</h5>
+                            <p>Il tuo endpoint ha risposto correttamente.</p>
+                            <hr>
+                            <div><strong>Codice risposta:</strong> ${data.status_code}</div>
+                            <div><strong>Tempo di risposta:</strong> ${data.response_time} ms</div>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('testResultContent').innerHTML = `
+                        <div class="alert alert-danger">
+                            <h5><i class="fas fa-exclamation-circle me-2"></i>Test fallito</h5>
+                            <p>${data.error || 'Si è verificato un errore durante il test dell\'endpoint'}</p>
+                            ${data.status_code ? `<div><strong>Codice risposta:</strong> ${data.status_code}</div>` : ''}
+                            ${data.response_time ? `<div><strong>Tempo di risposta:</strong> ${data.response_time} ms</div>` : ''}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Errore nel test dell\'endpoint:', error);
+                document.getElementById('testResultContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        <h5><i class="fas fa-exclamation-circle me-2"></i>Errore</h5>
+                        <p>Impossibile completare il test. Verifica la tua connessione.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Aggiorna stato webhook
+        function refreshStatus() {
+            loadChannelWebhookConfig();
+        }
+        
+        // Aggiorna pannello stato
+        function updateStatusPanel(config) {
+            // Aggiorna badge stato
+            let statusBadge = '';
+            if (config && config.id) {
+                if (config.active) {
+                    statusBadge = '<span class="badge bg-success webhook-badge">Attivo</span>';
+                } else {
+                    statusBadge = '<span class="badge bg-warning webhook-badge">Inattivo</span>';
+                }
+            } else {
+                statusBadge = '<span class="badge bg-secondary webhook-badge">Non configurato</span>';
+            }
+            document.getElementById('webhookStatus').innerHTML = statusBadge;
+            
+            // Aggiorna timestamp ultimo evento
+            document.getElementById('lastEventTime').textContent = 
+                config && config.last_event_at ? new Date(config.last_event_at).toLocaleString() : 'Nessuno';
+            
+            // Aggiorna conteggio eventi
+            document.getElementById('eventsCount').textContent = 
+                config && config.events_count ? config.events_count : '0';
+            
+            // Aggiorna eventi sottoscritti
+            if (config && config.events && config.events.length > 0) {
+                const eventsList = config.events.map(event => {
+                    return `<div class="badge bg-info text-dark me-2 mb-2 p-2">${event}</div>`;
+                }).join('');
+                document.getElementById('subscribedEvents').innerHTML = eventsList;
+            } else {
+                document.getElementById('subscribedEvents').innerHTML = 
+                    '<div class="text-muted">Nessun evento sottoscritto</div>';
+            }
+        }
+        
+        // Carica log eventi webhook
+        async function loadWebhookLogs(channelId) {
+            try {
+                const response = await fetch(`/api/webhook/logs/${channelId}`);
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    if (data.logs && data.logs.length > 0) {
+                        const logsHtml = data.logs.map(log => {
+                            let logClass = 'webhook-log-info';
+                            if (log.status_code && log.status_code >= 400) {
+                                logClass = 'webhook-log-error';
+                            } else if (log.status_code && log.status_code >= 200 && log.status_code < 300) {
+                                logClass = 'webhook-log-success';
+                            }
+                            
+                            return `
+                                <div class="webhook-log-item ${logClass}">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>${log.event_type || 'Evento'}</strong>
+                                        <small>${new Date(log.created_at).toLocaleString()}</small>
+                                    </div>
+                                    <pre>${JSON.stringify(log.payload, null, 2)}</pre>
+                                    ${log.status_code ? `<div class="text-end"><small>Risposta: ${log.status_code}</small></div>` : ''}
+                                </div>
+                            `;
+                        }).join('');
+                        
+                        document.getElementById('webhookLogs').innerHTML = logsHtml;
+                    } else {
+                        document.getElementById('webhookLogs').innerHTML = 
+                            '<div class="webhook-log-item webhook-log-info p-3 text-center"><span>Nessun log disponibile</span></div>';
+                    }
+                } else {
+                    document.getElementById('webhookLogs').innerHTML = 
+                        '<div class="webhook-log-item webhook-log-error p-3 text-center"><span>Errore nel caricamento dei log</span></div>';
+                }
+            } catch (error) {
+                console.error('Errore nel caricamento dei log webhook:', error);
+                document.getElementById('webhookLogs').innerHTML = 
+                    '<div class="webhook-log-item webhook-log-error p-3 text-center"><span>Errore nel caricamento dei log</span></div>';
+            }
+        }
+        
+        // Pulisci log
+        async function clearLogs() {
+            const channelId = channelSelect.value;
+            if (!channelId) return;
+            
+            if (!confirm('Sei sicuro di voler cancellare tutti i log?')) return;
+            
+            try {
+                const response = await fetch(`/api/webhook/logs/${channelId}/clear`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    // Ricarica log vuoti
+                    document.getElementById('webhookLogs').innerHTML = 
+                        '<div class="webhook-log-item webhook-log-info p-3 text-center"><span>Nessun log disponibile</span></div>';
+                } else {
+                    alert(`Errore: ${data.error || 'Si è verificato un errore durante la pulizia dei log'}`);
+                }
+            } catch (error) {
+                console.error('Errore nella pulizia dei log webhook:', error);
+                alert('Errore nella pulizia dei log webhook');
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,1286 @@
+{% extends 'base.html' %}
+
+{% block title %}Scommesse e Prediction - M4Bot{% endblock %}
+
+{% block extra_css %}
+<style>
+    .prediction-card {
+        border-left: 4px solid #6f42c1;
+    }
+    .outcome-card {
+        border-radius: 6px;
+        margin-bottom: 10px;
+        position: relative;
+        overflow: hidden;
+    }
+    .outcome-card.blue {
+        border-left: 4px solid #007bff;
+    }
+    .outcome-card.pink {
+        border-left: 4px solid #e83e8c;
+    }
+    .outcome-progress {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        opacity: 0.1;
+        z-index: 0;
+    }
+    .outcome-content {
+        position: relative;
+        z-index: 1;
+    }
+    .outcome-percentage {
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    .timer-display {
+        font-size: 2rem;
+        font-weight: bold;
+        text-align: center;
+    }
+    .status-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    .prediction-history-item {
+        border-left: 4px solid #6c757d;
+        padding-left: 15px;
+        margin-bottom: 15px;
+    }
+    .prediction-history-item.resolved {
+        border-left-color: #28a745;
+    }
+    .prediction-history-item.canceled {
+        border-left-color: #dc3545;
+    }
+    .user-prediction {
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        padding: 10px;
+        margin-bottom: 5px;
+    }
+    .votes-display {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    .points-display {
+        font-weight: bold;
+    }
+    .outcome-winner {
+        background-color: rgba(40, 167, 69, 0.1);
+        border: 1px solid #28a745;
+    }
+    .quick-prediction {
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .quick-prediction:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Scommesse e Prediction</h1>
+    
+    <div class="row mb-4">
+        <!-- Sezione sinistra: Creazione e gestione prediction -->
+        <div class="col-lg-8">
+            <!-- Card creazione prediction -->
+            <div class="card prediction-card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-plus-circle me-2"></i>Crea Nuova Prediction
+                </div>
+                <div class="card-body">
+                    <form id="createPredictionForm">
+                        <div class="mb-3">
+                            <label for="predictionTitle" class="form-label">Titolo della prediction</label>
+                            <input type="text" class="form-control" id="predictionTitle" placeholder="Es. Chi vincerà la partita?">
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="blueOutcome" class="form-label">Opzione Blu</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-primary text-white"><i class="fas fa-square"></i></span>
+                                    <input type="text" class="form-control" id="blueOutcome" placeholder="Es. Squadra A">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="pinkOutcome" class="form-label">Opzione Rosa</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-danger text-white"><i class="fas fa-square"></i></span>
+                                    <input type="text" class="form-control" id="pinkOutcome" placeholder="Es. Squadra B">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3" id="additionalOutcomesContainer">
+                            <!-- Le opzioni aggiuntive verranno aggiunte qui -->
+                        </div>
+                        
+                        <div class="d-flex justify-content-end mb-3">
+                            <button type="button" class="btn btn-outline-secondary" id="addOutcomeBtn">
+                                <i class="fas fa-plus me-2"></i>Aggiungi opzione
+                            </button>
+                        </div>
+
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="multipleWinnersAllowed">
+                            <label class="form-check-label" for="multipleWinnersAllowed">Consenti più opzioni vincenti</label>
+                            <small class="text-muted d-block">Permette di selezionare più di un'opzione vincente</small>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="predictionDuration" class="form-label">Durata (minuti)</label>
+                                <input type="number" class="form-control" id="predictionDuration" value="5" min="1" max="60">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="minPoints" class="form-label">Punti minimi per partecipare</label>
+                                <input type="number" class="form-control" id="minPoints" value="100" min="10">
+                            </div>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="enableMaxBet">
+                            <label class="form-check-label" for="enableMaxBet">Limita puntata massima</label>
+                        </div>
+                        
+                        <div class="mb-3" id="maxBetContainer" style="display: none;">
+                            <label for="maxPoints" class="form-label">Puntata massima</label>
+                            <input type="number" class="form-control" id="maxPoints" value="1000" min="100">
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-play-circle me-2"></i>Avvia Prediction
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#quickPredictionsContainer">
+                                <i class="fas fa-bolt me-2"></i>Prediction Rapide
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <!-- Prediction rapide (collassabili) -->
+                    <div class="collapse mt-3" id="quickPredictionsContainer">
+                        <h5>Prediction Rapide</h5>
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <div class="card quick-prediction" data-title="Chi vincerà?" data-blue="Io" data-pink="Avversario">
+                                    <div class="card-body py-2 px-3">
+                                        <h6 class="card-title mb-1">Chi vincerà?</h6>
+                                        <div class="d-flex justify-content-between">
+                                            <small class="text-primary">Io</small>
+                                            <small class="text-danger">Avversario</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="card quick-prediction" data-title="Riuscirò nell'impresa?" data-blue="Sì" data-pink="No">
+                                    <div class="card-body py-2 px-3">
+                                        <h6 class="card-title mb-1">Riuscirò nell'impresa?</h6>
+                                        <div class="d-flex justify-content-between">
+                                            <small class="text-primary">Sì</small>
+                                            <small class="text-danger">No</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="card quick-prediction" data-title="Prossimo match" data-blue="Vittoria" data-pink="Sconfitta">
+                                    <div class="card-body py-2 px-3">
+                                        <h6 class="card-title mb-1">Prossimo match</h6>
+                                        <div class="d-flex justify-content-between">
+                                            <small class="text-primary">Vittoria</small>
+                                            <small class="text-danger">Sconfitta</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card prediction attiva -->
+            <div class="card prediction-card mb-4" id="activePredictionCard" style="display: none;">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-chart-pie me-2"></i>Prediction Attiva
+                    <span class="badge bg-light text-dark status-badge" id="predictionStatus">In corso</span>
+                </div>
+                <div class="card-body">
+                    <h4 class="card-title mb-4" id="activePredictionTitle">Chi vincerà la partita?</h4>
+                    
+                    <div class="timer-display text-center mb-4">
+                        <div id="predictionTimer">05:00</div>
+                        <small class="text-muted">Tempo rimanente</small>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card outcome-card blue">
+                                <div class="outcome-progress bg-primary" style="width: 65%;"></div>
+                                <div class="card-body outcome-content">
+                                    <h5 class="card-title" id="blueOutcomeTitle">Squadra A</h5>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="votes-display">
+                                            <span id="blueVotes">65</span> voti
+                                        </div>
+                                        <div class="outcome-percentage">
+                                            <span id="bluePercentage">65%</span>
+                                        </div>
+                                    </div>
+                                    <div class="points-display">
+                                        <span id="bluePoints">6,500</span> punti
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card outcome-card pink">
+                                <div class="outcome-progress bg-danger" style="width: 35%;"></div>
+                                <div class="card-body outcome-content">
+                                    <h5 class="card-title" id="pinkOutcomeTitle">Squadra B</h5>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="votes-display">
+                                            <span id="pinkVotes">35</span> voti
+                                        </div>
+                                        <div class="outcome-percentage">
+                                            <span id="pinkPercentage">35%</span>
+                                        </div>
+                                    </div>
+                                    <div class="points-display">
+                                        <span id="pinkPoints">3,500</span> punti
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="top-predictors mb-4">
+                        <h5>I migliori scommettitori</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Utente</th>
+                                        <th>Opzione</th>
+                                        <th class="text-end">Punti</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="topPredictorsTable">
+                                    <tr>
+                                        <td>User123</td>
+                                        <td><span class="badge bg-primary">Squadra A</span></td>
+                                        <td class="text-end">1,500</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Gamer456</td>
+                                        <td><span class="badge bg-danger">Squadra B</span></td>
+                                        <td class="text-end">1,200</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Stream789</td>
+                                        <td><span class="badge bg-primary">Squadra A</span></td>
+                                        <td class="text-end">800</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="prediction-actions d-flex justify-content-between">
+                        <div>
+                            <button class="btn btn-success" id="resolveBlueBtn">
+                                <i class="fas fa-check-circle me-2"></i>Vince Blu
+                            </button>
+                            <button class="btn btn-danger" id="resolvePinkBtn">
+                                <i class="fas fa-check-circle me-2"></i>Vince Rosa
+                            </button>
+                        </div>
+                        <div>
+                            <button class="btn btn-warning" id="lockPredictionBtn">
+                                <i class="fas fa-lock me-2"></i>Blocca
+                            </button>
+                            <button class="btn btn-secondary" id="cancelPredictionBtn">
+                                <i class="fas fa-times-circle me-2"></i>Annulla
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card storico predictions -->
+            <div class="card prediction-card">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-history me-2"></i>Storico Predictions
+                </div>
+                <div class="card-body">
+                    <div class="prediction-history">
+                        <div class="prediction-history-item resolved">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="mb-0">Chi vincerà la partita?</h5>
+                                <span class="badge bg-success">Completata</span>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Creata il 15/07/2025 - 18:30</small>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <div class="card outcome-card blue outcome-winner">
+                                        <div class="outcome-progress bg-primary" style="width: 75%;"></div>
+                                        <div class="card-body outcome-content py-2">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <h6 class="mb-0">Squadra A</h6>
+                                                <span class="badge bg-success"><i class="fas fa-trophy"></i> Vincitore</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small>78 voti</small>
+                                                <div class="outcome-percentage">75%</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <div class="card outcome-card pink">
+                                        <div class="outcome-progress bg-danger" style="width: 25%;"></div>
+                                        <div class="card-body outcome-content py-2">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <h6 class="mb-0">Squadra B</h6>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small>26 voti</small>
+                                                <div class="outcome-percentage">25%</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="prediction-summary">
+                                <small class="text-muted">104 partecipanti · 12,500 punti totali · 9,375 punti distribuiti</small>
+                            </div>
+                        </div>
+                        
+                        <div class="prediction-history-item canceled">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="mb-0">Finiremo in tempo?</h5>
+                                <span class="badge bg-danger">Annullata</span>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Creata il 14/07/2025 - 20:15</small>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <div class="card outcome-card blue">
+                                        <div class="outcome-progress bg-primary" style="width: 42%;"></div>
+                                        <div class="card-body outcome-content py-2">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <h6 class="mb-0">Sì</h6>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small>45 voti</small>
+                                                <div class="outcome-percentage">42%</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <div class="card outcome-card pink">
+                                        <div class="outcome-progress bg-danger" style="width: 58%;"></div>
+                                        <div class="card-body outcome-content py-2">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <h6 class="mb-0">No</h6>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small>62 voti</small>
+                                                <div class="outcome-percentage">58%</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="prediction-summary">
+                                <small class="text-muted">107 partecipanti · 8,650 punti restituiti</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <button class="btn btn-outline-primary" id="loadMoreHistoryBtn">
+                            <i class="fas fa-history me-2"></i>Carica altro
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sezione destra: Statistiche e partecipanti -->
+        <div class="col-lg-4">
+            <!-- Card statistiche -->
+            <div class="card prediction-card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-chart-bar me-2"></i>Statistiche
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <h3 class="mb-0">156</h3>
+                            <small class="text-muted">Prediction totali</small>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <h3 class="mb-0">12.4K</h3>
+                            <small class="text-muted">Partecipazioni</small>
+                        </div>
+                        <div class="col-6">
+                            <h3 class="mb-0">243K</h3>
+                            <small class="text-muted">Punti scommessi</small>
+                        </div>
+                        <div class="col-6">
+                            <h3 class="mb-0">68%</h3>
+                            <small class="text-muted">Tasso di vittoria blu</small>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h5>Partecipazione media</h5>
+                    <div class="progress mb-3" style="height: 20px;">
+                        <div class="progress-bar" role="progressbar" style="width: 65%;" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100">65%</div>
+                    </div>
+                    <small class="text-muted">In media, il 65% degli spettatori partecipa alle prediction</small>
+                    
+                    <hr>
+                    
+                    <h5>Top 5 vincitori di punti</h5>
+                    <ol class="list-group list-group-numbered">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">Gamer456</div>
+                            </div>
+                            <span class="badge bg-success rounded-pill">+24,560</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">User123</div>
+                            </div>
+                            <span class="badge bg-success rounded-pill">+18,735</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">Stream789</div>
+                            </div>
+                            <span class="badge bg-success rounded-pill">+15,440</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">Viewer567</div>
+                            </div>
+                            <span class="badge bg-success rounded-pill">+12,820</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">Fan234</div>
+                            </div>
+                            <span class="badge bg-success rounded-pill">+10,150</span>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+            
+            <!-- Card impostazioni -->
+            <div class="card prediction-card">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-cog me-2"></i>Impostazioni
+                </div>
+                <div class="card-body">
+                    <form id="predictionSettingsForm">
+                        <!-- Nav tabs per le impostazioni -->
+                        <ul class="nav nav-tabs mb-3" id="settingsTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general-settings" type="button" role="tab" aria-controls="general-settings" aria-selected="true">Generali</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="widget-tab" data-bs-toggle="tab" data-bs-target="#widget-settings" type="button" role="tab" aria-controls="widget-settings" aria-selected="false">Widget</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="permissions-tab" data-bs-toggle="tab" data-bs-target="#permissions-settings" type="button" role="tab" aria-controls="permissions-settings" aria-selected="false">Permessi</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="comandi-tab" data-bs-toggle="tab" data-bs-target="#comandi-settings" type="button" role="tab" aria-controls="comandi-settings" aria-selected="false">Comandi</button>
+                            </li>
+                        </ul>
+
+                        <!-- Tab content -->
+                        <div class="tab-content">
+                            <!-- Impostazioni generali -->
+                            <div class="tab-pane fade show active" id="general-settings" role="tabpanel" aria-labelledby="general-tab">
+                                <div class="mb-3">
+                                    <label class="form-label">Modificatore punti</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">x</span>
+                                        <input type="number" class="form-control" id="pointsMultiplier" value="1.5" min="1.0" max="5.0" step="0.1">
+                                    </div>
+                                    <small class="text-muted">Moltiplicatore per i punti vinti</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="defaultPredictionDuration" class="form-label">Durata predefinita (minuti)</label>
+                                    <input type="number" class="form-control" id="defaultPredictionDuration" value="5" min="1" max="60">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="defaultMinPoints" class="form-label">Punti minimi predefiniti</label>
+                                    <input type="number" class="form-control" id="defaultMinPoints" value="100" min="10">
+                                </div>
+
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="announceResultsInChat" checked>
+                                    <label class="form-check-label" for="announceResultsInChat">Annuncia risultati in chat</label>
+                                </div>
+
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="autoShowOverlay" checked>   
+                                    <label class="form-check-label" for="autoShowOverlay">Mostra automaticamente in overlay</label>
+                                </div>
+
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="notifyDiscord" checked>     
+                                    <label class="form-check-label" for="notifyDiscord">Notifica su Discord</label> 
+                                </div>
+                            </div>
+
+                            <!-- Impostazioni widget -->
+                            <div class="tab-pane fade" id="widget-settings" role="tabpanel" aria-labelledby="widget-tab">
+                                <h5 class="mb-3">Personalizzazione Widget</h5>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Tema widget</label>
+                                    <select class="form-select" id="widgetTheme">
+                                        <option value="default">Predefinito</option>
+                                        <option value="dark">Scuro</option>
+                                        <option value="light">Chiaro</option>
+                                        <option value="custom">Personalizzato</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Colore opzione 1</label>
+                                    <input type="color" class="form-control form-control-color" id="option1Color" value="#0d6efd">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Colore opzione 2</label>
+                                    <input type="color" class="form-control form-control-color" id="option2Color" value="#e83e8c">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Colore sfondo</label>
+                                    <input type="color" class="form-control form-control-color" id="widgetBgColor" value="#ffffff">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Colore testo</label>
+                                    <input type="color" class="form-control form-control-color" id="widgetTextColor" value="#212529">
+                                </div>
+                                
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="widgetTransparentBg">
+                                    <label class="form-check-label" for="widgetTransparentBg">Sfondo trasparente</label>
+                                </div>
+                                
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="widgetRoundedCorners" checked>
+                                    <label class="form-check-label" for="widgetRoundedCorners">Angoli arrotondati</label>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Animazioni</label>
+                                    <select class="form-select" id="widgetAnimation">
+                                        <option value="fade">Dissolvenza</option>
+                                        <option value="slide">Scorrimento</option>
+                                        <option value="bounce">Rimbalzo</option>
+                                        <option value="none">Nessuna</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Impostazioni permessi -->
+                            <div class="tab-pane fade" id="permissions-settings" role="tabpanel" aria-labelledby="permissions-tab">
+                                <h5 class="mb-3">Autorizzazioni</h5>
+                                
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <i class="fas fa-crown me-2"></i>Streamer (tu)
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="text-muted">Lo streamer ha accesso completo a tutte le funzionalità</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <i class="fas fa-user-shield me-2"></i>Moderatori
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="modCanCreatePrediction" checked>
+                                            <label class="form-check-label" for="modCanCreatePrediction">Creare nuove prediction</label>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="modCanCancelPrediction" checked>
+                                            <label class="form-check-label" for="modCanCancelPrediction">Annullare prediction</label>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="modCanResolvePrediction" checked>
+                                            <label class="form-check-label" for="modCanResolvePrediction">Risolvere prediction</label>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="modCanEditSettings">
+                                            <label class="form-check-label" for="modCanEditSettings">Modificare impostazioni</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <i class="fas fa-users me-2"></i>Utenti normali
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="usersCanSuggestPrediction">
+                                            <label class="form-check-label" for="usersCanSuggestPrediction">Suggerire prediction</label>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Cooldown tra scommesse (secondi)</label>
+                                            <input type="number" class="form-control" id="userBetCooldown" value="10" min="0">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Limite massimo puntate al giorno</label>
+                                            <input type="number" class="form-control" id="userDailyBetLimit" value="0" min="0">
+                                            <small class="text-muted">0 = nessun limite</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Impostazioni comandi chat -->
+                            <div class="tab-pane fade" id="comandi-settings" role="tabpanel" aria-labelledby="comandi-tab">
+                                <h5 class="mb-3">Comandi Chat</h5>
+                                
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="enableChatCommands" checked>
+                                    <label class="form-check-label" for="enableChatCommands">Abilita comandi in chat</label>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Prefisso comandi</label>
+                                    <input type="text" class="form-control" id="commandPrefix" value="!" maxlength="3">
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Comando</th>
+                                                <th>Funzione</th>
+                                                <th>Permessi</th>
+                                                <th>Attivo</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>!prediction</td>
+                                                <td>Crea nuova prediction</td>
+                                                <td>
+                                                    <select class="form-select form-select-sm">
+                                                        <option>Streamer</option>
+                                                        <option selected>Moderatore</option>
+                                                        <option>Chiunque</option>
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox" checked>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>!bet</td>
+                                                <td>Scommetti punti</td>
+                                                <td>
+                                                    <select class="form-select form-select-sm">
+                                                        <option>Streamer</option>
+                                                        <option>Moderatore</option>
+                                                        <option selected>Chiunque</option>
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox" checked>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>!lock</td>
+                                                <td>Blocca prediction</td>
+                                                <td>
+                                                    <select class="form-select form-select-sm">
+                                                        <option>Streamer</option>
+                                                        <option selected>Moderatore</option>
+                                                        <option>Chiunque</option>
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox" checked>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>!resolve</td>
+                                                <td>Risolvi prediction</td>
+                                                <td>
+                                                    <select class="form-select form-select-sm">
+                                                        <option selected>Streamer</option>
+                                                        <option>Moderatore</option>
+                                                        <option>Chiunque</option>
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox" checked>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>!points</td>
+                                                <td>Mostra punti</td>
+                                                <td>
+                                                    <select class="form-select form-select-sm">
+                                                        <option>Streamer</option>
+                                                        <option>Moderatore</option>
+                                                        <option selected>Chiunque</option>
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox" checked>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <button type="button" class="btn btn-outline-primary btn-sm mt-2">
+                                    <i class="fas fa-plus me-2"></i>Aggiungi comando personalizzato
+                                </button>
+                            </div>
+                        </div>
+
+                        <hr>
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-save me-2"></i>Salva Impostazioni
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal predizione bloccata -->
+<div class="modal fade" id="lockPredictionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bloccare le scommesse?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Sei sicuro di voler bloccare le scommesse? Gli spettatori non potranno più partecipare, ma la prediction rimarrà attiva.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-warning" id="confirmLockBtn">Blocca Scommesse</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal annulla predizione -->
+<div class="modal fade" id="cancelPredictionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Annullare la prediction?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Sei sicuro di voler annullare questa prediction? Tutti i punti scommessi verranno restituiti agli spettatori.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, continua</button>
+                <button type="button" class="btn btn-danger" id="confirmCancelBtn">Sì, annulla</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Elementi UI
+        const createPredictionForm = document.getElementById('createPredictionForm');
+        const activePredictionCard = document.getElementById('activePredictionCard');
+        const enableMaxBet = document.getElementById('enableMaxBet');
+        const maxBetContainer = document.getElementById('maxBetContainer');
+        const predictionTimer = document.getElementById('predictionTimer');
+        const additionalOutcomesContainer = document.getElementById('additionalOutcomesContainer');
+        const addOutcomeBtn = document.getElementById('addOutcomeBtn');
+
+        // Prediction in corso (simulata)
+        let activePrediction = null;
+        let timerInterval = null;
+        let outcomeCount = 2; // Partiamo con 2 opzioni (blu e rosa)
+
+        // Colori predefiniti per le opzioni aggiuntive
+        const outcomeColors = [
+            '#0d6efd', // blu
+            '#e83e8c', // rosa
+            '#6f42c1', // viola
+            '#fd7e14', // arancione
+            '#20c997', // teal
+            '#ffc107', // giallo
+            '#28a745', // verde
+            '#17a2b8'  // azzurro
+        ];
+
+        // Funzione per aggiungere una nuova opzione
+        addOutcomeBtn.addEventListener('click', function() {
+            if (outcomeCount >= 8) {
+                alert('Massimo 8 opzioni consentite');
+                return;
+            }
+
+            const colorIndex = outcomeCount % outcomeColors.length;
+            const color = outcomeColors[colorIndex];
+            const colorName = ['Blu', 'Rosa', 'Viola', 'Arancione', 'Teal', 'Giallo', 'Verde', 'Azzurro'][colorIndex];
+            
+            const outcomeDiv = document.createElement('div');
+            outcomeDiv.className = 'mb-3';
+            outcomeDiv.innerHTML = `
+                <div class="d-flex">
+                    <div class="flex-grow-1">
+                        <label class="form-label">Opzione ${colorName}</label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background-color: ${color}; color: white;">
+                                <i class="fas fa-square"></i>
+                            </span>
+                            <input type="text" class="form-control outcome-input" 
+                                id="outcome${outcomeCount}" placeholder="Es. Opzione ${outcomeCount + 1}">
+                        </div>
+                    </div>
+                    <div class="ms-2 d-flex align-items-end mb-2">
+                        <button type="button" class="btn btn-outline-danger remove-outcome" data-outcome="${outcomeCount}">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            additionalOutcomesContainer.appendChild(outcomeDiv);
+            
+            // Aggiungi event listener per il pulsante di rimozione
+            outcomeDiv.querySelector('.remove-outcome').addEventListener('click', function() {
+                additionalOutcomesContainer.removeChild(outcomeDiv);
+                // Non decrementiamo outcomeCount per mantenere gli ID univoci
+            });
+            
+            outcomeCount++;
+        });
+
+        // Event listener per la creazione di una prediction
+        createPredictionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const title = document.getElementById('predictionTitle').value;
+            const blueOutcome = document.getElementById('blueOutcome').value;
+            const pinkOutcome = document.getElementById('pinkOutcome').value;
+            const duration = parseInt(document.getElementById('predictionDuration').value);
+            const minPoints = parseInt(document.getElementById('minPoints').value);
+            const maxPoints = enableMaxBet.checked ? parseInt(document.getElementById('maxPoints').value) : null;
+
+            if (!title || !blueOutcome || !pinkOutcome) {
+                alert('Completa tutti i campi obbligatori');
+                return;
+            }
+
+            // Raccogli tutte le opzioni
+            const outcomes = [
+                { id: 'blue', title: blueOutcome, color: 'blue', votes: 0, points: 0 },
+                { id: 'pink', title: pinkOutcome, color: 'pink', votes: 0, points: 0 }
+            ];
+
+            // Aggiungi le opzioni aggiuntive
+            document.querySelectorAll('#additionalOutcomesContainer .outcome-input').forEach((input, index) => {
+                if (input.value.trim()) {
+                    const colorIndex = (index + 2) % outcomeColors.length;
+                    outcomes.push({
+                        id: 'outcome' + (index + 2),
+                        title: input.value,
+                        color: outcomeColors[colorIndex],
+                        votes: 0,
+                        points: 0
+                    });
+                }
+            });
+
+            // Creazione della prediction
+            createPrediction({
+                title: title,
+                outcomes: outcomes,
+                duration: duration,
+                minPoints: minPoints,
+                maxPoints: maxPoints,
+                createdAt: new Date(),
+                status: 'active',
+                participants: []
+            });
+        });
+
+        // Event listener per il toggle del limite di puntata massima
+        enableMaxBet.addEventListener('change', function() {
+            maxBetContainer.style.display = this.checked ? 'block' : 'none';
+        });
+
+        // Event listener per le prediction rapide
+        document.querySelectorAll('.quick-prediction').forEach(card => {
+            card.addEventListener('click', function() {
+                const title = this.getAttribute('data-title');
+                const blueOutcome = this.getAttribute('data-blue');
+                const pinkOutcome = this.getAttribute('data-pink');
+
+                document.getElementById('predictionTitle').value = title;
+                document.getElementById('blueOutcome').value = blueOutcome;
+                document.getElementById('pinkOutcome').value = pinkOutcome;
+
+                // Nascondi il container delle prediction rapide
+                document.querySelector('#quickPredictionsContainer').classList.remove('show');
+                
+                // Rimuovi le opzioni aggiuntive
+                additionalOutcomesContainer.innerHTML = '';
+                outcomeCount = 2;
+            });
+        });
+
+        // Event listeners per le azioni sulla prediction attiva
+        document.getElementById('lockPredictionBtn').addEventListener('click', function() {
+            const modal = new bootstrap.Modal(document.getElementById('lockPredictionModal'));
+            modal.show();
+        });
+
+        document.getElementById('confirmLockBtn').addEventListener('click', function() {
+            lockPrediction();
+            const modal = bootstrap.Modal.getInstance(document.getElementById('lockPredictionModal'));      
+            modal.hide();
+        });
+
+        document.getElementById('cancelPredictionBtn').addEventListener('click', function() {
+            const modal = new bootstrap.Modal(document.getElementById('cancelPredictionModal'));
+            modal.show();
+        });
+
+        document.getElementById('confirmCancelBtn').addEventListener('click', function() {
+            cancelPrediction();
+            const modal = bootstrap.Modal.getInstance(document.getElementById('cancelPredictionModal'));    
+            modal.hide();
+        });
+
+        document.getElementById('resolveBlueBtn').addEventListener('click', function() {
+            resolvePrediction('blue');
+        });
+
+        document.getElementById('resolvePinkBtn').addEventListener('click', function() {
+            resolvePrediction('pink');
+        });
+
+        // Event listener per il caricamento di altro storico
+        document.getElementById('loadMoreHistoryBtn').addEventListener('click', function() {
+            // Simulazione di caricamento
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Caricamento...';
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-history me-2"></i>Carica altro';
+                alert('Storico aggiuntivo caricato!');
+            }, 1000);
+        });
+
+        // Event listener per il salvataggio delle impostazioni
+        document.getElementById('predictionSettingsForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Simulazione di salvataggio delle impostazioni
+            const overlayStyle = document.getElementById('overlayStyle')?.value || 'standard';
+            const overlayPosition = document.getElementById('overlayPosition')?.value || 'bottom';
+            const winStreaksEnabled = document.getElementById('enableWinningStreaks')?.checked || false;
+            
+            // Qui salveremmo le impostazioni sul server
+            console.log('Salvataggio impostazioni:', {
+                overlayStyle,
+                overlayPosition,
+                winStreaksEnabled
+            });
+            
+            alert('Impostazioni salvate con successo!');
+        });
+
+        // Funzione per creare una prediction
+        function createPrediction(prediction) {
+            // Se c'è già una prediction attiva, chiedi conferma
+            if (activePrediction) {
+                if (!confirm('C\'è già una prediction attiva. Vuoi sostituirla con una nuova?')) {        
+                    return;
+                }
+                // Ferma il timer e resetta lo stato
+                clearInterval(timerInterval);
+            }
+
+            // Imposta la prediction attiva
+            activePrediction = prediction;
+
+            // Aggiorna l'UI
+            updateActivePredictionUI();
+
+            // Mostra la card della prediction attiva
+            activePredictionCard.style.display = 'block';
+
+            // Resetta il form
+            createPredictionForm.reset();
+            // Svuota le opzioni aggiuntive
+            additionalOutcomesContainer.innerHTML = '';
+            outcomeCount = 2;
+
+            // Avvia il timer
+            startPredictionTimer(prediction.duration * 60);
+
+            // Simulazione di voti in tempo reale
+            simulateVotes();
+        }
+
+        // Funzione per aggiornare l'UI della prediction attiva
+        function updateActivePredictionUI() {
+            if (!activePrediction) return;
+            
+            // Aggiorna il titolo
+            document.getElementById('activePredictionTitle').textContent = activePrediction.title;
+
+            // Aggiorna lo stato
+            document.getElementById('predictionStatus').textContent =
+                activePrediction.status === 'active' ? 'In corso' :
+                activePrediction.status === 'locked' ? 'Bloccata' : 'Completata';
+
+            // Per semplicità, aggiorniamo solo le prime due opzioni nell'UI esistente
+            // In una implementazione reale, genereremmo dinamicamente tutte le opzioni
+            if (activePrediction.outcomes.length >= 2) {
+                const blueOutcome = activePrediction.outcomes[0];
+                const pinkOutcome = activePrediction.outcomes[1];
+                
+                // Calcola i voti totali
+                const totalVotes = activePrediction.outcomes.reduce((sum, outcome) => sum + outcome.votes, 0);
+                const totalPoints = activePrediction.outcomes.reduce((sum, outcome) => sum + outcome.points, 0);
+                
+                // Aggiorna statistiche blu
+                document.getElementById('blueOutcomeTitle').textContent = blueOutcome.title;
+                document.getElementById('blueVotes').textContent = blueOutcome.votes;
+                const bluePercentage = totalVotes > 0 ? Math.round((blueOutcome.votes / totalVotes) * 100) : 0;
+                document.getElementById('bluePercentage').textContent = bluePercentage + '%';
+                document.getElementById('bluePoints').textContent = blueOutcome.points.toLocaleString();
+                document.querySelector('.outcome-card.blue .outcome-progress').style.width = bluePercentage + '%';
+                
+                // Aggiorna statistiche rosa
+                document.getElementById('pinkOutcomeTitle').textContent = pinkOutcome.title;
+                document.getElementById('pinkVotes').textContent = pinkOutcome.votes;
+                const pinkPercentage = totalVotes > 0 ? Math.round((pinkOutcome.votes / totalVotes) * 100) : 0;
+                document.getElementById('pinkPercentage').textContent = pinkPercentage + '%';
+                document.getElementById('pinkPoints').textContent = pinkOutcome.points.toLocaleString();
+                document.querySelector('.outcome-card.pink .outcome-progress').style.width = pinkPercentage + '%';
+            }
+            
+            // Aggiorna tabella dei top predictors
+            updateTopPredictorsTable();
+        }
+
+        // Funzione per avviare il timer della prediction
+        function startPredictionTimer(seconds) {
+            let remainingSeconds = seconds;
+
+            function updateTimer() {
+                const minutes = Math.floor(remainingSeconds / 60);
+                const seconds = remainingSeconds % 60;
+
+                predictionTimer.textContent =
+                    (minutes < 10 ? '0' + minutes : minutes) + ':' +
+                    (seconds < 10 ? '0' + seconds : seconds);
+
+                if (remainingSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    lockPrediction();
+                }
+
+                remainingSeconds--;
+            }
+
+            // Aggiorna subito il timer
+            updateTimer();
+
+            // Avvia l'intervallo
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        // Funzione per bloccare le scommesse
+        function lockPrediction() {
+            if (!activePrediction) return;
+
+            activePrediction.status = 'locked';
+            document.getElementById('predictionStatus').textContent = 'Bloccata';
+
+            // Ferma il timer
+            clearInterval(timerInterval);
+        }
+
+        // Funzione per annullare la prediction
+        function cancelPrediction() {
+            if (!activePrediction) return;
+
+            // Ferma il timer
+            clearInterval(timerInterval);
+
+            // Nascondi la card della prediction attiva
+            activePredictionCard.style.display = 'none';
+
+            // Resetta lo stato
+            activePrediction = null;
+
+            // In un'implementazione reale, qui restituiresti i punti agli utenti
+            alert('Prediction annullata. I punti sono stati restituiti.');
+        }
+
+        // Funzione per risolvere la prediction
+        function resolvePrediction(winnerId) {
+            if (!activePrediction) return;
+
+            // Ferma il timer se è ancora in esecuzione
+            clearInterval(timerInterval);
+
+            // Imposta il vincitore
+            activePrediction.winnerId = winnerId;
+            activePrediction.status = 'completed';
+
+            // Aggiorna l'UI
+            document.getElementById('predictionStatus').textContent = 'Completata';
+
+            // Nascondi la card della prediction attiva dopo un po'
+            setTimeout(() => {
+                activePredictionCard.style.display = 'none';
+                activePrediction = null;
+
+                // In un'implementazione reale, qui aggiungeresti la prediction allo storico
+                alert('Prediction completata! I punti sono stati distribuiti.');
+            }, 5000);
+        }
+
+        // Funzione per aggiornare la tabella dei top predictors
+        function updateTopPredictorsTable() {
+            if (!activePrediction || !activePrediction.participants) return;
+
+            // Ordina i partecipanti per punti
+            const sortedParticipants = [...activePrediction.participants]
+                .sort((a, b) => b.points - a.points)
+                .slice(0, 5); // Prendi i primi 5
+
+            // Aggiorna la tabella
+            const table = document.getElementById('topPredictorsTable');
+            table.innerHTML = '';
+
+            sortedParticipants.forEach(participant => {
+                const outcome = activePrediction.outcomes.find(o => o.id === participant.outcomeId);
+                const badgeClass = outcome.id === 'blue' ? 'bg-primary' : 'bg-danger';
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${participant.username}</td>
+                    <td><span class="badge ${badgeClass}">${outcome.title}</span></td>
+                    <td class="text-end">${participant.points.toLocaleString()}</td>
+                `;
+
+                table.appendChild(row);
+            });
+        }
+
+        // Funzione per simulare voti (solo per demo)
+        function simulateVotes() {
+            if (!activePrediction) return;
+
+            // Nomi utenti casuali per la simulazione
+            const usernames = ['User123', 'Gamer456', 'Stream789', 'Viewer567', 'Fan234', 'Spettatore42', 'Follower77'];
+
+            // Funzione per aggiungere un voto casuale
+            function addRandomVote() {
+                if (!activePrediction || activePrediction.status !== 'active') return;
+
+                // Selezione outcome casuale - preferenza per le prime due opzioni
+                const outcomeProb = Math.random();
+                let outcomeId;
+                
+                if (activePrediction.outcomes.length <= 2 || outcomeProb < 0.8) {
+                    // 80% di probabilità di scegliere tra le prime due opzioni
+                    outcomeId = Math.random() > 0.4 ? 'blue' : 'pink'; // 60% blu, 40% rosa
+                } else {
+                    // 20% di probabilità di scegliere tra le opzioni aggiuntive
+                    const additionalOutcomes = activePrediction.outcomes.slice(2);
+                    const randomIndex = Math.floor(Math.random() * additionalOutcomes.length);
+                    outcomeId = additionalOutcomes[randomIndex].id;
+                }
+                
+                const username = usernames[Math.floor(Math.random() * usernames.length)];
+                const points = Math.floor(Math.random() * 900) + 100; // 100-1000 punti
+
+                // Trova l'outcome
+                const outcome = activePrediction.outcomes.find(o => o.id === outcomeId);
+                
+                if (outcome) {
+                    // Aggiorna i voti e i punti
+                    outcome.votes++;
+                    outcome.points += points;
+
+                    // Aggiungi ai partecipanti
+                    activePrediction.participants.push({
+                        username: username,
+                        outcomeId: outcomeId,
+                        points: points
+                    });
+
+                    // Aggiorna l'UI
+                    updateActivePredictionUI();
+                }
+
+                // Pianifica il prossimo voto casuale
+                const delay = Math.floor(Math.random() * 2000) + 1000; // 1-3 secondi
+                setTimeout(addRandomVote, delay);
+            }
+
+            // Avvia la simulazione di voti
+            setTimeout(addRandomVote, 1500);
+        }
+    });
+</script>
+{% endblock %}
+

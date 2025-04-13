@@ -1,0 +1,799 @@
+{% extends 'base.html' %}
+
+{% block title %}Integrazione Discord - M4Bot{% endblock %}
+
+{% block extra_css %}
+<style>
+    .discord-card {
+        border-left: 4px solid #5865F2;
+    }
+    .webhook-item {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    .discord-bg {
+        background-color: #36393f;
+        color: white;
+        border-radius: 8px;
+        padding: 20px;
+    }
+    .discord-message {
+        background-color: #40444b;
+        border-radius: 4px;
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+    .discord-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 12px;
+    }
+    .badge-discord {
+        background-color: #5865F2;
+        color: white;
+    }
+    .discord-connected {
+        color: #43b581;
+    }
+    .discord-disconnected {
+        color: #f04747;
+    }
+    .preview-container {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Integrazione Discord</h1>
+    
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <!-- Stato connessione Discord -->
+            <div class="card discord-card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <i class="fab fa-discord me-2"></i>Connessione Discord
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="mb-0">Stato Account Discord</h5>
+                            <p class="mb-0" id="discordStatus">
+                                <span class="discord-disconnected">
+                                    <i class="fas fa-times-circle me-2"></i>Non connesso
+                                </span>
+                            </p>
+                        </div>
+                        <button class="btn btn-primary" id="connectDiscordBtn">
+                            <i class="fab fa-discord me-2"></i>Connetti
+                        </button>
+                    </div>
+                    
+                    <div id="discordAccountInfo" class="d-none">
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="" alt="Discord Avatar" id="discordAvatar" class="discord-avatar">
+                            <div>
+                                <div id="discordUsername" class="fw-bold"></div>
+                                <small class="text-muted" id="discordId"></small>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger" id="disconnectDiscordBtn">
+                            <i class="fas fa-unlink me-2"></i>Disconnetti
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Configurazione Server Discord -->
+            <div class="card discord-card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-server me-2"></i>Server Discord
+                </div>
+                <div class="card-body">
+                    <form id="discordServerForm">
+                        <div class="mb-3">
+                            <label for="discordServer" class="form-label">Server Discord</label>
+                            <select class="form-select" id="discordServer" disabled>
+                                <option value="">Seleziona un server...</option>
+                            </select>
+                            <small class="text-muted">Seleziona il server Discord da collegare al tuo canale</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="notificationChannel" class="form-label">Canale per notifiche</label>
+                            <select class="form-select" id="notificationChannel" disabled>
+                                <option value="">Seleziona un canale...</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-success" id="saveServerBtn" disabled>
+                            <i class="fas fa-save me-2"></i>Salva Configurazione
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <!-- Configurazione Webhook -->
+            <div class="card discord-card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-plug me-2"></i>Webhook Discord
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Configura webhook personalizzati per inviare notifiche automatiche al tuo server Discord.</p>
+                    
+                    <div id="webhooksList">
+                        <!-- I webhook verranno aggiunti qui dinamicamente -->
+                        <div class="text-center py-3 text-muted">
+                            <i class="fas fa-info-circle me-2"></i>Nessun webhook configurato
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" id="addWebhookBtn" data-bs-toggle="modal" data-bs-target="#webhookModal">
+                        <i class="fas fa-plus me-2"></i>Aggiungi Webhook
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Anteprima Notifiche -->
+            <div class="card discord-card">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-bell me-2"></i>Anteprima Notifiche
+                </div>
+                <div class="card-body p-0">
+                    <div class="discord-bg p-3">
+                        <h6 class="text-white-50 mb-3">Canale di notifiche</h6>
+                        <div class="preview-container" id="notificationPreview">
+                            <div class="discord-message">
+                                <div class="d-flex">
+                                    <img src="{{ url_for('static', filename='img/logo.png') }}" class="discord-avatar">
+                                    <div>
+                                        <div class="fw-bold text-white">M4Bot <span class="badge badge-discord">BOT</span></div>
+                                        <div>🔴 **Stream iniziato!** <br>
+                                        Il canale è online! Vieni a vedere la diretta su Kick.com</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="discord-message">
+                                <div class="d-flex">
+                                    <img src="{{ url_for('static', filename='img/logo.png') }}" class="discord-avatar">
+                                    <div>
+                                        <div class="fw-bold text-white">M4Bot <span class="badge badge-discord">BOT</span></div>
+                                        <div>🎁 **Nuova donazione!** <br>
+                                        Utente123 ha donato €10.00 - "Grande stream!"</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="discord-message">
+                                <div class="d-flex">
+                                    <img src="{{ url_for('static', filename='img/logo.png') }}" class="discord-avatar">
+                                    <div>
+                                        <div class="fw-bold text-white">M4Bot <span class="badge badge-discord">BOT</span></div>
+                                        <div>👑 **Nuovo obiettivo raggiunto!** <br>
+                                        100 follower! Grazie a tutti per il supporto!</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <button class="btn btn-sm btn-success" id="testNotificationBtn">
+                                <i class="fas fa-vial me-2"></i>Invia notifica di test
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sincronizzazione punti e ruoli -->
+    <div class="card discord-card mb-4">
+        <div class="card-header bg-dark text-white">
+            <i class="fas fa-sync-alt me-2"></i>Sincronizzazione Punti e Ruoli
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-lg-6">
+                    <h5>Sincronizzazione Punti</h5>
+                    <p class="text-muted">Collega gli account degli spettatori su Kick con i loro account Discord per sincronizzare i punti.</p>
+                    
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="enablePointsSync">
+                        <label class="form-check-label" for="enablePointsSync">Abilita sincronizzazione punti</label>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Frequenza di sincronizzazione</label>
+                        <select class="form-select" id="syncFrequency">
+                            <option value="realtime">Tempo reale</option>
+                            <option value="hourly">Ogni ora</option>
+                            <option value="daily">Giornaliera</option>
+                            <option value="manual">Manuale</option>
+                        </select>
+                    </div>
+                    
+                    <button class="btn btn-primary" id="syncNowBtn">
+                        <i class="fas fa-sync me-2"></i>Sincronizza Ora
+                    </button>
+                </div>
+                
+                <div class="col-lg-6">
+                    <h5>Gestione Ruoli</h5>
+                    <p class="text-muted">Assegna automaticamente ruoli Discord in base ai punti o ai livelli degli utenti.</p>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <label class="form-label">Mappatura Ruoli</label>
+                            <button class="btn btn-sm btn-outline-primary" id="addRoleBtn">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        
+                        <div id="rolesMappingList">
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">Ruolo Discord</span>
+                                <select class="form-select" disabled>
+                                    <option>Seleziona un ruolo...</option>
+                                </select>
+                                <span class="input-group-text">Quando punti ≥</span>
+                                <input type="number" class="form-control" placeholder="1000" disabled>
+                                <button class="btn btn-outline-danger">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="enableRoleSync">
+                        <label class="form-check-label" for="enableRoleSync">Abilita assegnazione automatica ruoli</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-top mt-4 pt-3">
+                <button class="btn btn-success" id="saveDiscordSettingsBtn">
+                    <i class="fas fa-save me-2"></i>Salva Impostazioni
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notifiche Personalizzate -->
+    <div class="card discord-card">
+        <div class="card-header bg-dark text-white">
+            <i class="fas fa-bell me-2"></i>Notifiche Personalizzate
+        </div>
+        <div class="card-body">
+            <p class="text-muted">Configura quali eventi attivano notifiche sul tuo server Discord.</p>
+            
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card mb-3">
+                        <div class="card-header">Stream e Follower</div>
+                        <div class="card-body">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="notifyStreamStart" checked>
+                                <label class="form-check-label" for="notifyStreamStart">
+                                    Inizio streaming
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="notifyStreamEnd" checked>
+                                <label class="form-check-label" for="notifyStreamEnd">
+                                    Fine streaming
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="notifyNewFollower">
+                                <label class="form-check-label" for="notifyNewFollower">
+                                    Nuovo follower
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="notifyMilestone" checked>
+                                <label class="form-check-label" for="notifyMilestone">
+                                    Obiettivi raggiunti
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card mb-3">
+                        <div class="card-header">Donazioni e Punti</div>
+                        <div class="card-body">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="notifyDonation" checked>
+                                <label class="form-check-label" for="notifyDonation">
+                                    Nuova donazione
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="notifyPointsReward">
+                                <label class="form-check-label" for="notifyPointsReward">
+                                    Premi riscattati
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="notifyLeaderboard">
+                                <label class="form-check-label" for="notifyLeaderboard">
+                                    Aggiornamenti classifica
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card mb-3">
+                        <div class="card-header">Eventi e Scommesse</div>
+                        <div class="card-body">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="notifyPrediction" checked>
+                                <label class="form-check-label" for="notifyPrediction">
+                                    Scommesse iniziate
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="notifyPredictionEnd" checked>
+                                <label class="form-check-label" for="notifyPredictionEnd">
+                                    Risultati scommesse
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="notifyHighlights">
+                                <label class="form-check-label" for="notifyHighlights">
+                                    Momenti salienti creati
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-3">
+                <button class="btn btn-success" id="saveNotificationsBtn">
+                    <i class="fas fa-save me-2"></i>Salva Configurazione
+                </button>
+                <button class="btn btn-primary" id="testAllNotificationsBtn">
+                    <i class="fas fa-paper-plane me-2"></i>Invia tutte le notifiche di test
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Webhook -->
+<div class="modal fade" id="webhookModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configura Webhook Discord</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="webhookForm">
+                    <div class="mb-3">
+                        <label for="webhookName" class="form-label">Nome del Webhook</label>
+                        <input type="text" class="form-control" id="webhookName" placeholder="Notifiche Stream">
+                    </div>
+                    <div class="mb-3">
+                        <label for="webhookUrl" class="form-label">URL Webhook Discord</label>
+                        <input type="text" class="form-control" id="webhookUrl" placeholder="https://discord.com/api/webhooks/...">
+                        <small class="text-muted">Puoi creare un webhook nelle impostazioni del tuo server Discord</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Eventi da notificare</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="webhookStreamStart" checked>
+                            <label class="form-check-label" for="webhookStreamStart">
+                                Inizio streaming
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="webhookDonations" checked>
+                            <label class="form-check-label" for="webhookDonations">
+                                Donazioni
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="webhookFollowers">
+                            <label class="form-check-label" for="webhookFollowers">
+                                Nuovi follower
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="webhookPredictions">
+                            <label class="form-check-label" for="webhookPredictions">
+                                Scommesse e previsioni
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="saveWebhookBtn">Salva</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Simulazione dati per demo
+        const mockDiscordData = {
+            connected: false,
+            username: 'Utente#1234',
+            id: '123456789012345678',
+            avatar: 'https://cdn.discordapp.com/avatars/123456789012345678/abcdef1234567890.png',
+            servers: [
+                { id: 'server1', name: 'Il mio server' },
+                { id: 'server2', name: 'Server Gaming' }
+            ],
+            channels: [
+                { id: 'channel1', name: 'annunci', serverId: 'server1' },
+                { id: 'channel2', name: 'notifiche', serverId: 'server1' },
+                { id: 'channel3', name: 'generale', serverId: 'server2' }
+            ],
+            roles: [
+                { id: 'role1', name: 'Moderatore', color: '#1abc9c', serverId: 'server1' },
+                { id: 'role2', name: 'Subscriber', color: '#3498db', serverId: 'server1' },
+                { id: 'role3', name: 'VIP', color: '#e91e63', serverId: 'server1' }
+            ],
+            webhooks: []
+        };
+        
+        let discordData = {...mockDiscordData};
+        
+        // Gestione connessione Discord
+        const connectBtn = document.getElementById('connectDiscordBtn');
+        const disconnectBtn = document.getElementById('disconnectDiscordBtn');
+        const discordStatus = document.getElementById('discordStatus');
+        const discordAccountInfo = document.getElementById('discordAccountInfo');
+        const discordUsername = document.getElementById('discordUsername');
+        const discordId = document.getElementById('discordId');
+        const discordAvatar = document.getElementById('discordAvatar');
+        
+        // Gestione server Discord
+        const discordServer = document.getElementById('discordServer');
+        const notificationChannel = document.getElementById('notificationChannel');
+        const saveServerBtn = document.getElementById('saveServerBtn');
+        
+        // Gestione webhook
+        const webhooksList = document.getElementById('webhooksList');
+        const saveWebhookBtn = document.getElementById('saveWebhookBtn');
+        
+        // Test notifiche
+        const testNotificationBtn = document.getElementById('testNotificationBtn');
+        
+        // Aggiornamento interfaccia in base allo stato di connessione
+        function updateDiscordUI() {
+            if (discordData.connected) {
+                // Stato connesso
+                discordStatus.innerHTML = '<span class="discord-connected"><i class="fas fa-check-circle me-2"></i>Connesso</span>';
+                discordAccountInfo.classList.remove('d-none');
+                discordUsername.textContent = discordData.username;
+                discordId.textContent = 'ID: ' + discordData.id;
+                discordAvatar.src = discordData.avatar;
+                connectBtn.classList.add('d-none');
+                disconnectBtn.parentElement.classList.remove('d-none');
+                
+                // Abilita selezione server e canali
+                discordServer.disabled = false;
+                
+                // Popola i server disponibili
+                discordServer.innerHTML = '<option value="">Seleziona un server...</option>';
+                discordData.servers.forEach(server => {
+                    const option = document.createElement('option');
+                    option.value = server.id;
+                    option.textContent = server.name;
+                    discordServer.appendChild(option);
+                });
+                
+                saveServerBtn.disabled = false;
+                
+                // Aggiorna lista webhook
+                updateWebhooksList();
+            } else {
+                // Stato disconnesso
+                discordStatus.innerHTML = '<span class="discord-disconnected"><i class="fas fa-times-circle me-2"></i>Non connesso</span>';
+                discordAccountInfo.classList.add('d-none');
+                connectBtn.classList.remove('d-none');
+                
+                // Disabilita selezione server e canali
+                discordServer.disabled = true;
+                notificationChannel.disabled = true;
+                saveServerBtn.disabled = true;
+                
+                // Reset opzioni
+                discordServer.innerHTML = '<option value="">Seleziona un server...</option>';
+                notificationChannel.innerHTML = '<option value="">Seleziona un canale...</option>';
+                
+                // Aggiorna lista webhook
+                updateWebhooksList();
+            }
+        }
+        
+        // Aggiornamento canali in base al server selezionato
+        function updateChannels(serverId) {
+            notificationChannel.innerHTML = '<option value="">Seleziona un canale...</option>';
+            
+            if (!serverId) {
+                notificationChannel.disabled = true;
+                return;
+            }
+            
+            const channels = discordData.channels.filter(channel => channel.serverId === serverId);
+            channels.forEach(channel => {
+                const option = document.createElement('option');
+                option.value = channel.id;
+                option.textContent = '#' + channel.name;
+                notificationChannel.appendChild(option);
+            });
+            
+            notificationChannel.disabled = false;
+        }
+        
+        // Aggiornamento lista webhook
+        function updateWebhooksList() {
+            if (!discordData.connected || discordData.webhooks.length === 0) {
+                webhooksList.innerHTML = `
+                    <div class="text-center py-3 text-muted">
+                        <i class="fas fa-info-circle me-2"></i>Nessun webhook configurato
+                    </div>
+                `;
+                return;
+            }
+            
+            webhooksList.innerHTML = '';
+            discordData.webhooks.forEach((webhook, index) => {
+                const webhookItem = document.createElement('div');
+                webhookItem.className = 'webhook-item';
+                webhookItem.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">${webhook.name}</h5>
+                            <small class="text-muted">${webhook.url.substring(0, 40)}...</small>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary me-2 edit-webhook" data-index="${index}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger delete-webhook" data-index="${index}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge bg-primary me-1">
+                            ${webhook.events.streamStart ? '<i class="fas fa-play me-1"></i>Stream' : ''}
+                        </span>
+                        <span class="badge bg-success me-1">
+                            ${webhook.events.donations ? '<i class="fas fa-gift me-1"></i>Donazioni' : ''}
+                        </span>
+                        <span class="badge bg-info me-1">
+                            ${webhook.events.followers ? '<i class="fas fa-user-plus me-1"></i>Follower' : ''}
+                        </span>
+                        <span class="badge bg-warning">
+                            ${webhook.events.predictions ? '<i class="fas fa-chart-pie me-1"></i>Scommesse' : ''}
+                        </span>
+                    </div>
+                `;
+                webhooksList.appendChild(webhookItem);
+            });
+            
+            // Aggiungi event listener per i pulsanti edit e delete
+            document.querySelectorAll('.edit-webhook').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const index = this.getAttribute('data-index');
+                    editWebhook(index);
+                });
+            });
+            
+            document.querySelectorAll('.delete-webhook').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const index = this.getAttribute('data-index');
+                    deleteWebhook(index);
+                });
+            });
+        }
+        
+        // Event listener per connessione Discord
+        connectBtn.addEventListener('click', function() {
+            // Simulazione di autorizzazione Discord
+            setTimeout(() => {
+                discordData.connected = true;
+                updateDiscordUI();
+            }, 1000);
+        });
+        
+        // Event listener per disconnessione Discord
+        disconnectBtn.addEventListener('click', function() {
+            if (confirm('Sei sicuro di voler disconnettere l\'account Discord?')) {
+                discordData.connected = false;
+                updateDiscordUI();
+            }
+        });
+        
+        // Event listener per cambio server
+        discordServer.addEventListener('change', function() {
+            updateChannels(this.value);
+        });
+        
+        // Event listener per salvataggio configurazione server
+        document.getElementById('discordServerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!discordServer.value) {
+                alert('Seleziona un server Discord');
+                return;
+            }
+            
+            if (!notificationChannel.value) {
+                alert('Seleziona un canale per le notifiche');
+                return;
+            }
+            
+            // Simulazione di salvataggio
+            setTimeout(() => {
+                alert('Configurazione salvata con successo!');
+            }, 500);
+        });
+        
+        // Event listener per salvataggio webhook
+        saveWebhookBtn.addEventListener('click', function() {
+            const name = document.getElementById('webhookName').value;
+            const url = document.getElementById('webhookUrl').value;
+            
+            if (!name || !url) {
+                alert('Completa tutti i campi');
+                return;
+            }
+            
+            const newWebhook = {
+                name: name,
+                url: url,
+                events: {
+                    streamStart: document.getElementById('webhookStreamStart').checked,
+                    donations: document.getElementById('webhookDonations').checked,
+                    followers: document.getElementById('webhookFollowers').checked,
+                    predictions: document.getElementById('webhookPredictions').checked
+                }
+            };
+            
+            discordData.webhooks.push(newWebhook);
+            updateWebhooksList();
+            
+            // Chiudi il modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('webhookModal'));
+            modal.hide();
+            
+            // Reset form
+            document.getElementById('webhookForm').reset();
+        });
+        
+        // Funzione per modificare un webhook
+        function editWebhook(index) {
+            const webhook = discordData.webhooks[index];
+            
+            document.getElementById('webhookName').value = webhook.name;
+            document.getElementById('webhookUrl').value = webhook.url;
+            document.getElementById('webhookStreamStart').checked = webhook.events.streamStart;
+            document.getElementById('webhookDonations').checked = webhook.events.donations;
+            document.getElementById('webhookFollowers').checked = webhook.events.followers;
+            document.getElementById('webhookPredictions').checked = webhook.events.predictions;
+            
+            // Modifica il comportamento del pulsante di salvataggio
+            saveWebhookBtn.textContent = 'Aggiorna';
+            saveWebhookBtn.onclick = function() {
+                const name = document.getElementById('webhookName').value;
+                const url = document.getElementById('webhookUrl').value;
+                
+                if (!name || !url) {
+                    alert('Completa tutti i campi');
+                    return;
+                }
+                
+                discordData.webhooks[index] = {
+                    name: name,
+                    url: url,
+                    events: {
+                        streamStart: document.getElementById('webhookStreamStart').checked,
+                        donations: document.getElementById('webhookDonations').checked,
+                        followers: document.getElementById('webhookFollowers').checked,
+                        predictions: document.getElementById('webhookPredictions').checked
+                    }
+                };
+                
+                updateWebhooksList();
+                
+                // Chiudi il modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('webhookModal'));
+                modal.hide();
+                
+                // Reset form e comportamento pulsante
+                document.getElementById('webhookForm').reset();
+                saveWebhookBtn.textContent = 'Salva';
+                saveWebhookBtn.onclick = originalSaveFunction;
+            };
+            
+            // Apri il modal
+            const modal = new bootstrap.Modal(document.getElementById('webhookModal'));
+            modal.show();
+        }
+        
+        // Salva il comportamento originale del pulsante
+        const originalSaveFunction = saveWebhookBtn.onclick;
+        
+        // Funzione per eliminare un webhook
+        function deleteWebhook(index) {
+            if (confirm('Sei sicuro di voler eliminare questo webhook?')) {
+                discordData.webhooks.splice(index, 1);
+                updateWebhooksList();
+            }
+        }
+        
+        // Event listener per test notifiche
+        testNotificationBtn.addEventListener('click', function() {
+            // Simulazione di invio notifica
+            alert('Notifica di test inviata al server Discord!');
+        });
+        
+        // Event listener per sincronizzazione immediata
+        document.getElementById('syncNowBtn').addEventListener('click', function() {
+            if (!discordData.connected) {
+                alert('Connetti prima il tuo account Discord');
+                return;
+            }
+            
+            // Simulazione di sincronizzazione
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sincronizzazione...';
+            
+            setTimeout(() => {
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-sync me-2"></i>Sincronizza Ora';
+                alert('Sincronizzazione completata!');
+            }, 2000);
+        });
+        
+        // Event listener per salvataggio impostazioni
+        document.getElementById('saveDiscordSettingsBtn').addEventListener('click', function() {
+            // Simulazione di salvataggio
+            alert('Impostazioni salvate con successo!');
+        });
+        
+        // Event listener per salvataggio configurazione notifiche
+        document.getElementById('saveNotificationsBtn').addEventListener('click', function() {
+            // Simulazione di salvataggio
+            alert('Configurazione notifiche salvata con successo!');
+        });
+        
+        // Event listener per test tutte le notifiche
+        document.getElementById('testAllNotificationsBtn').addEventListener('click', function() {
+            if (!discordData.connected) {
+                alert('Connetti prima il tuo account Discord');
+                return;
+            }
+            
+            // Simulazione di invio notifiche
+            alert('Tutte le notifiche di test sono state inviate al server Discord!');
+        });
+        
+        // Inizializza l'interfaccia
+        updateDiscordUI();
+    });
+</script>
+{% endblock %}

@@ -1,92 +1,61 @@
 #!/bin/bash
 # Script per avviare M4Bot
 
-# Colori per output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Carica le funzioni comuni
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/common.sh"
 
-# Funzione per stampare messaggi
-print_message() {
-    echo -e "${BLUE}[M4Bot]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERRORE]${NC} $1"
-}
-
-print_success() {
-    echo -e "${GREEN}[SUCCESSO]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[ATTENZIONE]${NC} $1"
-}
+# Verificare che lo script sia eseguito come root
+check_root
 
 print_message "Avvio di M4Bot..."
 
-# Controlla se l'utente è root
-if [ "$(id -u)" != "0" ]; then
-   print_error "Questo script deve essere eseguito come root" 
-   exit 1
-fi
-
-# Controllo se i servizi sono già in esecuzione
-if systemctl is-active --quiet m4bot-bot.service; then
-    print_warning "Il servizio bot è già in esecuzione"
-else
-    systemctl start m4bot-bot.service
-    if [ $? -eq 0 ]; then
-        print_success "Bot avviato con successo"
-    else
-        print_error "Impossibile avviare il bot"
-    fi
-fi
-
-if systemctl is-active --quiet m4bot-web.service; then
-    print_warning "Il servizio web è già in esecuzione"
-else
-    systemctl start m4bot-web.service
-    if [ $? -eq 0 ]; then
-        print_success "Web app avviata con successo"
-    else
-        print_error "Impossibile avviare la web app"
-    fi
-fi
-
-# Verifica che Nginx sia in esecuzione
-if systemctl is-active --quiet nginx; then
-    print_success "Nginx è in esecuzione"
-else
-    print_warning "Nginx non è in esecuzione, tentativo di avvio..."
-    systemctl start nginx
-    if [ $? -eq 0 ]; then
-        print_success "Nginx avviato con successo"
-    else
-        print_error "Impossibile avviare Nginx"
-    fi
-fi
-
 # Verifica che PostgreSQL sia in esecuzione
-if systemctl is-active --quiet postgresql; then
-    print_success "PostgreSQL è in esecuzione"
-else
-    print_warning "PostgreSQL non è in esecuzione, tentativo di avvio..."
-    systemctl start postgresql
-    if [ $? -eq 0 ]; then
-        print_success "PostgreSQL avviato con successo"
+check_postgres || {
+    print_error "Impossibile continuare senza PostgreSQL"
+    exit 1
+}
+
+# Controlla lo stato attuale dei servizi
+if is_service_active "m4bot-bot.service" && is_service_active "m4bot-web.service"; then
+    print_warning "I servizi M4Bot sono già in esecuzione"
+    read -p "Vuoi riavviarli? (s/n): " restart_choice
+    if [ "$restart_choice" = "s" ]; then
+        restart_services
+        exit $?
     else
-        print_error "Impossibile avviare PostgreSQL"
+        print_message "Operazione annullata"
+        exit 0
     fi
 fi
 
-print_message "Stato dei servizi:"
-systemctl status m4bot-bot.service --no-pager | grep Active
-systemctl status m4bot-web.service --no-pager | grep Active
-systemctl status nginx --no-pager | grep Active
-systemctl status postgresql --no-pager | grep Active
+# Avvio dei servizi
+print_step "Avvio del servizio bot..."
+systemctl start m4bot-bot.service
+check_service_status "m4bot-bot.service" || {
+    print_error "Errore durante l'avvio del servizio bot"
+    exit 1
+}
 
-print_message "M4Bot è ora disponibile all'indirizzo https://m4bot.it"
-print_message "Per fermare M4Bot, esegui: m4bot-stop"
+print_step "Avvio del servizio web..."
+systemctl start m4bot-web.service
+check_service_status "m4bot-web.service" || {
+    print_error "Errore durante l'avvio del servizio web"
+    systemctl stop m4bot-bot.service
+    print_warning "Il servizio bot è stato fermato per coerenza"
+    exit 1
+}
+
+print_success "M4Bot avviato con successo!"
+
+# Mostra informazioni utili
+print_info "Puoi controllare lo stato con: m4bot-status"
+print_info "Puoi fermare i servizi con: m4bot-stop"
+
+# Mostra i log (ultime 5 righe)
+print_step "Ultime righe dai log:"
+echo -e "${CYAN}=== Log del bot ===${NC}"
+tail -n 5 "$LOGS_DIR/bot.log" 2>/dev/null || echo "Nessun log disponibile"
+echo
+echo -e "${CYAN}=== Log dell'applicazione web ===${NC}"
+tail -n 5 "$LOGS_DIR/web.log" 2>/dev/null || echo "Nessun log disponibile"

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Errore - M4Bot{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Errore</h4>
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-4">
+                    <i class="fas fa-robot text-danger" style="font-size: 72px;"></i>
+                </div>
+                
+                <h2 class="mb-3">Ops! Qualcosa è andato storto.</h2>
+                
+                {% if message %}
+                <div class="alert alert-danger">
+                    {{ message }}
+                </div>
+                {% else %}
+                <div class="alert alert-danger">
+                    Si è verificato un errore imprevisto. Riprova più tardi.
+                </div>
+                {% endif %}
+                
+                <div class="mt-4">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary me-2">
+                        <i class="fas fa-home me-1"></i>Dashboard
+                    </a>
+                    <a href="javascript:history.back()" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Torna indietro
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

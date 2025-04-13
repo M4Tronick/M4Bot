@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Aggiungi Canale - M4Bot{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Aggiungi un nuovo canale</h4>
+            </div>
+            <div class="card-body">
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                
+                <p class="mb-4">Per aggiungere un canale Kick al bot, inserisci il nome del canale e poi autorizza M4Bot ad accedere al tuo account Kick.com.</p>
+                
+                <form method="POST" action="{{ url_for('add_channel') }}">
+                    <div class="mb-3">
+                        <label for="channel_name" class="form-label">Nome del canale Kick</label>
+                        <input type="text" class="form-control" id="channel_name" name="channel_name" required placeholder="es. iltuocanalechat">
+                        <div class="form-text">Inserisci il nome del tuo canale su Kick.com (senza @).</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fab fa-kickstarter me-2"></i>Autorizza con Kick.com
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="mt-4">
+                    <h5>Cosa succederà dopo?</h5>
+                    <ol>
+                        <li>Verrai reindirizzato a Kick.com per autorizzare M4Bot.</li>
+                        <li>Dopo l'autorizzazione, tornerai qui e il canale sarà aggiunto al tuo account.</li>
+                        <li>Potrai quindi configurare comandi personalizzati e altre impostazioni per il tuo canale.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
