@@ -83,7 +83,7 @@ print_message "Aggiornamento del sistema..."
 }
 
 install_dependencies() {
-print_message "Installazione delle dipendenze di sistema..."
+    print_message "Installazione delle dipendenze di sistema..."
     apt-get install -y python3 python3-pip python3-venv python3-dev python3-bcrypt \
         postgresql postgresql-contrib nginx certbot python3-certbot-nginx \
         git wget curl build-essential libpq-dev net-tools sudo
@@ -124,7 +124,7 @@ if id "m4bot" &>/dev/null; then
 
 # Clona il repository
 clone_repository() {
-    print_message "Clonazione del repository M4Bot..."
+        print_message "Clonazione del repository M4Bot..."
     
     # Verifica se ci sono file esistenti
     if [ -f "$WEB_DIR/app.py" ] || [ -f "$BOT_DIR/m4bot.py" ]; then
@@ -171,7 +171,7 @@ clone_repository() {
 # Configura ambiente virtuale Python
 setup_virtualenv() {
     print_message "Configurazione dell'ambiente virtuale Python..."
-    python3 -m venv "$M4BOT_DIR/venv"
+        python3 -m venv "$M4BOT_DIR/venv"
     
     # Aggiorna pip
     "$M4BOT_DIR/venv/bin/pip" install --upgrade pip
@@ -196,7 +196,7 @@ setup_virtualenv() {
 # Configura PostgreSQL
 setup_database() {
     print_message "Configurazione del database PostgreSQL..."
-    
+
     # Avvia PostgreSQL se non è in esecuzione
     if ! systemctl is-active --quiet postgresql; then
         systemctl start postgresql
@@ -209,9 +209,9 @@ setup_database() {
     fi
     
     sudo -u postgres psql -c "DROP ROLE IF EXISTS $DB_USER;"
-    sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';"
-    sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
-    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
+        sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';"
+        sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
+        sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
     
     # Salva credenziali
     cat > "$M4BOT_DIR/.env" << EOF
@@ -395,7 +395,7 @@ server {
     }
 }
 EOF
-
+    
 # Abilita il sito
     ln -sf /etc/nginx/sites-available/m4bot /etc/nginx/sites-enabled/
     
@@ -429,7 +429,7 @@ setup_services() {
     print_message "Configurazione dei servizi systemd..."
     
     # Servizio per il bot
-cat > /etc/systemd/system/m4bot-bot.service << EOF
+    cat > /etc/systemd/system/m4bot-bot.service << EOF
 [Unit]
 Description=M4Bot Bot Service
 After=network.target postgresql.service
@@ -452,7 +452,7 @@ WantedBy=multi-user.target
 EOF
 
     # Servizio per l'applicazione web
-cat > /etc/systemd/system/m4bot-web.service << EOF
+    cat > /etc/systemd/system/m4bot-web.service << EOF
 [Unit]
 Description=M4Bot Web Service
 After=network.target postgresql.service
@@ -474,8 +474,8 @@ Environment="PATH=$M4BOT_DIR/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/
 WantedBy=multi-user.target
 EOF
 
-# Ricarica systemd
-systemctl daemon-reload
+    # Ricarica systemd
+    systemctl daemon-reload
     
     # Abilita i servizi
     systemctl enable m4bot-bot.service
