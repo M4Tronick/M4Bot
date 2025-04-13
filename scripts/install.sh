@@ -22,8 +22,8 @@ M4BOT_DIR="/opt/m4bot"
 WEB_DIR="$M4BOT_DIR/web"
 BOT_DIR="$M4BOT_DIR/bot"
 LOGS_DIR="$BOT_DIR/logs"
-DB_NAME="m4bot"
-DB_USER="m4bot"
+DB_NAME="m4bot_db"  # Modificato per corrispondere a init_database.sh
+DB_USER="m4bot_user"  # Modificato per corrispondere a init_database.sh
 DB_PASSWORD="$(openssl rand -hex 12)"  # Genera password casuale
 DOMAIN="m4bot.it"  # Modifica con il tuo dominio
 EMAIL="admin@$DOMAIN"  # Modifica con la tua email
@@ -38,7 +38,7 @@ fi
 install_dependencies() {
     print_message "Installazione delle dipendenze di sistema..."
     apt-get update
-    apt-get install -y python3-pip python3-venv postgresql nginx certbot python3-certbot-nginx git
+    apt-get install -y python3-pip python3-venv postgresql nginx certbot python3-certbot-nginx git python3-bcrypt
     print_success "Dipendenze di sistema installate con successo"
 }
 
@@ -46,7 +46,7 @@ install_dependencies() {
 clone_repository() {
     if [ ! -d "$M4BOT_DIR" ]; then
         print_message "Clonazione del repository M4Bot..."
-        git clone https://github.com/yourusername/M4Bot.git "$M4BOT_DIR" || {
+        git clone https://github.com/M4Tronick/M4Bot.git "$M4BOT_DIR" || {
             print_warning "Repository non trovato, creazione manuale delle directory..."
             mkdir -p "$WEB_DIR" "$BOT_DIR" "$LOGS_DIR"
         }
@@ -84,6 +84,9 @@ setup_virtualenv() {
         print_warning "File requirements.txt non trovato per il web, installazione dipendenze base..."
         "$M4BOT_DIR/venv/bin/pip" install flask flask-sqlalchemy flask-login psycopg2-binary
     fi
+    
+    # Installa anche bcrypt per la gestione delle password
+    "$M4BOT_DIR/venv/bin/pip" install bcrypt
     
     print_success "Ambiente virtuale configurato con successo"
 }
@@ -277,7 +280,8 @@ ensure_logs_dir() {
 init_database() {
     print_message "Inizializzazione del database..."
     if [ -f "$(dirname "$0")/init_database.sh" ]; then
-        source "$(dirname "$0")/init_database.sh"
+        # Passa i parametri esplicitamente
+        "$(dirname "$0")/init_database.sh" "$DB_NAME" "$DB_USER" "$DB_PASSWORD"
     else
         print_warning "Script init_database.sh non trovato, saltando l'inizializzazione del database"
     fi
