@@ -1,6 +1,6 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
-{% block title %}Stato Sistema{% endblock %}
+{% block title %}{{ _("Monitoraggio Sistema") }}{% endblock %}
 
 {% block head %}
     {{ super() }}
@@ -316,125 +316,91 @@
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1 class="page-title">Stato del Sistema</h1>
-    <p class="page-description">Monitora lo stato del bot, le connessioni e le prestazioni del sistema in tempo reale.</p>
+<div class="container mt-4">
+    <h1 class="mb-4">{{ _("Monitoraggio della Salute del Sistema") }}</h1>
     
-    <div class="health-tabs">
-        <div class="health-tab active" data-tab="overview">Panoramica</div>
-        <div class="health-tab" data-tab="connections">Connessioni</div>
-        <div class="health-tab" data-tab="events">Coda Eventi</div>
-        <div class="health-tab" data-tab="logs">Log Sistema</div>
+    {% if error %}
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle"></i> {{ error }}
     </div>
+    {% endif %}
     
-    <div class="health-tab-content active" id="overview">
-        <div class="row health-dashboard">
-            <div class="col-md-6">
-                <div class="status-card connected" id="botStatusCard">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h3>
-                            <span class="status-indicator online" id="botStatusIndicator"></span>
-                            Stato Bot
-                        </h3>
-                        <span class="status-badge connected" id="botStatusBadge">Connesso</span>
-                    </div>
-                    
-                    <div class="health-metric">
-                        <span>Uptime</span>
-                        <span class="health-metric-value good" id="botUptime">3d 5h 27m</span>
-                    </div>
-                    
-                    <div class="health-metric">
-                        <span>Latenza</span>
-                        <span class="health-metric-value good" id="botLatency">42ms</span>
-                    </div>
-                    
-                    <div class="health-metric">
-                        <span>Ultima risposta</span>
-                        <span class="health-metric-value" id="lastResponse">12 secondi fa</span>
-                    </div>
-                    
-                    <div class="health-metric">
-                        <span>Memoria utilizzata</span>
-                        <span class="health-metric-value good" id="memoryUsage">128MB</span>
-                    </div>
-                    
-                    <div class="heartbeat-visual">
-                        <div class="heartbeat-line" id="heartbeatAnimation"></div>
-                    </div>
-                    
-                    <button class="reconnect-btn" id="reconnectBot" disabled>
-                        <i class="fas fa-sync-alt"></i> Riconnetti
-                    </button>
+    <div class="row">
+        <!-- Stato del sistema -->
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ _("Stato del Sistema") }}</h5>
+                    <span class="badge {% if health_data.status == 'ok' %}bg-success{% elif health_data.status == 'warning' %}bg-warning{% else %}bg-danger{% endif %}">
+                        {% if health_data.status == 'ok' %}
+                            {{ _("Operativo") }}
+                        {% elif health_data.status == 'warning' %}
+                            {{ _("Avviso") }}
+                        {% elif health_data.status == 'error' %}
+                            {{ _("Errore") }}
+                        {% else %}
+                            {{ _("Sconosciuto") }}
+                        {% endif %}
+                    </span>
                 </div>
-            </div>
-            
-            <div class="col-md-6">
-                <div class="status-card" id="serviceStatusCard">
-                    <h3>Servizi Connessi</h3>
-                    
-                    <div class="health-metric">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div>{{ _("Uptime") }}:</div>
                         <div>
-                            <span class="status-indicator online"></span>
-                            Piattaforma Streaming
+                            {% if health_data.uptime > 86400 %}
+                                {{ (health_data.uptime / 86400)|int }} {{ _("giorni") }}
+                                {{ ((health_data.uptime % 86400) / 3600)|int }} {{ _("ore") }}
+                            {% elif health_data.uptime > 3600 %}
+                                {{ (health_data.uptime / 3600)|int }} {{ _("ore") }}
+                                {{ ((health_data.uptime % 3600) / 60)|int }} {{ _("minuti") }}
+                            {% else %}
+                                {{ (health_data.uptime / 60)|int }} {{ _("minuti") }}
+                            {% endif %}
                         </div>
-                        <span class="health-metric-value good">Connesso</span>
                     </div>
-                    
-                    <div class="health-metric">
-                        <div>
-                            <span class="status-indicator online"></span>
-                            Database
-                        </div>
-                        <span class="health-metric-value good">Connesso</span>
-                    </div>
-                    
-                    <div class="health-metric">
-                        <div>
-                            <span class="status-indicator online"></span>
-                            API Sistema
-                        </div>
-                        <span class="health-metric-value good">Connesso</span>
-                    </div>
-                    
-                    <div class="health-metric">
-                        <div>
-                            <span class="status-indicator warning"></span>
-                            Discord Bot
-                        </div>
-                        <span class="health-metric-value warning">Latenza elevata</span>
-                    </div>
-                    
-                    <div class="health-metric">
-                        <div>
-                            <span class="status-indicator offline"></span>
-                            Integrazione OBS
-                        </div>
-                        <span class="health-metric-value critical">Non connesso</span>
+                    <div class="d-flex justify-content-between">
+                        <div>{{ _("Ultimo controllo") }}:</div>
+                        <div>{{ health_data.last_check|replace("T", " ")|replace("Z", "")|replace(".000", "") }}</div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="status-card">
-                    <h3>Andamento Latenza (ultimi 15 minuti)</h3>
-                    <div class="chart-container">
-                        <canvas id="latencyChart"></canvas>
+        <!-- Utilizzo risorse -->
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ _("Utilizzo Risorse") }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label>{{ _("CPU") }}</label>
+                        <div class="progress">
+                            <div class="progress-bar {% if health_data.cpu_usage > 80 %}bg-danger{% elif health_data.cpu_usage > 60 %}bg-warning{% else %}bg-success{% endif %}"
+                                role="progressbar" style="width: {{ health_data.cpu_usage }}%"
+                                aria-valuenow="{{ health_data.cpu_usage }}" aria-valuemin="0" aria-valuemax="100">
+                                {{ health_data.cpu_usage|round(1) }}%
+                            </div>
+                        </div>
                     </div>
-                    <div class="chart-legend">
-                        <div class="legend-item">
-                            <div class="legend-color" style="background-color: rgba(102, 187, 106, 0.5);"></div>
-                            <span>Latenza Bot</span>
+                    <div class="mb-3">
+                        <label>{{ _("Memoria") }}</label>
+                        <div class="progress">
+                            <div class="progress-bar {% if health_data.memory_usage > 80 %}bg-danger{% elif health_data.memory_usage > 60 %}bg-warning{% else %}bg-success{% endif %}"
+                                role="progressbar" style="width: {{ health_data.memory_usage }}%"
+                                aria-valuenow="{{ health_data.memory_usage }}" aria-valuemin="0" aria-valuemax="100">
+                                {{ health_data.memory_usage|round(1) }}%
+                            </div>
                         </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background-color: rgba(126, 87, 194, 0.5);"></div>
-                            <span>Latenza API</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background-color: rgba(255, 167, 38, 0.5);"></div>
-                            <span>Latenza Discord</span>
+                    </div>
+                    <div>
+                        <label>{{ _("Disco") }}</label>
+                        <div class="progress">
+                            <div class="progress-bar {% if health_data.disk_usage > 80 %}bg-danger{% elif health_data.disk_usage > 60 %}bg-warning{% else %}bg-success{% endif %}"
+                                role="progressbar" style="width: {{ health_data.disk_usage }}%"
+                                aria-valuenow="{{ health_data.disk_usage }}" aria-valuemin="0" aria-valuemax="100">
+                                {{ health_data.disk_usage|round(1) }}%
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -442,541 +408,62 @@
         </div>
     </div>
     
-    <div class="health-tab-content" id="connections">
-        <div class="connection-stats">
-            <h3>Statistiche connessioni</h3>
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-label">Connessioni totali</div>
-                    <div class="stat-value">1,472</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Riconnessioni automatiche</div>
-                    <div class="stat-value">23</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Disconnessioni rilevate</div>
-                    <div class="stat-value">28</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Tempo medio riconnessione</div>
-                    <div class="stat-value">1.2s</div>
-                </div>
-            </div>
+    <!-- Stato dei servizi -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">{{ _("Stato dei Servizi") }}</h5>
         </div>
-        
-        <div class="row">
-            <div class="col-md-12">
-                <div class="status-card">
-                    <h3>Configurazione Heartbeat</h3>
-                    <p class="text-muted">Il sistema di heartbeat monitora lo stato delle connessioni e riattiva automaticamente i servizi disconnessi.</p>
-                    
-                    <div class="form-group">
-                        <label for="heartbeatInterval">Intervallo Heartbeat (secondi)</label>
-                        <input type="number" class="form-control" id="heartbeatInterval" value="30" min="5" max="300">
-                        <small class="text-muted">Intervallo di tempo tra i controlli di connessione</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="reconnectAttempts">Tentativi di riconnessione</label>
-                        <input type="number" class="form-control" id="reconnectAttempts" value="5" min="1" max="10">
-                        <small class="text-muted">Numero di tentativi di riconnessione prima di notificare un errore</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="reconnectDelay">Ritardo tra tentativi (secondi)</label>
-                        <input type="number" class="form-control" id="reconnectDelay" value="5" min="1" max="60">
-                        <small class="text-muted">Tempo di attesa tra un tentativo e l'altro</small>
-                    </div>
-                    
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="notifyOnDisconnect" checked>
-                        <label class="form-check-label" for="notifyOnDisconnect">Notifica in caso di disconnessione</label>
-                    </div>
-                    
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="autoReconnect" checked>
-                        <label class="form-check-label" for="autoReconnect">Riconnessione automatica</label>
-                    </div>
-                    
-                    <button class="btn btn-primary mt-3" id="saveHeartbeatSettings">
-                        <i class="fas fa-save"></i> Salva impostazioni
-                    </button>
-                </div>
-            </div>
+        <div class="card-body">
+            <ul class="list-group">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ _("Database") }}
+                    {% if health_data.services.database %}
+                        <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                    {% else %}
+                        <span class="badge bg-danger rounded-pill"><i class="fas fa-times"></i></span>
+                    {% endif %}
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ _("API") }}
+                    {% if health_data.services.api %}
+                        <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                    {% else %}
+                        <span class="badge bg-danger rounded-pill"><i class="fas fa-times"></i></span>
+                    {% endif %}
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ _("WebSocket") }}
+                    {% if health_data.services.websocket %}
+                        <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                    {% else %}
+                        <span class="badge bg-danger rounded-pill"><i class="fas fa-times"></i></span>
+                    {% endif %}
+                </li>
+            </ul>
         </div>
     </div>
     
-    <div class="health-tab-content" id="events">
-        <div class="row">
-            <div class="col-md-12">
-                <div class="status-card">
-                    <h3>Stato Coda Eventi</h3>
-                    
-                    <div class="health-metric">
-                        <span>Eventi in coda</span>
-                        <span class="health-metric-value good" id="queuedEvents">7</span>
-                    </div>
-                    
-                    <div class="health-metric">
-                        <span>Eventi elaborati (ultimo minuto)</span>
-                        <span class="health-metric-value good" id="processedEvents">42</span>
-                    </div>
-                    
-                    <div class="health-metric">
-                        <span>Velocità di elaborazione</span>
-                        <span class="health-metric-value good" id="processingSpeed">0.7 eventi/sec</span>
-                    </div>
-                    
-                    <div class="health-metric">
-                        <span>Dimensione massima coda</span>
-                        <span class="health-metric-value" id="maxQueueSize">1000</span>
-                    </div>
-                    
-                    <div class="progress mt-3" style="height: 10px;">
-                        <div class="progress-bar bg-success" role="progressbar" style="width: 7%;" aria-valuenow="7" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                    <small class="text-muted">7 eventi in coda (0.7% della capacità)</small>
-                </div>
-            </div>
-        </div>
-        
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <div class="status-card">
-                    <h3>Eventi Recenti</h3>
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Tipo</th>
-                                    <th>Timestamp</th>
-                                    <th>Stato</th>
-                                    <th>Tempo elaborazione</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><code>event_28f5c</code></td>
-                                    <td>Donazione</td>
-                                    <td>14:32:47</td>
-                                    <td><span class="badge bg-success">Completato</span></td>
-                                    <td>0.24s</td>
-                                </tr>
-                                <tr>
-                                    <td><code>event_19a3d</code></td>
-                                    <td>Nuovo follower</td>
-                                    <td>14:31:05</td>
-                                    <td><span class="badge bg-success">Completato</span></td>
-                                    <td>0.18s</td>
-                                </tr>
-                                <tr>
-                                    <td><code>event_82c7f</code></td>
-                                    <td>Comando</td>
-                                    <td>14:30:58</td>
-                                    <td><span class="badge bg-success">Completato</span></td>
-                                    <td>0.32s</td>
-                                </tr>
-                                <tr>
-                                    <td><code>event_47b9e</code></td>
-                                    <td>Subscritpion</td>
-                                    <td>14:27:13</td>
-                                    <td><span class="badge bg-success">Completato</span></td>
-                                    <td>0.22s</td>
-                                </tr>
-                                <tr>
-                                    <td><code>event_65d2a</code></td>
-                                    <td>Comando</td>
-                                    <td>14:25:49</td>
-                                    <td><span class="badge bg-success">Completato</span></td>
-                                    <td>0.19s</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="health-tab-content" id="logs">
-        <div class="row">
-            <div class="col-md-12">
-                <div class="status-card">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h3>Log di Sistema</h3>
-                        <div>
-                            <select class="form-select" id="logLevelFilter">
-                                <option value="all">Tutti i livelli</option>
-                                <option value="info">Info</option>
-                                <option value="success">Success</option>
-                                <option value="warning">Warning</option>
-                                <option value="error">Error</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="event-log">
-                        <div class="log-entry info">
-                            <span class="log-timestamp">14:35:12</span>
-                            <span class="log-message">Heartbeat inviato: Sistema online e funzionante</span>
-                        </div>
-                        <div class="log-entry success">
-                            <span class="log-timestamp">14:34:02</span>
-                            <span class="log-message">Evento elaborato: Comando !points eseguito per utente StreamFan123</span>
-                        </div>
-                        <div class="log-entry warning">
-                            <span class="log-timestamp">14:32:57</span>
-                            <span class="log-message">Latenza Discord aumentata a 150ms (soglia: 100ms)</span>
-                        </div>
-                        <div class="log-entry info">
-                            <span class="log-timestamp">14:30:42</span>
-                            <span class="log-message">Heartbeat inviato: Sistema online e funzionante</span>
-                        </div>
-                        <div class="log-entry error">
-                            <span class="log-timestamp">14:28:17</span>
-                            <span class="log-message">Connessione OBS fallita: Impossibile connettersi all'indirizzo 127.0.0.1:4455</span>
-                        </div>
-                        <div class="log-entry success">
-                            <span class="log-timestamp">14:27:13</span>
-                            <span class="log-message">Nuovo subscriber: TwitchUser456 (Tier 1)</span>
-                        </div>
-                        <div class="log-entry info">
-                            <span class="log-timestamp">14:25:42</span>
-                            <span class="log-message">Heartbeat inviato: Sistema online e funzionante</span>
-                        </div>
-                        <div class="log-entry success">
-                            <span class="log-timestamp">14:24:35</span>
-                            <span class="log-message">Database sincronizzato correttamente</span>
-                        </div>
-                        <div class="log-entry info">
-                            <span class="log-timestamp">14:22:31</span>
-                            <span class="log-message">Connessione alla piattaforma di streaming stabilita</span>
-                        </div>
-                        <div class="log-entry info">
-                            <span class="log-timestamp">14:20:42</span>
-                            <span class="log-message">Heartbeat inviato: Sistema online e funzionante</span>
-                        </div>
-                    </div>
-                    
-                    <div class="text-center mt-3">
-                        <button class="btn btn-outline-primary" id="loadMoreLogs">
-                            <i class="fas fa-sync"></i> Carica altri log
-                        </button>
-                        <button class="btn btn-outline-secondary ms-2" id="exportLogs">
-                            <i class="fas fa-download"></i> Esporta log
-                        </button>
-                    </div>
-                </div>
-            </div>
+    <!-- Controlli -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <button id="refreshHealth" class="btn btn-primary">
+                <i class="fas fa-sync-alt"></i> {{ _("Aggiorna") }}
+            </button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> {{ _("Torna alla Dashboard") }}
+            </a>
         </div>
     </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
-    {{ super() }}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Gestione delle schede
-            const tabs = document.querySelectorAll('.health-tab');
-            tabs.forEach(tab => {
-                tab.addEventListener('click', function() {
-                    // Rimuovi la classe active da tutte le schede
-                    tabs.forEach(t => t.classList.remove('active'));
-                    
-                    // Aggiungi la classe active alla scheda cliccata
-                    this.classList.add('active');
-                    
-                    // Nascondi tutti i contenuti delle schede
-                    document.querySelectorAll('.health-tab-content').forEach(content => {
-                        content.classList.remove('active');
-                    });
-                    
-                    // Mostra il contenuto della scheda selezionata
-                    const tabId = this.getAttribute('data-tab');
-                    document.getElementById(tabId).classList.add('active');
-                });
-            });
-            
-            // Simulazione del sistema di heartbeat
-            let isConnected = true;
-            let lastHeartbeat = Date.now();
-            const heartbeatInterval = 5000; // 5 secondi
-            
-            function updateHeartbeatStatus() {
-                const botStatusCard = document.getElementById('botStatusCard');
-                const botStatusIndicator = document.getElementById('botStatusIndicator');
-                const botStatusBadge = document.getElementById('botStatusBadge');
-                const reconnectBtn = document.getElementById('reconnectBot');
-                const heartbeatAnimation = document.getElementById('heartbeatAnimation');
-                const now = Date.now();
-                
-                // Aggiorna l'ultima risposta
-                const lastResponseEl = document.getElementById('lastResponse');
-                const secondsAgo = Math.floor((now - lastHeartbeat) / 1000);
-                lastResponseEl.textContent = secondsAgo + ' secondi fa';
-                
-                if (isConnected) {
-                    // Sistema connesso
-                    botStatusCard.className = 'status-card connected';
-                    botStatusIndicator.className = 'status-indicator online';
-                    botStatusBadge.className = 'status-badge connected';
-                    botStatusBadge.textContent = 'Connesso';
-                    reconnectBtn.disabled = true;
-                    heartbeatAnimation.style.animationPlayState = 'running';
-                    
-                    // Simula occasionalmente una disconnessione
-                    if (Math.random() < 0.1 && secondsAgo > 10) {
-                        isConnected = false;
-                    }
-                } else {
-                    // Sistema disconnesso
-                    botStatusCard.className = 'status-card disconnected';
-                    botStatusIndicator.className = 'status-indicator offline';
-                    botStatusBadge.className = 'status-badge disconnected';
-                    botStatusBadge.textContent = 'Disconnesso';
-                    reconnectBtn.disabled = false;
-                    heartbeatAnimation.style.animationPlayState = 'paused';
-                }
-            }
-            
-            // Aggiorna lo stato ogni secondo
-            setInterval(updateHeartbeatStatus, 1000);
-            
-            // Simula l'invio di heartbeat periodici
-            setInterval(function() {
-                if (isConnected) {
-                    lastHeartbeat = Date.now();
-                    addLogEntry('info', 'Heartbeat inviato: Sistema online e funzionante');
-                }
-            }, heartbeatInterval);
-            
-            // Gestore per il pulsante di riconnessione
-            document.getElementById('reconnectBot').addEventListener('click', function() {
-                this.disabled = true;
-                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Riconnessione...';
-                
-                // Simula il tempo di riconnessione
-                setTimeout(() => {
-                    isConnected = true;
-                    lastHeartbeat = Date.now();
-                    this.innerHTML = '<i class="fas fa-sync-alt"></i> Riconnetti';
-                    addLogEntry('success', 'Sistema riconnesso con successo');
-                    
-                    // Mostra una notifica
-                    showNotification('Sistema riconnesso con successo', 'success');
-                }, 2000);
-            });
-            
-            // Filtraggio dei log
-            document.getElementById('logLevelFilter').addEventListener('change', function() {
-                const selectedLevel = this.value;
-                const logEntries = document.querySelectorAll('.log-entry');
-                
-                logEntries.forEach(entry => {
-                    if (selectedLevel === 'all' || entry.classList.contains(selectedLevel)) {
-                        entry.style.display = 'flex';
-                    } else {
-                        entry.style.display = 'none';
-                    }
-                });
-            });
-            
-            // Funzione per aggiungere un'entrata di log
-            function addLogEntry(level, message) {
-                const logContainer = document.querySelector('.event-log');
-                const now = new Date();
-                const timestamp = now.getHours().toString().padStart(2, '0') + ':' + 
-                                now.getMinutes().toString().padStart(2, '0') + ':' + 
-                                now.getSeconds().toString().padStart(2, '0');
-                
-                const entry = document.createElement('div');
-                entry.className = `log-entry ${level}`;
-                entry.innerHTML = `
-                    <span class="log-timestamp">${timestamp}</span>
-                    <span class="log-message">${message}</span>
-                `;
-                
-                // Inserisci in cima
-                logContainer.insertBefore(entry, logContainer.firstChild);
-                
-                // Limita il numero di voci visualizzate
-                if (logContainer.children.length > 50) {
-                    logContainer.removeChild(logContainer.lastChild);
-                }
-            }
-            
-            // Funzione per mostrare notifiche
-            function showNotification(message, type) {
-                const notification = document.createElement('div');
-                notification.className = `alert alert-${type} position-fixed top-0 end-0 m-3`;
-                notification.style.zIndex = '9999';
-                notification.innerHTML = `
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
-                        <span>${message}</span>
-                    </div>
-                `;
-                document.body.appendChild(notification);
-                
-                // Anima la notifica
-                notification.style.animation = 'fadeIn 0.3s forwards';
-                
-                // Rimuovi la notifica dopo alcuni secondi
-                setTimeout(() => {
-                    notification.style.animation = 'fadeOut 0.3s forwards';
-                    setTimeout(() => {
-                        document.body.removeChild(notification);
-                    }, 300);
-                }, 3000);
-            }
-            
-            // Salva impostazioni heartbeat
-            document.getElementById('saveHeartbeatSettings').addEventListener('click', function() {
-                showNotification('Impostazioni salvate con successo', 'success');
-            });
-            
-            // Carica altri log
-            document.getElementById('loadMoreLogs').addEventListener('click', function() {
-                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Caricamento...';
-                
-                // Simula il caricamento
-                setTimeout(() => {
-                    // Aggiungi nuovi log
-                    const sampleLogs = [
-                        { level: 'info', message: 'Inizializzazione del sistema' },
-                        { level: 'success', message: 'Connessione al database stabilita' },
-                        { level: 'info', message: 'Caricamento configurazione' },
-                        { level: 'warning', message: 'File di configurazione obsoleto' },
-                        { level: 'info', message: 'Avvio dei servizi in corso' }
-                    ];
-                    
-                    sampleLogs.forEach(log => {
-                        addLogEntry(log.level, log.message);
-                    });
-                    
-                    this.innerHTML = '<i class="fas fa-sync"></i> Carica altri log';
-                }, 1000);
-            });
-            
-            // Esporta log
-            document.getElementById('exportLogs').addEventListener('click', function() {
-                showNotification('Export log completato', 'success');
-            });
-            
-            // Inizializza il grafico di latenza
-            const latencyChartCtx = document.getElementById('latencyChart').getContext('2d');
-            
-            // Genera dati casuali per il grafico
-            function generateRandomData(baseValue, variance, count) {
-                const data = [];
-                for (let i = 0; i < count; i++) {
-                    data.push(baseValue + Math.random() * variance - variance / 2);
-                }
-                return data;
-            }
-            
-            const timeLabels = Array.from({length: 15}, (_, i) => `${14-i} min fa`).reverse();
-            
-            const latencyChart = new Chart(latencyChartCtx, {
-                type: 'line',
-                data: {
-                    labels: timeLabels,
-                    datasets: [
-                        {
-                            label: 'Latenza Bot (ms)',
-                            data: generateRandomData(40, 20, 15),
-                            borderColor: 'rgba(102, 187, 106, 1)',
-                            backgroundColor: 'rgba(102, 187, 106, 0.1)',
-                            tension: 0.4,
-                            borderWidth: 2,
-                            pointRadius: 3
-                        },
-                        {
-                            label: 'Latenza API (ms)',
-                            data: generateRandomData(60, 30, 15),
-                            borderColor: 'rgba(126, 87, 194, 1)',
-                            backgroundColor: 'rgba(126, 87, 194, 0.1)',
-                            tension: 0.4,
-                            borderWidth: 2,
-                            pointRadius: 3
-                        },
-                        {
-                            label: 'Latenza Discord (ms)',
-                            data: generateRandomData(100, 50, 15),
-                            borderColor: 'rgba(255, 167, 38, 1)',
-                            backgroundColor: 'rgba(255, 167, 38, 0.1)',
-                            tension: 0.4,
-                            borderWidth: 2,
-                            pointRadius: 3
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Latenza (ms)'
-                            },
-                            grid: {
-                                color: 'rgba(200, 200, 200, 0.1)'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: 'rgba(200, 200, 200, 0.1)'
-                            }
-                        }
-                    }
-                }
-            });
-            
-            // Aggiorna periodicamente i dati del grafico
-            setInterval(() => {
-                // Aggiungi nuovi dati e rimuovi i vecchi
-                latencyChart.data.datasets.forEach(dataset => {
-                    dataset.data.shift();
-                    
-                    if (dataset.label.includes('Bot')) {
-                        dataset.data.push(40 + Math.random() * 20 - 10);
-                    } else if (dataset.label.includes('API')) {
-                        dataset.data.push(60 + Math.random() * 30 - 15);
-                    } else {
-                        dataset.data.push(100 + Math.random() * 50 - 25);
-                    }
-                });
-                
-                latencyChart.update();
-                
-                // Aggiorna altre metriche
-                document.getElementById('botLatency').textContent = Math.floor(30 + Math.random() * 20) + 'ms';
-                document.getElementById('memoryUsage').textContent = Math.floor(120 + Math.random() * 20) + 'MB';
-                
-                // Aggiorna le statistiche della coda eventi
-                document.getElementById('queuedEvents').textContent = Math.floor(Math.random() * 15);
-                document.getElementById('processedEvents').textContent = Math.floor(30 + Math.random() * 30);
-                document.getElementById('processingSpeed').textContent = (0.5 + Math.random() * 0.5).toFixed(1) + ' eventi/sec';
-            }, 5000);
+<script>
+    $(document).ready(function() {
+        $("#refreshHealth").click(function() {
+            location.reload();
         });
-    </script>
+    });
+</script>
 {% endblock %}
