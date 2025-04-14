@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="it" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}M4Bot{% endblock %}</title>
+    
+    <!-- Bootstrap CSS (locale) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    
+    <!-- Font Awesome (locale) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/all.min.css') }}">
+    
+    <!-- Google Fonts (locale) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/google-fonts.css') }}">
+    
+    <!-- Favicon -->
+    {% include 'custom/favicon-links.html' ignore missing %}
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/icons.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/icons-offline.css') }}">
+    
+    {% block head %}{% endblock %}
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="M4Bot Logo" height="30">
+                M4Bot
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
+                            <i class="fas fa-home nav-icon"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'features' %}active{% endif %}" href="{{ url_for('features') }}">
+                            <i class="fas fa-star nav-icon"></i>Funzionalità
+                        </a>
+                    </li>
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+                            <i class="fas fa-tachometer-alt nav-icon"></i>Dashboard
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                
+                <ul class="navbar-nav">
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-1"></i> {{ current_user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('dashboard') }}"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-user-cog me-2"></i>Profilo</a></li>
+                            {% if current_user.is_admin %}
+                            <li><a class="dropdown-item" href="https://control.m4bot.it"><i class="fas fa-server me-2"></i>Controllo Server</a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'login' %}active{% endif %}" href="{{ url_for('login') }}">
+                            <i class="fas fa-sign-in-alt me-1"></i>Accedi
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'register' %}active{% endif %}" href="{{ url_for('register') }}">
+                            <i class="fas fa-user-plus me-1"></i>Registrati
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    <!-- Language Selector -->
+                    <li class="nav-item dropdown ms-2">
+                        <a class="nav-link dropdown-toggle" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-globe me-1"></i> {{ current_language_name }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                            {% for code, name in available_languages.items() %}
+                            <li><a class="dropdown-item {% if current_language == code %}active{% endif %}" href="?lang={{ code }}"><i class="fas fa-check me-1 {% if current_language != code %}invisible{% endif %}"></i>{{ name }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                    
+                    <li class="nav-item ms-2">
+                        <div class="form-check form-switch pt-2">
+                            <input class="form-check-input" type="checkbox" id="darkModeToggle">
+                            <label class="form-check-label text-light" for="darkModeToggle"><i class="fas fa-moon"></i></label>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container py-4">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5><i class="fas fa-robot me-2"></i>M4Bot</h5>
+                    <p>Il bot più completo e personalizzabile per Kick.com</p>
+                </div>
+                <div class="col-md-4">
+                    <h5><i class="fas fa-link me-2"></i>Link Utili</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ url_for('index') }}" class="text-decoration-none text-white-50"><i class="fas fa-home me-2"></i>Home</a></li>
+                        <li><a href="{{ url_for('features') }}" class="text-decoration-none text-white-50"><i class="fas fa-star me-2"></i>Funzionalità</a></li>
+                        <li><a href="#" class="text-decoration-none text-white-50"><i class="fas fa-book me-2"></i>Documentazione</a></li>
+                        <li><a href="#" class="text-decoration-none text-white-50"><i class="fas fa-headset me-2"></i>Contatti</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5><i class="fas fa-users me-2"></i>Community</h5>
+                    <div class="d-flex">
+                        <a href="#" class="text-decoration-none text-white-50 me-3 social-icon social-icon-twitter"><i class="fab fa-twitter fa-lg"></i></a>
+                        <a href="#" class="text-decoration-none text-white-50 me-3 social-icon social-icon-discord"><i class="fab fa-discord fa-lg"></i></a>
+                        <a href="#" class="text-decoration-none text-white-50 me-3 social-icon social-icon-github"><i class="fab fa-github fa-lg"></i></a>
+                    </div>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <p class="mb-0"><i class="far fa-copyright me-1"></i>2023 M4Bot. Tutti i diritti riservati.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- jQuery (locale) -->
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+    
+    <!-- Bootstrap JS (locale) -->
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    
+    <!-- Chart.js (locale) -->
+    <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+    
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 

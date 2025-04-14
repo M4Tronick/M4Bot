@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M4Bot - Manutenzione</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            padding: 40px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #6a5bc2;
+            margin-bottom: 20px;
+        }
+        img {
+            max-width: 150px;
+            margin-bottom: 30px;
+        }
+        .message {
+            font-size: 18px;
+            margin-bottom: 30px;
+            color: #666;
+        }
+        .status {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        .links {
+            margin-top: 40px;
+        }
+        .links a {
+            display: inline-block;
+            margin: 0 10px;
+            color: #6a5bc2;
+            text-decoration: none;
+        }
+        .links a:hover {
+            text-decoration: underline;
+        }
+        .footer {
+            margin-top: 50px;
+            font-size: 14px;
+            color: #999;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="https://m4bot.it/static/img/logo.png" alt="M4Bot Logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiM2YTViYzIiIHJ4PSIxMCIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgZmlsbD0iI2ZmZiI+TTQ8L3RleHQ+PC9zdmc+'" class="pulse">
+        
+        <h1>M4Bot è in manutenzione</h1>
+        
+        <div class="message">
+            Il server è attualmente in manutenzione. Torneremo online il prima possibile.
+        </div>
+        
+        <div class="status">
+            <strong>Stato:</strong> Manutenzione programmata in corso
+            <br>
+            <strong>Tempo stimato di ripristino:</strong> <span id="eta">A breve</span>
+        </div>
+        
+        <p>Stiamo lavorando per migliorare il servizio. Ci scusiamo per l'inconveniente.</p>
+        
+        <div class="links">
+            <a href="https://kick.com" target="_blank">Kick.com</a>
+            <a href="mailto:support@m4bot.it">Contattaci</a>
+        </div>
+        
+        <div class="footer">
+            &copy; 2025 M4Bot - Il Bot per Kick.com
+        </div>
+    </div>
+
+    <script>
+        // Aggiorna l'ETA a un orario casuale tra 5-30 minuti da ora
+        function updateETA() {
+            const now = new Date();
+            const minutes = Math.floor(Math.random() * 25) + 5; // 5-30 minuti
+            now.setMinutes(now.getMinutes() + minutes);
+            
+            const hours = now.getHours().toString().padStart(2, '0');
+            const mins = now.getMinutes().toString().padStart(2, '0');
+            
+            document.getElementById('eta').textContent = `${hours}:${mins}`;
+        }
+        
+        // Esegui all'avvio della pagina
+        updateETA();
+    </script>
+</body>
+</html> 

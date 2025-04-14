@@ -184,6 +184,42 @@
         </div>
     </div>
     
+    <!-- Amministrazione Sistema -->
+    <div class="dashboard-slot col-md-4">
+        <div id="card-system" class="card dashboard-card" data-size="normal">
+            <div class="card-header">
+                <h4 class="mb-0">{{ _('Amministrazione Sistema') }}</h4>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="{{ url_for('system_health') }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">{{ _('Monitoraggio Sistema') }}</h5>
+                            <small><i class="fas fa-heartbeat text-danger"></i></small>
+                        </div>
+                        <p class="mb-1">{{ _('Verifica lo stato del sistema e delle risorse') }}</p>
+                    </a>
+                    <a href="{{ url_for('backup_management') }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">{{ _('Gestione Backup') }}</h5>
+                            <small><i class="fas fa-database text-primary"></i></small>
+                        </div>
+                        <p class="mb-1">{{ _('Crea e ripristina backup del database') }}</p>
+                    </a>
+                    {% if user.is_admin %}
+                    <a href="{{ url_for('webhook_management') }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">{{ _('Gestione Webhook') }}</h5>
+                            <small><i class="fas fa-link text-info"></i></small>
+                        </div>
+                        <p class="mb-1">{{ _('Configura webhook per integrazioni esterne') }}</p>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Guide Rapide -->
     <div class="dashboard-slot col-md-4">
         <div id="card-guides" class="card dashboard-card" data-size="normal">

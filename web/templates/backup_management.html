@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Gestione Backup") }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">{{ _("Gestione Backup del Database") }}</h1>
+    
+    {% if error %}
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle"></i> {{ error }}
+    </div>
+    {% endif %}
+    
+    {% if success %}
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle"></i> {{ success }}
+    </div>
+    {% endif %}
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ _("Crea Nuovo Backup") }}</h5>
+                </div>
+                <div class="card-body">
+                    <p>{{ _("Crea un backup completo del database. Il processo potrebbe richiedere alcuni minuti in base alla dimensione del database.") }}</p>
+                    <form action="{{ url_for('create_backup') }}" method="post">
+                        <div class="mb-3">
+                            <label for="backup_name" class="form-label">{{ _("Nome Backup") }} ({{ _("opzionale") }})</label>
+                            <input type="text" class="form-control" id="backup_name" name="backup_name" placeholder="{{ _('Auto-generato se non specificato') }}">
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="include_media" name="include_media" checked>
+                            <label class="form-check-label" for="include_media">{{ _("Includi file media") }}</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="createBackupBtn">
+                            <i class="fas fa-save"></i> {{ _("Crea Backup") }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ _("Impostazioni Backup Automatico") }}</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('update_backup_settings') }}" method="post">
+                        <div class="mb-3">
+                            <label for="auto_backup" class="form-label">{{ _("Frequenza Backup Automatici") }}</label>
+                            <select class="form-select" id="auto_backup" name="auto_backup">
+                                <option value="disabled" {% if backup_settings.auto_backup == 'disabled' %}selected{% endif %}>{{ _("Disabilitato") }}</option>
+                                <option value="daily" {% if backup_settings.auto_backup == 'daily' %}selected{% endif %}>{{ _("Giornaliero") }}</option>
+                                <option value="weekly" {% if backup_settings.auto_backup == 'weekly' %}selected{% endif %}>{{ _("Settimanale") }}</option>
+                                <option value="monthly" {% if backup_settings.auto_backup == 'monthly' %}selected{% endif %}>{{ _("Mensile") }}</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="backup_time" class="form-label">{{ _("Orario Backup") }}</label>
+                            <input type="time" class="form-control" id="backup_time" name="backup_time" value="{{ backup_settings.backup_time }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="retention_days" class="form-label">{{ _("Giorni di Conservazione") }}</label>
+                            <input type="number" class="form-control" id="retention_days" name="retention_days" min="1" max="90" value="{{ backup_settings.retention_days }}">
+                            <small class="text-muted">{{ _("I backup più vecchi verranno eliminati automaticamente") }}</small>
+                        </div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-cog"></i> {{ _("Salva Impostazioni") }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card shadow-sm mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{{ _("Backup Disponibili") }}</h5>
+            <button id="refreshBackups" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-sync-alt"></i> {{ _("Aggiorna") }}
+            </button>
+        </div>
+        <div class="card-body">
+            {% if backups %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>{{ _("Nome") }}</th>
+                            <th>{{ _("Data Creazione") }}</th>
+                            <th>{{ _("Dimensione") }}</th>
+                            <th>{{ _("Tipo") }}</th>
+                            <th>{{ _("Azioni") }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for backup in backups %}
+                        <tr>
+                            <td>{{ backup.name }}</td>
+                            <td>{{ backup.created_at|replace("T", " ")|replace("Z", "")|replace(".000", "") }}</td>
+                            <td>{{ backup.size }}</td>
+                            <td>
+                                {% if backup.type == 'auto' %}
+                                <span class="badge bg-info">{{ _("Automatico") }}</span>
+                                {% elif backup.type == 'manual' %}
+                                <span class="badge bg-primary">{{ _("Manuale") }}</span>
+                                {% elif backup.type == 'pre_update' %}
+                                <span class="badge bg-warning">{{ _("Pre-aggiornamento") }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{{ url_for('download_backup', backup_id=backup.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-success restore-backup" data-bs-toggle="modal" data-bs-target="#restoreModal" data-backup-id="{{ backup.id }}" data-backup-name="{{ backup.name }}">
+                                        <i class="fas fa-undo"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-backup" data-bs-toggle="modal" data-bs-target="#deleteModal" data-backup-id="{{ backup.id }}" data-backup-name="{{ backup.name }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                {{ _("Nessun backup disponibile. Crea il tuo primo backup utilizzando il modulo sopra.") }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> {{ _("Torna alla Dashboard") }}
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ripristino Backup -->
+<div class="modal fade" id="restoreModal" tabindex="-1" aria-labelledby="restoreModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="restoreModalLabel">{{ _("Ripristina Backup") }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> {{ _("Attenzione: Il ripristino di un backup sovrascriverà tutti i dati attuali. Questa operazione non può essere annullata.") }}
+                </div>
+                <p>{{ _("Sei sicuro di voler ripristinare il backup") }} <strong id="restoreBackupName"></strong>?</p>
+                <form id="restoreForm" action="" method="post">
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="confirmRestore" required>
+                        <label class="form-check-label" for="confirmRestore">
+                            {{ _("Confermo di voler ripristinare questo backup") }}
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _("Annulla") }}</button>
+                <button type="button" class="btn btn-danger" id="confirmRestoreBtn" disabled>{{ _("Ripristina") }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminazione Backup -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">{{ _("Elimina Backup") }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>{{ _("Sei sicuro di voler eliminare il backup") }} <strong id="deleteBackupName"></strong>?</p>
+                <form id="deleteForm" action="{{ url_for('delete_backup') }}" method="post">
+                    <input type="hidden" id="deleteBackupId" name="backup_id">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _("Annulla") }}</button>
+                <button type="submit" form="deleteForm" class="btn btn-danger">{{ _("Elimina") }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Refresh backup list
+        $("#refreshBackups").click(function() {
+            location.reload();
+        });
+        
+        // Setup restore modal
+        $(".restore-backup").click(function() {
+            const backupId = $(this).data("backup-id");
+            const backupName = $(this).data("backup-name");
+            $("#restoreBackupName").text(backupName);
+            $("#restoreForm").attr("action", "{{ url_for('restore_backup', backup_id='') }}" + backupId);
+        });
+        
+        // Enable/disable restore button based on checkbox
+        $("#confirmRestore").change(function() {
+            $("#confirmRestoreBtn").prop("disabled", !$(this).is(":checked"));
+        });
+        
+        // Submit restore form
+        $("#confirmRestoreBtn").click(function() {
+            $("#restoreForm").submit();
+        });
+        
+        // Setup delete modal
+        $(".delete-backup").click(function() {
+            const backupId = $(this).data("backup-id");
+            const backupName = $(this).data("backup-name");
+            $("#deleteBackupName").text(backupName);
+            $("#deleteBackupId").val(backupId);
+        });
+        
+        // Create backup spinner
+        $("#createBackupBtn").click(function() {
+            const btn = $(this);
+            const originalText = btn.html();
+            
+            btn.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' + '{{ _("Creazione in corso...") }}');
+            btn.prop("disabled", true);
+            
+            setTimeout(function() {
+                btn.html(originalText);
+                btn.prop("disabled", false);
+            }, 30000); // Timeout after 30 seconds in case of server issues
+        });
+    });
+</script>
+{% endblock %} 

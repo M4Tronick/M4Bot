@@ -1,0 +1,16 @@
+[Unit]
+Description=M4Bot Bot Service
+After=network.target postgresql.service
+
+[Service]
+User=m4bot
+Group=m4bot
+WorkingDirectory=/opt/m4bot/bot
+ExecStart=/opt/m4bot/venv/bin/python m4bot.py
+Restart=on-failure
+RestartSec=10
+Environment="PYTHONUNBUFFERED=1"
+Environment="PYTHONIOENCODING=utf-8"
+
+[Install]
+WantedBy=multi-user.target 

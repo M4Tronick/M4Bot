@@ -24,6 +24,7 @@ import asyncpg
 import bcrypt
 from dotenv import load_dotenv
 from flask_babel import Babel, gettext as _
+from babel_compat import *
 
 # Aggiungi la directory principale al path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -69,6 +70,9 @@ babel = Babel(app)
 # Pool di connessioni al database
 db_pool = None
 
+# Connessioni con il bot
+bot_client = None
+
 async def setup_db_pool():
     """Crea il pool di connessioni al database."""
     global db_pool
@@ -85,6 +89,17 @@ async def setup_db_pool():
         # Per lo sviluppo, è utile poter continuare anche senza database
         # In produzione, questo dovrebbe terminare l'applicazione
         logger.warning("L'applicazione continuerà senza database (solo per sviluppo)")
+
+async def setup_bot_client():
+    """Crea la connessione al bot."""
+    global bot_client
+    try:
+        # Configura il client HTTP per comunicare con il bot
+        bot_client = aiohttp.ClientSession()
+        logger.info("Client HTTP per la comunicazione con il bot inizializzato")
+    except Exception as e:
+        logger.error(f"Errore nell'inizializzazione del client HTTP: {e}")
+        logger.warning("L'applicazione continuerà senza connessione al bot")
     
 # Funzioni di utilità
 def login_required(f):
@@ -326,6 +341,290 @@ async def dashboard():
         stats=stats
     )
 
+@app.route('/system_health')
+@login_required
+async def system_health():
+    """Pagina di monitoraggio della salute del bot."""
+    try:
+        # Ottieni lo stato del sistema dal bot
+        if bot_client:
+            async with bot_client.get('http://localhost:5000/api/health', timeout=5) as response:
+                if response.status == 200:
+                    health_data = await response.json()
+                else:
+                    health_data = {"status": "error", "message": "Impossibile ottenere lo stato del bot"}
+        else:
+            health_data = {
+                "status": "unknown",
+                "uptime": 0,
+                "cpu_usage": 0.0,
+                "memory_usage": 0.0,
+                "disk_usage": 0.0,
+                "last_check": datetime.now().isoformat(),
+                "services": {
+                    "database": False,
+                    "api": False,
+                    "websocket": False
+                }
+            }
+        
+        return await render_template('system_health.html', health_data=health_data)
+    except Exception as e:
+        logger.error(f"Errore nel caricamento della pagina di stato del sistema: {e}")
+        return await render_template('system_health.html', error=str(e))
+
+@app.route('/backup_management')
+@admin_required
+async def backup_management():
+    """Pagina di gestione dei backup del database."""
+    try:
+        # Ottieni la lista dei backup disponibili
+        if bot_client:
+            async with bot_client.get('http://localhost:5000/api/backups', timeout=5) as response:
+                if response.status == 200:
+                    backups = await response.json()
+                else:
+                    backups = []
+        else:
+            backups = []
+        
+        return await render_template('backup_management.html', backups=backups)
+    except Exception as e:
+        logger.error(f"Errore nel caricamento della pagina di gestione dei backup: {e}")
+        return await render_template('backup_management.html', error=str(e))
+
+@app.route('/create_backup', methods=['POST'])
+@admin_required
+async def create_backup():
+    """Crea un nuovo backup del database."""
+    try:
+        if bot_client:
+            async with bot_client.post('http://localhost:5000/api/backups/create', timeout=30) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    if result.get('success'):
+                        return jsonify({"success": True, "message": "Backup creato con successo"})
+                    else:
+                        return jsonify({"success": False, "message": result.get('message', 'Errore nella creazione del backup')})
+                else:
+                    return jsonify({"success": False, "message": "Errore nella richiesta di backup"})
+        else:
+            return jsonify({"success": False, "message": "Connessione al bot non disponibile"})
+    except Exception as e:
+        logger.error(f"Errore nella creazione del backup: {e}")
+        return jsonify({"success": False, "message": f"Errore: {str(e)}"})
+
+@app.route('/restore_backup/<backup_id>', methods=['POST'])
+@admin_required
+async def restore_backup(backup_id):
+    """Ripristina un backup del database."""
+    try:
+        if bot_client:
+            async with bot_client.post(f'http://localhost:5000/api/backups/restore/{backup_id}', timeout=60) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    if result.get('success'):
+                        return jsonify({"success": True, "message": "Backup ripristinato con successo"})
+                    else:
+                        return jsonify({"success": False, "message": result.get('message', 'Errore nel ripristino del backup')})
+                else:
+                    return jsonify({"success": False, "message": "Errore nella richiesta di ripristino"})
+        else:
+            return jsonify({"success": False, "message": "Connessione al bot non disponibile"})
+    except Exception as e:
+        logger.error(f"Errore nel ripristino del backup: {e}")
+        return jsonify({"success": False, "message": f"Errore: {str(e)}"})
+
+@app.route('/discord_integration')
+@login_required
+async def discord_integration():
+    """Pagina di integrazione con Discord."""
+    try:
+        # Ottieni lo stato dell'integrazione Discord
+        if bot_client:
+            async with bot_client.get('http://localhost:5000/api/discord/status', timeout=5) as response:
+                if response.status == 200:
+                    discord_data = await response.json()
+                else:
+                    discord_data = {"connected": False, "error": "Impossibile ottenere lo stato dell'integrazione Discord"}
+        else:
+            discord_data = {"connected": False, "error": "Connessione al bot non disponibile"}
+        
+        # Ottieni i canali Discord configurati
+        discord_channels = []
+        if bot_client and discord_data.get('connected'):
+            async with bot_client.get('http://localhost:5000/api/discord/channels', timeout=5) as response:
+                if response.status == 200:
+                    discord_channels = await response.json()
+        
+        return await render_template('discord_integration.html', discord_data=discord_data, channels=discord_channels)
+    except Exception as e:
+        logger.error(f"Errore nel caricamento della pagina di integrazione Discord: {e}")
+        return await render_template('discord_integration.html', error=str(e))
+
+@app.route('/obs_integration')
+@login_required
+async def obs_integration():
+    """Pagina di integrazione con OBS."""
+    try:
+        # Ottieni lo stato dell'integrazione OBS
+        if bot_client:
+            async with bot_client.get('http://localhost:5000/api/obs/status', timeout=5) as response:
+                if response.status == 200:
+                    obs_data = await response.json()
+                else:
+                    obs_data = {"connected": False, "error": "Impossibile ottenere lo stato dell'integrazione OBS"}
+        else:
+            obs_data = {"connected": False, "error": "Connessione al bot non disponibile"}
+        
+        # Ottieni le scene OBS disponibili
+        obs_scenes = []
+        if bot_client and obs_data.get('connected'):
+            async with bot_client.get('http://localhost:5000/api/obs/scenes', timeout=5) as response:
+                if response.status == 200:
+                    obs_scenes = await response.json()
+        
+        return await render_template('obs_integration.html', obs_data=obs_data, scenes=obs_scenes)
+    except Exception as e:
+        logger.error(f"Errore nel caricamento della pagina di integrazione OBS: {e}")
+        return await render_template('obs_integration.html', error=str(e))
+
+@app.route('/webhook_management')
+@login_required
+async def webhook_management():
+    """Pagina di gestione dei webhook."""
+    try:
+        # Ottieni la lista dei webhook configurati
+        if bot_client:
+            async with bot_client.get('http://localhost:5000/api/webhooks', timeout=5) as response:
+                if response.status == 200:
+                    webhooks = await response.json()
+                else:
+                    webhooks = []
+        else:
+            webhooks = []
+        
+        return await render_template('webhook_management.html', webhooks=webhooks)
+    except Exception as e:
+        logger.error(f"Errore nel caricamento della pagina di gestione dei webhook: {e}")
+        return await render_template('webhook_management.html', error=str(e))
+
+@app.route('/translation_management')
+@admin_required
+async def translation_management():
+    """Pagina di gestione delle traduzioni."""
+    try:
+        # Ottieni le statistiche delle traduzioni
+        if bot_client:
+            async with bot_client.get('http://localhost:5000/api/translations/stats', timeout=5) as response:
+                if response.status == 200:
+                    translation_stats = await response.json()
+                else:
+                    translation_stats = {}
+        else:
+            translation_stats = {}
+        
+        # Ottieni le lingue disponibili
+        if bot_client:
+            async with bot_client.get('http://localhost:5000/api/translations/languages', timeout=5) as response:
+                if response.status == 200:
+                    available_languages = await response.json()
+                else:
+                    available_languages = []
+        else:
+            available_languages = []
+        
+        return await render_template('translation_management.html', translation_stats=translation_stats, available_languages=available_languages)
+    except Exception as e:
+        logger.error(f"Errore nel caricamento della pagina di gestione delle traduzioni: {e}")
+        return await render_template('translation_management.html', error=str(e))
+
+@app.route('/auto_updater')
+@admin_required
+async def auto_updater():
+    """Pagina di gestione degli aggiornamenti automatici."""
+    try:
+        # Ottieni le informazioni sull'aggiornamento
+        if bot_client:
+            async with bot_client.get('http://localhost:5000/api/updater/info', timeout=5) as response:
+                if response.status == 200:
+                    update_info = await response.json()
+                else:
+                    update_info = {"current_version": "Unknown", "available": False}
+        else:
+            update_info = {"current_version": "Unknown", "available": False}
+        
+        # Ottieni i backup disponibili per il ripristino
+        if bot_client:
+            async with bot_client.get('http://localhost:5000/api/updater/backups', timeout=5) as response:
+                if response.status == 200:
+                    available_backups = await response.json()
+                else:
+                    available_backups = []
+        else:
+            available_backups = []
+        
+        return await render_template('auto_updater.html', update_info=update_info, available_backups=available_backups)
+    except Exception as e:
+        logger.error(f"Errore nel caricamento della pagina di gestione degli aggiornamenti: {e}")
+        return await render_template('auto_updater.html', error=str(e))
+
+@app.route('/check_updates', methods=['POST'])
+@admin_required
+async def check_updates():
+    """Controlla se ci sono aggiornamenti disponibili."""
+    try:
+        if bot_client:
+            async with bot_client.post('http://localhost:5000/api/updater/check', timeout=30) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    return jsonify(result)
+                else:
+                    return jsonify({"success": False, "message": "Errore nella richiesta di controllo aggiornamenti"})
+        else:
+            return jsonify({"success": False, "message": "Connessione al bot non disponibile"})
+    except Exception as e:
+        logger.error(f"Errore nel controllo degli aggiornamenti: {e}")
+        return jsonify({"success": False, "message": f"Errore: {str(e)}"})
+
+@app.route('/install_update', methods=['POST'])
+@admin_required
+async def install_update():
+    """Installa un aggiornamento."""
+    try:
+        if bot_client:
+            async with bot_client.post('http://localhost:5000/api/updater/update', timeout=300) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    return jsonify(result)
+                else:
+                    return jsonify({"success": False, "message": "Errore nella richiesta di installazione aggiornamento"})
+        else:
+            return jsonify({"success": False, "message": "Connessione al bot non disponibile"})
+    except Exception as e:
+        logger.error(f"Errore nell'installazione dell'aggiornamento: {e}")
+        return jsonify({"success": False, "message": f"Errore: {str(e)}"})
+
+@app.route('/ai_moderation')
+@admin_required
+async def ai_moderation():
+    """Pagina di configurazione della moderazione AI."""
+    try:
+        # Ottieni lo stato della moderazione AI
+        if bot_client:
+            async with bot_client.get('http://localhost:5000/api/moderation/status', timeout=5) as response:
+                if response.status == 200:
+                    moderation_status = await response.json()
+                else:
+                    moderation_status = {"enabled": False, "error": "Impossibile ottenere lo stato della moderazione AI"}
+        else:
+            moderation_status = {"enabled": False, "error": "Connessione al bot non disponibile"}
+        
+        return await render_template('ai_moderation.html', moderation_status=moderation_status)
+    except Exception as e:
+        logger.error(f"Errore nel caricamento della pagina di moderazione AI: {e}")
+        return await render_template('ai_moderation.html', error=str(e))
+
 @app.route('/channels/add', methods=['GET', 'POST'])
 @login_required
 async def add_channel():
@@ -397,76 +696,103 @@ async def auth_callback():
         
         if not code_verifier or not channel_name:
             return redirect(url_for('add_channel', error="Sessione scaduta o invalida"))
-            
-        # Scambia il codice con i token
-        async with aiohttp.ClientSession() as session_http:
-            data = {
-                "grant_type": "authorization_code",
-                "client_id": CLIENT_ID,
-                "client_secret": CLIENT_SECRET,
-                "code": code,
-                "redirect_uri": REDIRECT_URI,
-                "code_verifier": code_verifier
-            }
-            
-            async with session_http.post("https://id.kick.com/oauth/token", data=data) as response:
+        
+        # Scambia il codice di autorizzazione con un token di accesso
+        token_data = {
+            "grant_type": "authorization_code",
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET,
+            "redirect_uri": REDIRECT_URI,
+            "code": code,
+            "code_verifier": code_verifier
+        }
+        
+        # Questa operazione asincrona in Quart
+        async with aiohttp.ClientSession() as session:
+            async with session.post("https://id.kick.com/oauth/token", data=token_data) as response:
                 if response.status != 200:
-                    error_text = await response.text()
-                    logger.error(f"Errore nello scambio del codice: {error_text}")
-                    return redirect(url_for('add_channel', error="Errore nell'autorizzazione"))
+                    error_message = await response.text()
+                    logger.error(f"Errore nell'ottenimento del token: {error_message}")
+                    return redirect(url_for('add_channel', error="Errore nell'autenticazione con Kick"))
+                
+                token_response = await response.json()
+                access_token = token_response.get("access_token")
+                refresh_token = token_response.get("refresh_token")
+                
+                if not access_token or not refresh_token:
+                    logger.error("Token o refresh token mancanti nella risposta")
+                    return redirect(url_for('add_channel', error="Risposta di autenticazione incompleta"))
+                
+                # Ottieni le informazioni dell'utente Kick
+                headers = {"Authorization": f"Bearer {access_token}"}
+                async with session.get("https://kick.com/api/v1/user", headers=headers) as user_response:
+                    if user_response.status != 200:
+                        error_message = await user_response.text()
+                        logger.error(f"Errore nell'ottenimento delle informazioni dell'utente: {error_message}")
+                        return redirect(url_for('add_channel', error="Errore nell'ottenimento delle informazioni dell'utente"))
                     
-                token_data = await response.json()
-                
-            # Ottieni informazioni sull'utente/canale
-            headers = {
-                "Authorization": f"Bearer {token_data['access_token']}"
-            }
-            
-            async with session_http.get("https://kick.com/api/v2/channels/me", headers=headers) as response:
-                if response.status != 200:
-                    error_text = await response.text()
-                    logger.error(f"Errore nell'ottenimento delle info del canale: {error_text}")
-                    return redirect(url_for('add_channel', error="Errore nell'ottenimento delle info del canale"))
+                    user_data = await user_response.json()
+                    kick_id = user_data.get("id")
+                    kick_username = user_data.get("username", "unknown")
                     
-                channel_data = await response.json()
-                
-        if not db_pool:
-            return redirect(url_for('dashboard', error="Database non disponibile"))
-            
-        # Cripta i token prima di salvarli
-        from cryptography.fernet import Fernet
-        key_bytes = hashlib.sha256(ENCRYPTION_KEY.encode()).digest()
-        cipher_suite = Fernet(base64.urlsafe_b64encode(key_bytes))
-        
-        encrypted_access_token = cipher_suite.encrypt(token_data["access_token"].encode()).decode()
-        encrypted_refresh_token = cipher_suite.encrypt(token_data["refresh_token"].encode()).decode()
-        
-        # Calcola la data di scadenza
-        expires_at = datetime.now(timezone.utc) + timedelta(seconds=token_data["expires_in"])
-        
-        # Salva i dati nel database
-        async with db_pool.acquire() as conn:
-            # Verifica se il canale esiste già
-            existing_channel = await conn.fetchval('''
-                SELECT id FROM channels 
-                WHERE kick_channel_id = $1 OR name = $2
-            ''', str(channel_data["id"]), channel_name)
-            
-            if existing_channel:
-                return redirect(url_for('dashboard', error="Questo canale è già configurato"))
-                
-            # Inserisci il nuovo canale
-            await conn.execute('''
-                INSERT INTO channels 
-                (kick_channel_id, name, owner_id, access_token, refresh_token, token_expires_at, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-            ''', str(channel_data["id"]), channel_name, session['user_id'], 
-                encrypted_access_token, encrypted_refresh_token, expires_at)
-                
-        return redirect(url_for('dashboard', success="Canale aggiunto con successo"))
+                    if not kick_id:
+                        logger.error("ID utente Kick mancante nella risposta")
+                        return redirect(url_for('add_channel', error="Risposta di Kick incompleta"))
+                    
+                    # Salva il canale nel database
+                    if not db_pool:
+                        return redirect(url_for('add_channel', error="Database non disponibile"))
+                    
+                    async with db_pool.acquire() as conn:
+                        # Verifica se il canale esiste già
+                        existing_channel = await conn.fetchrow(
+                            'SELECT id FROM channels WHERE kick_channel_id = $1',
+                            str(kick_id)
+                        )
+                        
+                        if existing_channel:
+                            logger.warning(f"Canale Kick già registrato: {kick_id}")
+                            return redirect(url_for('dashboard', message="Canale già registrato"))
+                        
+                        # Crea il nuovo canale
+                        channel_id = await conn.fetchval('''
+                            INSERT INTO channels (
+                                kick_channel_id, name, owner_id, 
+                                access_token, refresh_token, 
+                                settings, created_at
+                            )
+                            VALUES ($1, $2, $3, $4, $5, $6, NOW())
+                            RETURNING id
+                        ''', 
+                        str(kick_id), 
+                        channel_name or kick_username, 
+                        session.get('user_id'), 
+                        access_token, 
+                        refresh_token,
+                        json.dumps({"auto_connect": True})
+                        )
+                        
+                        if not channel_id:
+                            logger.error("Errore nella creazione del canale nel database")
+                            return redirect(url_for('add_channel', error="Errore nella creazione del canale"))
+                        
+                        # Imposta il canale come corrente per l'utente
+                        await conn.execute(
+                            'UPDATE users SET current_channel_id = $1 WHERE id = $2',
+                            channel_id, session.get('user_id')
+                        )
+                        
+                        # Pulisci i dati della sessione
+                        if 'code_verifier' in session:
+                            del session['code_verifier']
+                        if 'channel_name' in session:
+                            del session['channel_name']
+                        
+                        return redirect(url_for('channel_detail', channel_id=channel_id))
+                        
     except Exception as e:
-        logger.error(f"Errore nel callback OAuth: {e}")
-        return redirect(url_for('add_channel', error="Si è verificato un errore durante l'autenticazione"))
+        logger.error(f"Errore in auth_callback: {e}")
+        return redirect(url_for('add_channel', error=f"Si è verificato un errore: {str(e)}"))
 
 @app.route('/channel/<int:channel_id>')
 @login_required
@@ -1111,23 +1437,6 @@ async def command_editor():
     
     return await render_template('command_editor.html', channel=channel, commands=commands)
 
-@app.route('/webhook_management', methods=['GET', 'POST'])
-@login_required
-async def webhook_management():
-    """Gestione webhook per Kick."""
-    # Carica i canali dell'utente corrente
-    async with app.pool.acquire() as conn:
-        channels = await conn.fetch(
-            'SELECT * FROM channels WHERE user_id = $1',
-            session.get('user_id')
-        )
-    
-    if request.method == 'POST':
-        # Logica per salvare la configurazione webhook
-        pass
-    
-    return await render_template('webhook_management.html', channels=channels)
-
 @app.errorhandler(404)
 async def page_not_found(e):
     """Gestisce gli errori 404."""
@@ -1140,14 +1449,20 @@ async def server_error(e):
 
 @app.before_serving
 async def before_serving():
-    """Operazioni da eseguire prima di avviare il server."""
+    """Eseguito prima di avviare il server."""
     await setup_db_pool()
+    await setup_bot_client()
 
 @app.after_serving
 async def after_serving():
-    """Operazioni da eseguire dopo l'arresto del server."""
+    """Eseguito dopo l'arresto del server."""
+    global db_pool, bot_client
+    
     if db_pool:
         await db_pool.close()
+    
+    if bot_client:
+        await bot_client.close()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8000, debug=True)
+    app.run(host='0.0.0.0', port=8000)
