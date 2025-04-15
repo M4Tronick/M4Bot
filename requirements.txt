@@ -1,29 +1,59 @@
 # Dipendenze principali
-quart>=0.18.0
+quart>=0.18.4,<0.19.0
 quart-cors>=0.6.0
 aiohttp>=3.8.1
-asyncpg>=0.26.0
+asyncpg>=0.27.0
 bcrypt>=4.0.1
-cryptography>=38.0.0
-httpx>=0.24.0
+cryptography>=41.0.0
+httpx>=0.24.1
+isort>=5.12.0
+black>=23.7.0
 
-# Dipendenze per i webhook
-# hmac>=1.1.0  # hmac è un modulo della libreria standard di Python
-requests>=2.28.1
-websockets>=10.4
-pyjwt>=2.6.0
+# Redis per caching avanzato e WebSocket
+redis>=4.5.1
+
+# Autenticazione e sicurezza
+pyjwt>=2.8.0
+passlib>=1.7.4
+argon2-cffi>=23.1.0
 
 # Altri strumenti
-python-dotenv>=0.21.0
-ujson>=5.6.0
-uvicorn>=0.20.0
+python-dotenv>=1.0.0
+ujson>=5.8.0
+uvicorn>=0.23.2
+flask-babel==2.0.0  # Versione specifica con compatibilità quart testata
+flask<2.3.0  # Compatibile con flask-babel 2.0.0
+
+# Dipendenze di sistema
+Jinja2>=3.1.2  # Necessario per flask/quart
+MarkupSafe>=2.1.3  # Necessario per Jinja2
 
 # Nuove dipendenze
-discord.py>=2.2.3
+discord.py>=2.3.1
 simpleobsws>=5.2.1
 aiofiles>=23.1.0
 psutil>=5.9.5
 translate>=3.6.1
 pycld3>=0.22
 langdetect>=1.0.9
-aiosqlite>=0.17.0 
+aiosqlite>=0.19.0
+Babel>=2.12.1  # Necessario per flask-babel
+pytz==2022.7.1
+openpyxl==3.1.2
+azure-storage-blob==12.15.0
+boto3==1.26.78
+pymongo==4.3.3
+pymysql==1.0.3
+psycopg2-binary==2.9.6
+pillow==9.5.0
+python-dateutil==2.8.2
+fastapi==0.95.0
+gunicorn==20.1.0
+sqlalchemy==2.0.7
+alembic==1.10.2
+pyyaml==6.0
+pandas==2.0.0
+matplotlib==3.7.1
+tweepy==4.14.0
+pycryptodome==3.17
+fastapi-users==11.0.0 

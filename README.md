@@ -10,7 +10,8 @@ M4Bot è un bot completo e personalizzabile per la piattaforma Kick.com che perm
 - **Sistema di Punti**: Premia i tuoi spettatori con un sistema di punti personalizzato e classifiche competitive
 - **Statistiche**: Analizza l'attività della tua chat con statistiche dettagliate e report personalizzati
 - **Integrazioni**: Collega il tuo bot con OBS e altri strumenti per migliorare la tua esperienza di streaming
-- **Webhook**: Ricevi notifiche in tempo reale per eventi come inizio streaming, nuovi follower e iscrizioni
+- **Webhook Sicuri**: Ricevi notifiche in tempo reale per eventi con sistema di sicurezza avanzato e protezione anti-replay
+- **Self-Healing**: Sistema automatico di recupero e diagnostica per garantire alta disponibilità
 
 ## Requisiti di Sistema
 
@@ -43,6 +44,7 @@ Lo script di installazione configurerà automaticamente:
 - I servizi systemd
 - L'ambiente Python
 - I file di configurazione
+- Le directory di log e sicurezza
 
 ### Installazione manuale
 
@@ -67,7 +69,9 @@ Se preferisci un'installazione manuale, segui questi passaggi:
 
 4. **Configura le directory**:
    ```bash
-   sudo mkdir -p /opt/m4bot/bot /opt/m4bot/web /opt/m4bot/bot/logs
+   sudo mkdir -p /opt/m4bot/bot /opt/m4bot/web
+   # Crea tutte le directory di log necessarie
+   sudo mkdir -p /opt/m4bot/bot/logs/channels /opt/m4bot/bot/logs/webhooks /opt/m4bot/bot/logs/security /opt/m4bot/bot/logs/errors /opt/m4bot/bot/logs/connections
    sudo chown -R m4bot:m4bot /opt/m4bot
    ```
 
@@ -94,11 +98,17 @@ DB_PASSWORD=password_sicura
 DB_NAME=m4bot_db
 DB_HOST=localhost
 
-# Configurazione dominio
+# Configurazione dominio e web server
 DOMAIN=m4bot.it
 WEB_DOMAIN=m4bot.it
 WEB_HOST=0.0.0.0
 WEB_PORT=5000
+DASHBOARD_DOMAIN=dashboard.m4bot.it
+CONTROL_DOMAIN=control.m4bot.it
+
+# Configurazione SSL
+SSL_CERT=/etc/letsencrypt/live/m4bot.it/fullchain.pem
+SSL_KEY=/etc/letsencrypt/live/m4bot.it/privkey.pem
 
 # Chiavi e segreti
 SECRET_KEY=chiave_segreta
@@ -110,6 +120,20 @@ REDIRECT_URI=https://m4bot.it/auth/callback
 # Configurazione log
 LOG_LEVEL=INFO
 LOG_FILE=/opt/m4bot/bot/logs/m4bot.log
+
+# Configurazioni webhook e sicurezza
+WEBHOOK_MAX_RETRIES=3
+WEBHOOK_RETRY_DELAY=5
+WEBHOOK_TIMEOUT=10
+WEBHOOK_IP_WHITELIST=
+WEBHOOK_IP_BLACKLIST=
+WEBHOOK_RATE_LIMIT_ENABLED=true
+WEBHOOK_RATE_LIMIT_MAX_REQUESTS=100
+WEBHOOK_RATE_LIMIT_TIME_WINDOW=60
+WEBHOOK_RATE_LIMIT_BLOCK_DURATION=300
+WEBHOOK_ANTI_REPLAY=true
+WEBHOOK_CHECK_TIMESTAMP=true
+WEBHOOK_VERIFY_SIGNATURE=true
 ```
 
 ## Comandi di gestione
@@ -125,21 +149,26 @@ M4Bot include alcuni comandi di gestione per controllare facilmente i servizi:
 
 ```
 M4Bot/
-├── bot/              # Core del bot
-│   ├── m4bot.py      # Punto di ingresso del bot
-│   ├── config.py     # Configurazione
-│   ├── requirements.txt
+├── bot/                     # Core del bot
+│   ├── m4bot.py             # Punto di ingresso del bot
+│   ├── config.py            # Configurazione
+│   ├── webhook_handler.py   # Gestione webhook sicuri
+│   ├── logs/                # Directory dei log
+│   │   ├── channels/        # Log specifici per canale
+│   │   ├── webhooks/        # Log per i webhook
+│   │   ├── security/        # Log di sicurezza
+│   │   ├── errors/          # Log degli errori
+│   │   └── connections/     # Log delle connessioni
 │   └── ...
-├── web/              # Interfaccia web
-│   ├── app.py        # Applicazione Flask
-│   ├── templates/    # Template HTML
-│   ├── static/       # File statici (CSS, JS, immagini)
+├── web/                     # Interfaccia web
+│   ├── app.py               # Applicazione Flask
+│   ├── templates/           # Template HTML
+│   ├── static/              # File statici (CSS, JS, immagini)
 │   └── ...
-└── scripts/          # Script di gestione
-    ├── install.sh    # Script di installazione
-    ├── common.sh     # Funzioni comuni
-    ├── start.sh      # Avvio dei servizi
-    ├── stop.sh       # Arresto dei servizi
+└── scripts/                 # Script di gestione
+    ├── install.sh           # Script di installazione
+    ├── common.sh            # Funzioni comuni
+    ├── start.sh             # Avvio dei servizi
     └── ...
 ```
 
@@ -155,6 +184,56 @@ I webhook di Kick.com permettono a M4Bot di ricevere notifiche in tempo reale pe
 - Aggiornamenti al canale
 
 Questi eventi possono attivare automaticamente azioni nel bot, come messaggi personalizzati, comandi, o visualizzazioni nell'overlay OBS.
+
+### Sicurezza Webhook Avanzata
+
+M4Bot include diverse funzionalità di sicurezza per proteggere i webhook:
+
+#### 1. Controllo IP
+- **Whitelist**: Limita l'accesso ai webhook solo a IP specifici
+- **Blacklist**: Blocca automaticamente IP sospetti
+- **Supporto CIDR**: Gestisce blocchi di reti con notazione CIDR
+
+#### 2. Rate Limiting
+- **Limiti configurabili**: Imposta il numero massimo di richieste per intervallo di tempo
+- **Auto-blocco**: Blocca automaticamente gli IP che superano il limite
+- **Timeout graduale**: Aumenta progressivamente il tempo di blocco per attacchi ripetuti
+
+#### 3. Prevenzione Replay
+- **Controllo nonce**: Verifica che ogni richiesta abbia un ID univoco
+- **Validazione timestamp**: Controlla che le richieste non siano troppo vecchie
+- **Cache anti-replay**: Memorizza gli ID delle richieste per prevenire duplicati
+
+#### 4. Verifica Firme
+- **HMAC**: Verifica crittografica dell'integrità delle richieste
+- **JWT**: Supporto per token JWT firmati
+- **Comparazione sicura**: Utilizza comparazione time-safe per prevenire attacchi timing
+
+### Configurazione dei Webhook Sicuri
+
+Per configurare i webhook con le opzioni di sicurezza avanzate, modifica le seguenti impostazioni nel file `.env`:
+
+```bash
+# Impostazioni di base
+WEBHOOK_MAX_RETRIES=3              # Tentativi massimi di invio
+WEBHOOK_RETRY_DELAY=5              # Ritardo tra tentativi (secondi)
+WEBHOOK_TIMEOUT=10                 # Timeout richiesta (secondi)
+
+# Controllo IP
+WEBHOOK_IP_WHITELIST=192.168.1.1,10.0.0.0/24  # IP permessi (separati da virgola)
+WEBHOOK_IP_BLACKLIST=1.2.3.4,5.6.7.0/24       # IP bloccati (separati da virgola)
+
+# Rate limiting
+WEBHOOK_RATE_LIMIT_ENABLED=true    # Abilita rate limiting
+WEBHOOK_RATE_LIMIT_MAX_REQUESTS=100 # Massimo numero di richieste
+WEBHOOK_RATE_LIMIT_TIME_WINDOW=60  # Finestra temporale (secondi)
+WEBHOOK_RATE_LIMIT_BLOCK_DURATION=300 # Durata blocco (secondi)
+
+# Protezioni aggiuntive
+WEBHOOK_ANTI_REPLAY=true           # Protezione anti-replay
+WEBHOOK_CHECK_TIMESTAMP=true       # Verifica timestamp
+WEBHOOK_VERIFY_SIGNATURE=true      # Verifica firma
+```
 
 ### Requisiti
 
@@ -183,98 +262,33 @@ ngrok http 8000
 4. Inserisci l'URL dell'endpoint (senza https://)
 5. Genera o inserisci una chiave segreta (serve a verificare l'autenticità delle richieste)
 6. Seleziona gli eventi che vuoi ricevere
-7. Clicca su "Salva Configurazione"
+7. Configura le opzioni di sicurezza avanzate (whitelist IP, rate limiting, ecc.)
+8. Clicca su "Salva Configurazione"
 
 #### 3. Testing
 
 Puoi testare la tua configurazione usando il pulsante "Test" nella pagina di gestione webhook. 
 Questo invierà un evento di prova al tuo endpoint per verificare che funzioni correttamente.
 
-### Eventi disponibili
+### Log e Monitoraggio Webhook
 
-| Evento | Descrizione | Payload |
-|--------|-------------|---------|
-| `livestream.online` | Lo streaming è iniziato | Dati del livestream |
-| `livestream.offline` | Lo streaming è terminato | Dati finali dello streaming |
-| `follower.new` | Nuovo follower | Dati del follower |
-| `channel.updated` | Modifiche al canale | Dati aggiornati del canale |
-| `chatroom.message` | Nuovo messaggio in chat | Contenuto del messaggio |
-| `subscription.new` | Nuova iscrizione | Dati dell'abbonamento |
-
-### Formato del Payload
-
-Ogni evento ha un formato di payload specifico, ma in generale tutti seguono questa struttura base:
-
-```json
-{
-  "event_type": "nome.evento",
-  "channel_id": "123456",
-  "timestamp": "2023-06-15T12:34:56Z",
-  "data": {
-    // Dati specifici dell'evento
-  }
-}
+M4Bot registra dettagliati log di audit per tutti gli eventi webhook in:
+```
+/opt/m4bot/bot/logs/webhooks/audit_YYYY-MM-DD.log
 ```
 
-### Esempi di Payload
-
-#### Streaming iniziato
-
-```json
-{
-  "event_type": "livestream.online",
-  "channel_id": "123456",
-  "timestamp": "2023-06-15T12:34:56Z",
-  "data": {
-    "stream_id": "789012",
-    "title": "Titolo dello streaming",
-    "started_at": "2023-06-15T12:34:56Z",
-    "category": {
-      "id": "12345",
-      "name": "Just Chatting"
-    }
-  }
-}
-```
-
-#### Nuovo follower
-
-```json
-{
-  "event_type": "follower.new",
-  "channel_id": "123456",
-  "timestamp": "2023-06-15T12:34:56Z",
-  "data": {
-    "follower": {
-      "id": "789012",
-      "username": "nuovo_follower",
-      "display_name": "Nuovo Follower",
-      "followed_at": "2023-06-15T12:34:56Z"
-    }
-  }
-}
-```
-
-### Integrazione con OBS
-
-M4Bot può automaticamente mostrare eventi webhook nell'overlay OBS:
-
-1. Vai nelle impostazioni del canale
-2. Nella scheda "OBS Integration", abilita "Show webhook events in overlay"
-3. Configura quali eventi mostrare e per quanto tempo
-4. Usa l'URL generato come Browser Source in OBS
-
-### Personalizzazione degli Handler
-
-Se hai accesso al codice sorgente di M4Bot, puoi personalizzare gli handler degli eventi nei seguenti file:
-
-- `web/app.py` - Funzioni `handle_stream_start()`, `handle_new_follower()`, etc.
+Questi log ti permettono di:
+- Monitorare tutte le richieste ricevute
+- Identificare tentativi di attacco
+- Verificare il funzionamento dei webhook
+- Diagnosticare problemi di configurazione
 
 ### Sicurezza
 
 - Non condividere mai la tua chiave segreta
-- Verifica sempre la firma HMAC nei webhook in arrivo
-- Limita gli IP che possono chiamare il tuo endpoint webhook (se possibile)
+- Imposta una whitelist IP quando possibile
+- Attiva sempre la verifica della firma HMAC
+- Utilizza nonce o timestamp per prevenire attacchi replay
 - Monitora regolarmente i log webhook per attività sospette
 
 ## Risoluzione dei problemi
@@ -313,10 +327,11 @@ Se il servizio bot non si avvia, controlla:
 
 ### Directory di log mancanti
 
-Se ricevi errori relativi alla directory di log:
+Se ricevi errori relativi alle directory di log:
 
 ```bash
-sudo mkdir -p /opt/m4bot/bot/logs
+# Crea tutte le directory di log necessarie
+sudo mkdir -p /opt/m4bot/bot/logs/channels /opt/m4bot/bot/logs/webhooks /opt/m4bot/bot/logs/security /opt/m4bot/bot/logs/errors /opt/m4bot/bot/logs/connections
 sudo chown -R m4bot:m4bot /opt/m4bot/bot/logs
 ```
 
@@ -328,7 +343,11 @@ Se i webhook non funzionano correttamente, verifica:
 2. Il tuo server è in grado di ricevere richieste HTTPS
 3. La chiave segreta è configurata correttamente
 4. Gli eventi desiderati sono abilitati
-5. Controlla i log dell'applicazione per errori
+5. La configurazione di sicurezza non è troppo restrittiva
+6. Controlla i log webhook per errori dettagliati:
+   ```bash
+   cat /opt/m4bot/bot/logs/webhooks/webhook_handler.log
+   ```
 
 ## Manutenzione del server
 
