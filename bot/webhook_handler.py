@@ -8,6 +8,9 @@ import hashlib
 import base64
 import time
 import jwt
+import re
+import ipaddress
+from datetime import datetime
 from typing import Dict, List, Optional, Any, Callable
 
 # Configurazione logging
@@ -15,7 +18,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("logs/webhook_handler.log"),
+        logging.FileHandler("logs/webhooks/webhook_handler.log"),
         logging.StreamHandler()
     ]
 )
@@ -39,14 +42,564 @@ class WebhookHandler:
         self.retry_delay = config.get("webhook_retry_delay", 5)
         self.timeout = config.get("webhook_timeout", 10)
         
+        # Configurazione sicurezza
+        self.security_config = config.get("security", {})
+        
+        # Whitelist IP (se vuoto, accetta tutte le IP)
+        self.ip_whitelist = self.security_config.get("ip_whitelist", [])
+        # Blacklist IP
+        self.ip_blacklist = self.security_config.get("ip_blacklist", [])
+        # Limite di richieste
+        self.rate_limit = self.security_config.get("rate_limit", {
+            "enabled": True,
+            "max_requests": 100,      # Richieste massime
+            "time_window": 60,        # Finestra temporale in secondi
+            "block_duration": 300     # Durata del blocco in secondi
+        })
+        
+        # Cache per rate limiting
+        self.rate_limit_cache = {}
         # Cache dei webhook con errori
         self.error_cache = {}
+        # Cache per verifica delle firme (anti-replay)
+        self.signature_cache = {}
         
         # Crea le directory necessarie
-        os.makedirs("logs", exist_ok=True)
+        os.makedirs("logs/webhooks", exist_ok=True)
         
         logger.info(f"Gestore di webhook inizializzato ({len(self.webhooks)} webhook configurati)")
     
+    async def receive_webhook(self, webhook_id: str, source_ip: str, headers: Dict[str, str], 
+                             request_data: Any) -> Dict[str, Any]:
+        """
+        Riceve e processa un webhook in arrivo
+        
+        Args:
+            webhook_id: ID del webhook
+            source_ip: IP di origine della richiesta
+            headers: Headers della richiesta
+            request_data: Dati della richiesta
+            
+        Returns:
+            Dict: Risultato dell'elaborazione
+        """
+        # Controlla se l'IP è nella blacklist
+        if self._is_ip_blacklisted(source_ip):
+            logger.warning(f"Richiesta webhook rifiutata: IP {source_ip} nella blacklist")
+            return {
+                "status": "error",
+                "error": "ip_blacklisted",
+                "message": "IP non autorizzato"
+            }
+        
+        # Controlla se la whitelist è attiva e l'IP è autorizzato
+        if self.ip_whitelist and not self._is_ip_whitelisted(source_ip):
+            logger.warning(f"Richiesta webhook rifiutata: IP {source_ip} non nella whitelist")
+            return {
+                "status": "error",
+                "error": "ip_not_whitelisted",
+                "message": "IP non nella whitelist"
+            }
+        
+        # Controllo rate limiting
+        if self.rate_limit.get("enabled", True):
+            if self._is_rate_limited(source_ip):
+                logger.warning(f"Richiesta webhook rifiutata: Rate limit superato per IP {source_ip}")
+                return {
+                    "status": "error",
+                    "error": "rate_limit_exceeded",
+                    "message": "Troppe richieste, riprova più tardi"
+                }
+            self._track_request(source_ip)
+        
+        # Trova il webhook corrispondente
+        webhook = next((w for w in self.webhooks if w.get("id") == webhook_id), None)
+        
+        if not webhook:
+            logger.error(f"Webhook ID '{webhook_id}' non trovato")
+            return {
+                "status": "error",
+                "error": "webhook_not_found",
+                "message": "Webhook non trovato"
+            }
+        
+        # Verifica firma se richiesta
+        if webhook.get("verify_signature", False):
+            signature_status = self._verify_webhook_signature(webhook, headers, request_data)
+            if signature_status != "valid":
+                logger.warning(f"Firma webhook non valida: {signature_status}")
+                return {
+                    "status": "error",
+                    "error": f"invalid_signature_{signature_status}",
+                    "message": "Firma non valida"
+                }
+        
+        # Controllo anti-replay se abilitato
+        if webhook.get("anti_replay", True):
+            if self._is_replay_attack(webhook_id, headers, request_data):
+                logger.warning(f"Possibile attacco replay rilevato per webhook '{webhook_id}'")
+                return {
+                    "status": "error",
+                    "error": "replay_attack",
+                    "message": "Possibile attacco replay"
+                }
+        
+        # Controlla timestamp se presente
+        if webhook.get("check_timestamp", True) and "X-Timestamp" in headers:
+            try:
+                timestamp = int(headers["X-Timestamp"])
+                now = int(time.time())
+                # Verifica che il timestamp non sia più vecchio di 5 minuti o nel futuro
+                if timestamp < (now - 300) or timestamp > (now + 60):
+                    logger.warning(f"Timestamp non valido: {timestamp}, ora: {now}")
+                    return {
+                        "status": "error",
+                        "error": "invalid_timestamp",
+                        "message": "Timestamp non valido"
+                    }
+            except (ValueError, TypeError):
+                logger.warning(f"Timestamp non valido nel formato: {headers.get('X-Timestamp')}")
+                return {
+                    "status": "error",
+                    "error": "invalid_timestamp_format",
+                    "message": "Formato timestamp non valido"
+                }
+        
+        # Convalida i dati in arrivo
+        if not self._validate_webhook_data(webhook, request_data):
+            logger.warning(f"Dati webhook non validi per '{webhook_id}'")
+            return {
+                "status": "error",
+                "error": "invalid_data",
+                "message": "Dati non validi"
+            }
+        
+        # Processo i dati del webhook
+        try:
+            processed_data = self._process_webhook_data(webhook, request_data)
+            
+            # Registra l'evento
+            logger.info(f"Webhook '{webhook_id}' ricevuto ed elaborato correttamente")
+            
+            # Registra dati dettagliati a scopo di audit
+            self._log_webhook_event(webhook_id, source_ip, headers, request_data, processed_data)
+            
+            return {
+                "status": "success",
+                "processed": processed_data
+            }
+        except Exception as e:
+            logger.error(f"Errore nell'elaborazione del webhook '{webhook_id}': {e}")
+            return {
+                "status": "error",
+                "error": "processing_error",
+                "message": str(e)
+            }
+    
+    def _is_ip_blacklisted(self, ip: str) -> bool:
+        """
+        Verifica se un IP è nella blacklist
+        
+        Args:
+            ip: Indirizzo IP da verificare
+            
+        Returns:
+            bool: True se l'IP è nella blacklist, False altrimenti
+        """
+        try:
+            client_ip = ipaddress.ip_address(ip)
+            
+            # Controlla IP esatti
+            if ip in self.ip_blacklist:
+                return True
+            
+            # Controlla subnet CIDR
+            for block in self.ip_blacklist:
+                if '/' in block:  # È un blocco CIDR
+                    try:
+                        network = ipaddress.ip_network(block, strict=False)
+                        if client_ip in network:
+                            return True
+                    except ValueError:
+                        continue
+            
+            return False
+        except ValueError:
+            logger.error(f"Formato IP non valido: {ip}")
+            return True  # Per sicurezza, rifiuta IP non validi
+    
+    def _is_ip_whitelisted(self, ip: str) -> bool:
+        """
+        Verifica se un IP è nella whitelist
+        
+        Args:
+            ip: Indirizzo IP da verificare
+            
+        Returns:
+            bool: True se l'IP è nella whitelist, False altrimenti
+        """
+        # Se la whitelist è vuota, tutti gli IP sono permessi
+        if not self.ip_whitelist:
+            return True
+        
+        try:
+            client_ip = ipaddress.ip_address(ip)
+            
+            # Controlla IP esatti
+            if ip in self.ip_whitelist:
+                return True
+            
+            # Controlla subnet CIDR
+            for block in self.ip_whitelist:
+                if '/' in block:  # È un blocco CIDR
+                    try:
+                        network = ipaddress.ip_network(block, strict=False)
+                        if client_ip in network:
+                            return True
+                    except ValueError:
+                        continue
+            
+            return False
+        except ValueError:
+            logger.error(f"Formato IP non valido: {ip}")
+            return False
+    
+    def _is_rate_limited(self, ip: str) -> bool:
+        """
+        Verifica se un IP ha superato il rate limit
+        
+        Args:
+            ip: Indirizzo IP da verificare
+            
+        Returns:
+            bool: True se l'IP è rate limited, False altrimenti
+        """
+        now = time.time()
+        
+        # Pulisci vecchie entry
+        self._clean_rate_limit_cache(now)
+        
+        if ip not in self.rate_limit_cache:
+            return False
+        
+        ip_data = self.rate_limit_cache[ip]
+        
+        # Se è bloccato, controlla se il blocco è scaduto
+        if ip_data.get("blocked_until", 0) > now:
+            return True
+        
+        # Controlla il numero di richieste nella finestra temporale
+        time_window = self.rate_limit["time_window"]
+        max_requests = self.rate_limit["max_requests"]
+        
+        # Conta solo le richieste all'interno della finestra temporale
+        recent_requests = [ts for ts in ip_data["requests"] if ts > (now - time_window)]
+        
+        if len(recent_requests) >= max_requests:
+            # Supera il limite, blocca l'IP
+            block_duration = self.rate_limit["block_duration"]
+            self.rate_limit_cache[ip]["blocked_until"] = now + block_duration
+            logger.warning(f"IP {ip} bloccato per {block_duration} secondi per rate limit")
+            return True
+        
+        return False
+    
+    def _track_request(self, ip: str):
+        """
+        Registra una richiesta per il rate limiting
+        
+        Args:
+            ip: Indirizzo IP
+        """
+        now = time.time()
+        
+        if ip not in self.rate_limit_cache:
+            self.rate_limit_cache[ip] = {
+                "requests": [now],
+                "blocked_until": 0
+            }
+        else:
+            self.rate_limit_cache[ip]["requests"].append(now)
+    
+    def _clean_rate_limit_cache(self, now: float):
+        """
+        Pulisce la cache del rate limiting
+        
+        Args:
+            now: Timestamp corrente
+        """
+        time_window = self.rate_limit["time_window"]
+        cutoff = now - (2 * time_window)
+        
+        # Rimuovi richieste vecchie e IP non più bloccati
+        for ip in list(self.rate_limit_cache.keys()):
+            # Rimuovi richieste vecchie
+            self.rate_limit_cache[ip]["requests"] = [
+                ts for ts in self.rate_limit_cache[ip]["requests"] if ts > cutoff
+            ]
+            
+            # Se non ci sono più richieste e l'IP non è bloccato, rimuovilo dalla cache
+            if not self.rate_limit_cache[ip]["requests"] and self.rate_limit_cache[ip]["blocked_until"] <= now:
+                del self.rate_limit_cache[ip]
+    
+    def _verify_webhook_signature(self, webhook: Dict[str, Any], headers: Dict[str, str], 
+                                 data: Any) -> str:
+        """
+        Verifica la firma del webhook
+        
+        Args:
+            webhook: Configurazione del webhook
+            headers: Headers della richiesta
+            data: Dati della richiesta
+            
+        Returns:
+            str: Stato della verifica ('valid', 'missing', 'invalid')
+        """
+        if not webhook.get("verify_signature", False):
+            return "valid"
+        
+        auth_type = webhook.get("auth_type", "none")
+        auth_params = webhook.get("auth_params", {})
+        
+        if auth_type == "hmac":
+            # Nome header e segreto
+            header_name = auth_params.get("header_name", "X-Signature")
+            secret = auth_params.get("secret", "")
+            algorithm = auth_params.get("algorithm", "sha256")
+            
+            if not header_name or not secret:
+                logger.error("Configurazione HMAC incompleta")
+                return "config_error"
+            
+            # Ottieni la firma dagli header
+            signature = headers.get(header_name)
+            if not signature:
+                logger.warning(f"Header firma {header_name} mancante")
+                return "missing"
+            
+            # Calcola la firma attesa
+            expected_signature = self._generate_hmac_signature(
+                json.dumps(data) if isinstance(data, dict) else str(data),
+                secret,
+                algorithm
+            )
+            
+            # Confronta le firme (confronto sicuro)
+            if not hmac.compare_digest(signature, expected_signature):
+                logger.warning("Firma HMAC non valida")
+                return "invalid"
+            
+            return "valid"
+            
+        elif auth_type == "jwt":
+            # Nome header e segreto
+            header_name = auth_params.get("header_name", "Authorization")
+            secret = auth_params.get("secret", "")
+            algorithm = auth_params.get("algorithm", "HS256")
+            
+            if not header_name or not secret:
+                logger.error("Configurazione JWT incompleta")
+                return "config_error"
+            
+            # Ottieni il token dagli header (formato: "Bearer <token>")
+            auth_header = headers.get(header_name, "")
+            token_match = re.match(r"Bearer\s+(.+)", auth_header)
+            
+            if not token_match:
+                logger.warning(f"Header JWT {header_name} mancante o malformato")
+                return "missing"
+            
+            token = token_match.group(1)
+            
+            try:
+                # Decodifica e verifica il token
+                payload = jwt.decode(token, secret, algorithms=[algorithm])
+                
+                # Verifica che il token non sia scaduto
+                exp = payload.get("exp", 0)
+                if exp < time.time():
+                    logger.warning("Token JWT scaduto")
+                    return "expired"
+                
+                return "valid"
+            except jwt.InvalidTokenError as e:
+                logger.warning(f"Token JWT non valido: {e}")
+                return "invalid"
+            
+        return "not_supported"
+    
+    def _is_replay_attack(self, webhook_id: str, headers: Dict[str, str], data: Any) -> bool:
+        """
+        Verifica se è un attacco replay
+        
+        Args:
+            webhook_id: ID del webhook
+            headers: Headers della richiesta
+            data: Dati della richiesta
+            
+        Returns:
+            bool: True se è un attacco replay, False altrimenti
+        """
+        # Cerca un ID univoco nella richiesta
+        nonce = headers.get("X-Nonce")
+        request_id = headers.get("X-Request-ID")
+        
+        # Se non c'è un ID univoco, usa una combinazione di valori
+        if not nonce and not request_id:
+            # Usa una combinazione di timestamp e hash dei dati
+            timestamp = headers.get("X-Timestamp", str(int(time.time())))
+            data_hash = hashlib.sha256(
+                json.dumps(data).encode() if isinstance(data, dict) else str(data).encode()
+            ).hexdigest()
+            combined_id = f"{webhook_id}:{timestamp}:{data_hash}"
+        else:
+            combined_id = f"{webhook_id}:{nonce or request_id}"
+        
+        # Verifica se questa richiesta è già stata vista
+        if combined_id in self.signature_cache:
+            logger.warning(f"Richiesta duplicata rilevata: {combined_id}")
+            return True
+        
+        # Salva l'ID nella cache
+        now = time.time()
+        self.signature_cache[combined_id] = now
+        
+        # Pulisci vecchie entry dalla cache (più di 1 ora)
+        for key in list(self.signature_cache.keys()):
+            if now - self.signature_cache[key] > 3600:
+                del self.signature_cache[key]
+        
+        return False
+    
+    def _validate_webhook_data(self, webhook: Dict[str, Any], data: Any) -> bool:
+        """
+        Convalida i dati del webhook
+        
+        Args:
+            webhook: Configurazione del webhook
+            data: Dati da convalidare
+            
+        Returns:
+            bool: True se i dati sono validi, False altrimenti
+        """
+        schema = webhook.get("schema")
+        
+        # Se non c'è uno schema, accetta qualsiasi dato
+        if not schema:
+            return True
+        
+        # Convalida di base per il tipo
+        expected_type = schema.get("type")
+        if expected_type == "object" and not isinstance(data, dict):
+            logger.warning(f"Tipo dati non valido: atteso dict, ricevuto {type(data).__name__}")
+            return False
+        elif expected_type == "array" and not isinstance(data, list):
+            logger.warning(f"Tipo dati non valido: atteso list, ricevuto {type(data).__name__}")
+            return False
+        
+        # Per oggetti, convalida le proprietà richieste
+        if expected_type == "object" and isinstance(data, dict):
+            required_props = schema.get("required", [])
+            for prop in required_props:
+                if prop not in data:
+                    logger.warning(f"Proprietà richiesta mancante: {prop}")
+                    return False
+            
+            # Convalida formati specifici
+            properties = schema.get("properties", {})
+            for prop, prop_schema in properties.items():
+                if prop in data:
+                    prop_type = prop_schema.get("type")
+                    prop_format = prop_schema.get("format")
+                    
+                    # Convalida tipo
+                    if prop_type == "string" and not isinstance(data[prop], str):
+                        logger.warning(f"Tipo proprietà non valido per {prop}: atteso string")
+                        return False
+                    elif prop_type == "number" and not isinstance(data[prop], (int, float)):
+                        logger.warning(f"Tipo proprietà non valido per {prop}: atteso number")
+                        return False
+                    elif prop_type == "integer" and not isinstance(data[prop], int):
+                        logger.warning(f"Tipo proprietà non valido per {prop}: atteso integer")
+                        return False
+                    elif prop_type == "boolean" and not isinstance(data[prop], bool):
+                        logger.warning(f"Tipo proprietà non valido per {prop}: atteso boolean")
+                        return False
+                    
+                    # Convalida formato
+                    if prop_format and prop_type == "string" and isinstance(data[prop], str):
+                        if prop_format == "email" and not self._is_valid_email(data[prop]):
+                            logger.warning(f"Formato email non valido per {prop}")
+                            return False
+                        elif prop_format == "uri" and not self._is_valid_uri(data[prop]):
+                            logger.warning(f"Formato URI non valido per {prop}")
+                            return False
+        
+        return True
+    
+    def _is_valid_email(self, email: str) -> bool:
+        """Verifica se una stringa è un'email valida"""
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        return bool(re.match(email_pattern, email))
+    
+    def _is_valid_uri(self, uri: str) -> bool:
+        """Verifica se una stringa è un URI valido"""
+        uri_pattern = r'^(https?|ftp)://[^\s/$.?#].[^\s]*$'
+        return bool(re.match(uri_pattern, uri))
+    
+    def _process_webhook_data(self, webhook: Dict[str, Any], data: Any) -> Dict[str, Any]:
+        """
+        Elabora i dati del webhook
+        
+        Args:
+            webhook: Configurazione del webhook
+            data: Dati da elaborare
+            
+        Returns:
+            Dict: Dati elaborati
+        """
+        # Questa funzione può essere estesa per trasformare i dati
+        # Per ora, restituisce semplicemente i dati originali
+        result = {
+            "webhook_id": webhook.get("id"),
+            "processed_at": datetime.now().isoformat(),
+            "data": data
+        }
+        
+        return result
+    
+    def _log_webhook_event(self, webhook_id: str, source_ip: str, headers: Dict[str, str], 
+                          request_data: Any, processed_data: Dict[str, Any]):
+        """
+        Registra un evento webhook a scopo di audit
+        
+        Args:
+            webhook_id: ID del webhook
+            source_ip: IP di origine
+            headers: Headers della richiesta
+            request_data: Dati della richiesta
+            processed_data: Dati elaborati
+        """
+        try:
+            # Registra solo le informazioni essenziali per ragioni di privacy
+            log_data = {
+                "webhook_id": webhook_id,
+                "timestamp": datetime.now().isoformat(),
+                "source_ip": source_ip,
+                "headers": {k: v for k, v in headers.items() if k.lower() not in 
+                            ["authorization", "cookie", "x-signature"]},
+                "request_size": len(json.dumps(request_data)) if request_data else 0,
+                "processed": True
+            }
+            
+            # Registra su file in formato JSON
+            log_file = f"logs/webhooks/audit_{datetime.now().strftime('%Y-%m-%d')}.log"
+            with open(log_file, "a") as f:
+                f.write(json.dumps(log_data) + "\n")
+                
+        except Exception as e:
+            logger.error(f"Errore nella registrazione dell'evento webhook: {e}")
+
     async def send_event(self, event_type: str, event_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Invia un evento a tutti i webhook configurati per quel tipo di evento

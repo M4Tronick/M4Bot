@@ -29,6 +29,21 @@ from cryptography.fernet import Fernet
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from bot.config import *
 
+# Assicurati che tutte le directory necessarie esistano
+directories_to_check = [
+    os.path.dirname(LOG_FILE),  # Directory principale dei log
+    "logs/channels",            # Log specifici per canale
+    "logs/webhooks",            # Log per i webhook
+    "logs/security",            # Log di sicurezza
+    "logs/errors",              # Log degli errori
+    "logs/connections"          # Log delle connessioni
+]
+
+for directory in directories_to_check:
+    if directory and not os.path.exists(directory):
+        os.makedirs(directory, exist_ok=True)
+        print(f"Directory creata: {directory}")
+
 # Configura il logging
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL),
@@ -48,20 +63,43 @@ class Database:
         
     async def connect(self):
         """Crea un pool di connessioni al database PostgreSQL."""
-        try:
-            self.pool = await asyncpg.create_pool(
-                user=DB_USER,
-                password=DB_PASS,
-                database=DB_NAME,
-                host=DB_HOST
-            )
-            logger.info("Connessione al database stabilita")
-            
-            # Inizializza le tabelle se non esistono
-            await self._initialize_tables()
-        except Exception as e:
-            logger.error(f"Errore nella connessione al database: {e}")
-            raise
+        retry_count = 0
+        max_retries = 5
+        retry_delay = 3  # secondi
+        
+        while retry_count < max_retries:
+            try:
+                self.pool = await asyncpg.create_pool(
+                    user=DB_USER,
+                    password=DB_PASS,
+                    database=DB_NAME,
+                    host=DB_HOST,
+                    command_timeout=60.0,
+                    min_size=2,
+                    max_size=10
+                )
+                logger.info("Connessione al database stabilita")
+                
+                # Inizializza le tabelle se non esistono
+                await self._initialize_tables()
+                return True
+            except asyncpg.exceptions.PostgresError as e:
+                retry_count += 1
+                logger.error(f"Errore nella connessione al database (tentativo {retry_count}/{max_retries}): {e}")
+                
+                if retry_count < max_retries:
+                    logger.info(f"Nuovo tentativo tra {retry_delay} secondi...")
+                    await asyncio.sleep(retry_delay)
+                    retry_delay *= 2  # Aumenta il ritardo ad ogni tentativo
+                else:
+                    logger.critical("Impossibile connettersi al database dopo multipli tentativi")
+            except Exception as e:
+                logger.critical(f"Errore critico nella connessione al database: {e}")
+                raise
+        
+        # Se arriviamo qui, non siamo riusciti a connetterci dopo tutti i tentativi
+        logger.critical("Impossibile avviare il bot senza connessione al database")
+        return False
             
     async def _initialize_tables(self):
         """Crea le tabelle necessarie se non esistono."""
@@ -371,20 +409,60 @@ class KickApi:
         return await self.api_request("GET", endpoint)
 
 class Encryption:
-    """Gestisce la crittografia dei dati sensibili."""
+    """Classe per la crittografia e decrittografia dei dati sensibili."""
     
     def __init__(self, key: str):
-        # Genera una chiave Fernet da una stringa
-        key_bytes = hashlib.sha256(key.encode()).digest()
-        self.cipher_suite = Fernet(base64.urlsafe_b64encode(key_bytes))
+        """
+        Inizializza la classe di crittografia
         
+        Args:
+            key: Chiave di crittografia (Fernet key)
+        """
+        # Assicurati che la chiave sia di 32 byte base64-encoded
+        try:
+            if not isinstance(key, bytes):
+                key = key.encode('utf-8')
+            # Verifica se la chiave è già una chiave Fernet valida
+            base64.urlsafe_b64decode(key + b'=' * (4 - len(key) % 4))
+            self.fernet = Fernet(key)
+        except Exception as e:
+            logger.error(f"Errore nell'inizializzazione della chiave Fernet: {e}")
+            # Genera una nuova chiave Fernet valida
+            from cryptography.fernet import Fernet
+            self.fernet = Fernet(Fernet.generate_key())
+            logger.warning("Utilizzando una chiave Fernet temporanea generata automaticamente")
+    
     def encrypt(self, data: str) -> str:
-        """Cripta una stringa."""
-        return self.cipher_suite.encrypt(data.encode()).decode()
+        """
+        Cripta un dato
         
+        Args:
+            data: Dato da criptare
+            
+        Returns:
+            str: Dato criptato (base64)
+        """
+        try:
+            return self.fernet.encrypt(data.encode('utf-8')).decode('utf-8')
+        except Exception as e:
+            logger.error(f"Errore nella crittografia dei dati: {e}")
+            return ""
+    
     def decrypt(self, encrypted_data: str) -> str:
-        """Decripta una stringa criptata."""
-        return self.cipher_suite.decrypt(encrypted_data.encode()).decode()
+        """
+        Decripta un dato
+        
+        Args:
+            encrypted_data: Dato criptato (base64)
+            
+        Returns:
+            str: Dato decriptato
+        """
+        try:
+            return self.fernet.decrypt(encrypted_data.encode('utf-8')).decode('utf-8')
+        except Exception as e:
+            logger.error(f"Errore nella decrittografia dei dati: {e}")
+            return ""
 
 class CommandHandler:
     """Gestisce i comandi del bot."""
@@ -677,6 +755,8 @@ class M4Bot:
         self.point_system = None
         self.active_games = {}
         self.timed_tasks = {}
+        self.start_time = time.time()
+        self.channels = {}  # Dizionario per tracciare i canali connessi
         
     async def initialize(self):
         """Inizializza il bot e si connette alle risorse necessarie."""
@@ -716,6 +796,13 @@ class M4Bot:
         """Connette il bot a un canale e inizia ad ascoltare i messaggi."""
         # Carica i comandi per questo canale
         await self.command_handler.load_commands(channel_id)
+        
+        # Registra il canale nella lista dei canali connessi
+        self.channels[channel_id] = {
+            "id": channel_id,
+            "name": channel_name,
+            "connected_at": datetime.datetime.now(datetime.timezone.utc)
+        }
         
         # TODO: Implementare la connessione al WebSocket per ricevere messaggi in tempo reale
         
@@ -785,25 +872,110 @@ class M4Bot:
                 VALUES ($1, $2, $3, $4)
             ''', channel_id, event_type, user_id, json.dumps(data) if data else None)
 
+    async def check_system_status(self) -> Dict[str, Any]:
+        """
+        Verifica lo stato di tutte le connessioni e integrazioni
+        
+        Returns:
+            Dict: Stato del sistema
+        """
+        status = {
+            "bot": {
+                "version": VERSION,
+                "uptime": int(time.time() - self.start_time) if hasattr(self, 'start_time') else 0,
+                "running": True,
+                "channels_connected": len(self.channels) if hasattr(self, 'channels') else 0
+            },
+            "integrations": {
+                "discord": {
+                    "connected": False,
+                    "status": "Non inizializzato",
+                    "channels": 0
+                },
+                "obs": {
+                    "connected": False,
+                    "status": "Non inizializzato",
+                    "version": "N/A"
+                },
+                "webhooks": {
+                    "enabled": False,
+                    "count": 0
+                }
+            },
+            "database": {
+                "connected": self.db.pool is not None if hasattr(self, 'db') else False,
+                "status": "Connesso" if self.db.pool is not None else "Disconnesso" if hasattr(self, 'db') else "Non inizializzato"
+            }
+        }
+        
+        # Verifica lo stato di Discord
+        if hasattr(self, 'discord_connector'):
+            discord_connected = await self.discord_connector.is_connected()
+            status["integrations"]["discord"] = {
+                "connected": discord_connected,
+                "status": "Connesso" if discord_connected else "Disconnesso",
+                "channels": len(self.discord_connector.sync_channels) if discord_connected else 0
+            }
+        
+        # Verifica lo stato di OBS
+        if hasattr(self, 'obs_connector'):
+            obs_connected = self.obs_connector.is_connected()
+            status["integrations"]["obs"] = {
+                "connected": obs_connected,
+                "status": "Connesso" if obs_connected else "Disconnesso",
+                "version": self.obs_connector.version if obs_connected else "N/A"
+            }
+        
+        # Verifica lo stato dei webhook
+        if hasattr(self, 'webhook_handler'):
+            webhooks = self.webhook_handler.get_webhooks()
+            status["integrations"]["webhooks"] = {
+                "enabled": True,
+                "count": len(webhooks)
+            }
+        
+        return status
+
 async def main():
     """Funzione principale per l'avvio del bot."""
+    # Inizializza il bot
     bot = M4Bot()
-    if await bot.initialize():
-        try:
-            # Esempio: connessione a un canale
-            # await bot.connect_to_channel(1, "nome_canale")
-            
-            # Mantieni il bot in esecuzione
-            while True:
-                await asyncio.sleep(1)
-        except KeyboardInterrupt:
-            logger.info("Interruzione da tastiera ricevuta, arresto in corso...")
-        except Exception as e:
-            logger.error(f"Errore durante l'esecuzione del bot: {e}")
-        finally:
-            await bot.shutdown()
-    else:
-        logger.error("Impossibile inizializzare il bot, arresto in corso...")
+    await bot.initialize()
+    
+    # Crea un'app Quart per le API
+    from quart import Quart, request, jsonify
+    app = Quart(__name__)
+    
+    @app.route('/api/system/status', methods=['GET'])
+    async def api_system_status():
+        """Endpoint per ottenere lo stato del sistema."""
+        status = await bot.check_system_status()
+        return jsonify(status)
+    
+    # Altri endpoint API...
+    
+    # Avvia il server API
+    import uvicorn
+    import asyncio
+    from hypercorn.asyncio import serve
+    from hypercorn.config import Config
+    
+    config = Config()
+    config.bind = ["0.0.0.0:5000"]
+    
+    # Crea un task per il server API
+    api_server = asyncio.create_task(serve(app, config))
+    
+    try:
+        # Mantieni il bot in esecuzione
+        await asyncio.gather(api_server)
+    except KeyboardInterrupt:
+        # Gestisci l'interruzione del programma
+        logger.info("Interruzione del bot rilevata")
+    finally:
+        # Chiudi le connessioni
+        await bot.shutdown()
+        logger.info("Bot terminato con successo")
 
 if __name__ == "__main__":
     try:

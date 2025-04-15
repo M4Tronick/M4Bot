@@ -2,7 +2,9 @@
 Configurazione per M4Bot per Kick.com
 """
 import os
+import secrets
 from dotenv import load_dotenv
+import base64
 
 # Carica le variabili d'ambiente dal file .env
 # Cerca il file .env dalla directory principale
@@ -21,9 +23,9 @@ SCOPE = os.getenv("SCOPE", "user:read channel:read channel:write chat:write even
 # Configurazione del server web
 WEB_HOST = os.getenv("WEB_HOST", "0.0.0.0")
 WEB_PORT = int(os.getenv("WEB_PORT", "443"))
-WEB_DOMAIN = os.getenv("WEB_DOMAIN", "m4bot.it")
-SSL_CERT = os.getenv("SSL_CERT", "/etc/letsencrypt/live/m4bot.it/fullchain.pem")
-SSL_KEY = os.getenv("SSL_KEY", "/etc/letsencrypt/live/m4bot.it/privkey.pem")
+WEB_DOMAIN = os.getenv("WEB_DOMAIN", "localhost")
+SSL_CERT = os.getenv("SSL_CERT", "")
+SSL_KEY = os.getenv("SSL_KEY", "")
 
 # Configurazione del database
 DB_HOST = os.getenv("DB_HOST", "localhost")
@@ -52,5 +54,22 @@ ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "")
 if not ENCRYPTION_KEY:
     print("ATTENZIONE: Chiave di crittografia non impostata. Generando una chiave temporanea.")
     print("Per una maggiore sicurezza, imposta la variabile ENCRYPTION_KEY nel file .env")
-    import secrets
-    ENCRYPTION_KEY = secrets.token_hex(16)
+    # Genera una chiave Fernet sicura (deve essere di 32 byte base64-encoded)
+    ENCRYPTION_KEY = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode()
+    
+# Chiave segreta per sessioni web e token
+SECRET_KEY = os.getenv("SECRET_KEY", "")
+if not SECRET_KEY:
+    print("ATTENZIONE: Chiave segreta non impostata. Generando una chiave temporanea.")
+    print("Per una maggiore sicurezza, imposta la variabile SECRET_KEY nel file .env")
+    SECRET_KEY = secrets.token_hex(32)
+
+# Configurazione della sicurezza
+SECURITY_SETTINGS = {
+    "allow_registration": os.getenv("ALLOW_REGISTRATION", "true").lower() == "true",
+    "max_login_attempts": int(os.getenv("MAX_LOGIN_ATTEMPTS", "5")),
+    "login_timeout": int(os.getenv("LOGIN_TIMEOUT", "300")),  # 5 minuti
+    "session_lifetime": int(os.getenv("SESSION_LIFETIME", "604800")),  # 7 giorni
+    "require_https": os.getenv("REQUIRE_HTTPS", "true").lower() == "true",
+    "cors_allowed_origins": os.getenv("CORS_ALLOWED_ORIGINS", "*").split(",")
+}
