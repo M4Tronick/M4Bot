@@ -1,0 +1,133 @@
+{
+  "name": "M4Bot Dashboard",
+  "short_name": "M4Bot",
+  "description": "Gestisci il tuo bot per Kick.com con funzionalità avanzate",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#7e3ff2",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/static/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/maskable-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/static/screenshots/dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dashboard principale di M4Bot"
+    },
+    {
+      "src": "/static/screenshots/commands.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Gestione dei comandi personalizzati"
+    },
+    {
+      "src": "/static/screenshots/analytics.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Analytics avanzate del canale"
+    },
+    {
+      "src": "/static/screenshots/mobile-dashboard.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dashboard su dispositivi mobili"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "Vai alla dashboard principale",
+      "icons": [{ "src": "/static/icons/shortcut-dashboard.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Gestione comandi",
+      "url": "/manage_commands",
+      "description": "Gestisci i comandi del bot",
+      "icons": [{ "src": "/static/icons/shortcut-commands.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Automazioni",
+      "url": "/automations",
+      "description": "Configura le automazioni del bot",
+      "icons": [{ "src": "/static/icons/shortcut-automations.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Impostazioni profilo",
+      "url": "/profile",
+      "description": "Modifica le impostazioni dell'account",
+      "icons": [{ "src": "/static/icons/shortcut-profile.png", "sizes": "96x96" }]
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "web",
+      "url": "https://m4bot.it"
+    }
+  ],
+  "prefer_related_applications": false,
+  "handle_links": "preferred",
+  "categories": ["productivity", "utilities"],
+  "lang": "it-IT",
+  "dir": "ltr"
+} 

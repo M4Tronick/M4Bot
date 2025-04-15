@@ -1,0 +1,226 @@
+/**
+ * M4Bot - Tema Streaming
+ * Un tema ottimizzato per lo streaming con colori scuri e contrasto ridotto
+ * per affaticare meno gli occhi durante lunghe sessioni
+ */
+
+:root[data-theme="streaming"] {
+    /* Colori base */
+    --primary: #3a66c5;
+    --primary-rgb: 58, 102, 197;
+    --secondary: #555b65;
+    --secondary-rgb: 85, 91, 101;
+    --success: #28a745;
+    --success-rgb: 40, 167, 69;
+    --danger: #dc3545;
+    --danger-rgb: 220, 53, 69;
+    --warning: #ffc107;
+    --warning-rgb: 255, 193, 7;
+    --info: #17a2b8;
+    --info-rgb: 23, 162, 184;
+    
+    /* Sfumature di grigio ridotti di contrasto */
+    --bs-body-bg: #121318;
+    --bs-body-color: #b3b7c0;
+    --dark: #1c1e24;
+    --light: #2e3038;
+    --bs-tertiary-bg: #252831;
+    --bs-emphasis-color: #e0e2e7;
+    
+    /* Variabili personalizzate per l'interfaccia */
+    --border-color: #2c2f38;
+    --card-bg: #1e2028;
+    --card-header-bg: #252831;
+    --input-bg: #252831;
+    --input-color: #c1c3c9;
+    --input-border: #3a3e4b;
+    --border-radius: 0.275rem;
+    --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.15);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.25);
+    --text-muted: #8c91a0;
+    --text-secondary: #9da1ad;
+    
+    /* Riduzione opacità per elementi non attivi */
+    --inactive-opacity: 0.75;
+    --hover-overlay: rgba(255, 255, 255, 0.03);
+    
+    /* Variabili bootstrap sovrascritte */
+    --bs-primary: var(--primary);
+    --bs-secondary: var(--secondary);
+    --bs-success: var(--success);
+    --bs-danger: var(--danger);
+    --bs-warning: var(--warning);
+    --bs-info: var(--info);
+    --bs-dark: var(--dark);
+    --bs-light: var(--light);
+    
+    /* Riduzione luminosità per non affaticare gli occhi */
+    --bs-primary-rgb: var(--primary-rgb);
+    --bs-secondary-rgb: var(--secondary-rgb);
+    --bs-success-rgb: var(--success-rgb);
+    --bs-danger-rgb: var(--danger-rgb);
+    --bs-warning-rgb: var(--warning-rgb);
+    --bs-info-rgb: var(--info-rgb);
+    
+    --bs-primary-bg-subtle: rgba(var(--primary-rgb), 0.15);
+    --bs-secondary-bg-subtle: rgba(var(--secondary-rgb), 0.15);
+    --bs-success-bg-subtle: rgba(var(--success-rgb), 0.15);
+    --bs-danger-bg-subtle: rgba(var(--danger-rgb), 0.15);
+    --bs-warning-bg-subtle: rgba(var(--warning-rgb), 0.15);
+    --bs-info-bg-subtle: rgba(var(--info-rgb), 0.15);
+}
+
+/* Modalità streaming - Regolazioni specifiche */
+[data-theme="streaming"] {
+    /* Sfondo generale più scuro */
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+}
+
+/* Riduzione contrasto per card e contenuti */
+[data-theme="streaming"] .card {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+[data-theme="streaming"] .card-header {
+    background-color: var(--card-header-bg);
+    border-bottom-color: var(--border-color);
+}
+
+/* Input con contrasto ridotto */
+[data-theme="streaming"] .form-control,
+[data-theme="streaming"] .form-select {
+    background-color: var(--input-bg);
+    border-color: var(--input-border);
+    color: var(--input-color);
+}
+
+[data-theme="streaming"] .form-control:focus,
+[data-theme="streaming"] .form-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--primary-rgb), 0.25);
+}
+
+/* Navbar ottimizzata */
+[data-theme="streaming"] .navbar {
+    background-color: var(--dark);
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Riduzione luminosità sidebar */
+[data-theme="streaming"] .sidebar {
+    background-color: var(--card-bg);
+    border-right: 1px solid var(--border-color);
+}
+
+[data-theme="streaming"] .sidebar-link {
+    color: var(--bs-body-color);
+}
+
+[data-theme="streaming"] .sidebar-link:hover,
+[data-theme="streaming"] .sidebar-link.active {
+    background-color: var(--hover-overlay);
+    color: var(--bs-emphasis-color);
+}
+
+/* Tabelle con contrasto ridotto */
+[data-theme="streaming"] .table {
+    color: var(--bs-body-color);
+}
+
+[data-theme="streaming"] .table thead th {
+    border-bottom-color: var(--border-color);
+}
+
+[data-theme="streaming"] .table-hover tbody tr:hover {
+    background-color: var(--hover-overlay);
+}
+
+/* Bottoni con contrasto leggermente ridotto */
+[data-theme="streaming"] .btn-primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+[data-theme="streaming"] .btn-outline-primary {
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+/* Badge con contrasto ridotto */
+[data-theme="streaming"] .badge {
+    opacity: var(--inactive-opacity);
+}
+
+/* Tooltip con sfondo scuro e testo chiaro */
+[data-theme="streaming"] .tooltip .tooltip-inner {
+    background-color: var(--dark);
+    color: var(--bs-emphasis-color);
+}
+
+/* Dropdown menu con sfondo scuro */
+[data-theme="streaming"] .dropdown-menu {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+[data-theme="streaming"] .dropdown-item {
+    color: var(--bs-body-color);
+}
+
+[data-theme="streaming"] .dropdown-item:hover,
+[data-theme="streaming"] .dropdown-item:focus {
+    background-color: var(--hover-overlay);
+    color: var(--bs-emphasis-color);
+}
+
+[data-theme="streaming"] .dropdown-divider {
+    border-top-color: var(--border-color);
+}
+
+/* Pannelli con contrasto ridotto */
+[data-theme="streaming"] .alert {
+    opacity: var(--inactive-opacity);
+}
+
+/* Toast notifications con contrasto ridotto */
+[data-theme="streaming"] .toast {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+/* Grafici con colori adattati per l'oscurità */
+[data-theme="streaming"] .chart-container {
+    filter: brightness(0.9);
+}
+
+/* Icone con luminosità ridotta */
+[data-theme="streaming"] .icon {
+    opacity: var(--inactive-opacity);
+}
+
+/* Pulsante di attivazione streaming mode */
+.streaming-mode-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1050;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #3a66c5;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.streaming-mode-toggle:hover {
+    transform: scale(1.1);
+} 

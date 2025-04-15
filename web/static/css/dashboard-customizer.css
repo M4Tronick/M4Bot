@@ -1,152 +1,393 @@
-/* Stili per la dashboard personalizzabile */
+/**
+ * M4Bot - Dashboard Customizer CSS
+ * Stili per la dashboard personalizzabile con drag-and-drop
+ */
 
-/* Layout e container */
-#customizable-dashboard {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1.5rem;
+/* Container principale dashboard */
+#dashboard-container {
+    position: relative;
+    min-height: 400px;
     margin-bottom: 2rem;
-}
-
-.dashboard-slot {
     transition: all 0.3s ease;
-    min-height: 200px;
 }
 
-.dashboard-controls {
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid var(--border-color);
+/* Widget base */
+.dashboard-widget {
+    margin-bottom: 20px;
+    opacity: 1;
+    transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Stili per i widget */
-.dashboard-card {
+.widget-wrapper {
     height: 100%;
-    transition: all 0.3s ease;
+    border-radius: var(--border-radius);
+    background-color: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, rgba(0,0,0,.125));
+    box-shadow: var(--shadow-sm, 0 0.125rem 0.25rem rgba(0,0,0,.075));
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header del widget */
+.widget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background-color: var(--card-header-bg, rgba(0,0,0,.03));
+    border-bottom: 1px solid var(--border-color, rgba(0,0,0,.125));
+}
+
+.widget-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+}
+
+.widget-controls {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.widget-controls .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary, #6c757d);
+    background: transparent;
+    border: none;
+}
+
+.widget-controls .btn:hover {
+    color: var(--bs-primary, #0d6efd);
+}
+
+.widget-remove:hover {
+    color: var(--bs-danger, #dc3545) !important;
+}
+
+/* Corpo del widget */
+.widget-body {
+    flex: 1;
+    overflow: hidden;
     position: relative;
 }
 
-.dashboard-card:hover {
+.widget-content {
+    padding: 1rem;
+    height: 100%;
+    overflow: auto;
+}
+
+/* Stati del widget */
+.widget-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 100px;
+}
+
+.widget-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 100px;
+    color: var(--bs-warning, #ffc107);
+    text-align: center;
+    padding: 1rem;
+}
+
+.widget-error i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Modalità modifica dashboard */
+#dashboard-container.edit-mode {
+    background-color: rgba(var(--primary-rgb, 13, 110, 253), 0.05);
+    border: 2px dashed rgba(var(--primary-rgb, 13, 110, 253), 0.3);
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+#dashboard-container.edit-mode::before {
+    content: 'Trascina i widget per riorganizzare la dashboard';
+    display: block;
+    text-align: center;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    color: var(--bs-primary, #0d6efd);
+    background-color: rgba(var(--primary-rgb, 13, 110, 253), 0.1);
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+}
+
+/* Widget in modalità modifica */
+.edit-mode .dashboard-widget {
+    cursor: move;
+}
+
+.edit-mode .widget-wrapper {
+    box-shadow: var(--shadow-md, 0 0.5rem 1rem rgba(0,0,0,.15));
+}
+
+.edit-mode .widget-header {
+    cursor: grab;
+}
+
+.edit-mode .widget-controls {
+    display: flex;
+}
+
+/* Widget durante il trascinamento */
+.dashboard-widget.dragging {
+    opacity: 0.8;
+    z-index: 1050;
+}
+
+.dashboard-widget.resizing {
+    opacity: 0.9;
+    z-index: 1050;
+}
+
+/* Handle per il ridimensionamento */
+.resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 20px;
+    height: 20px;
+    cursor: se-resize;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M2.5 14.5a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 1 1 0v2a.5.5 0 0 1-.5.5m2 0a.5.5 0 0 1-.5-.5v-4a.5.5 0 0 1 1 0v4a.5.5 0 0 1-.5.5m2 0a.5.5 0 0 1-.5-.5v-6a.5.5 0 0 1 1 0v6a.5.5 0 0 1-.5.5m2 0a.5.5 0 0 1-.5-.5v-8a.5.5 0 0 1 1 0v8a.5.5 0 0 1-.5.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right bottom;
+    display: none;
+}
+
+.edit-mode .resize-handle {
+    display: block;
+}
+
+/* Controlli dashboard */
+.dashboard-controls {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+    gap: 0.5rem;
+}
+
+/* Modal per aggiungere widget */
+.widget-modal .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.widget-search-container {
+    margin-bottom: 1.5rem;
+}
+
+.widget-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.widget-card:hover {
+    transform: translateY(-3px);
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }
 
-.dashboard-card .card-header {
-    position: relative;
-    padding-left: 2.5rem; /* Spazio per la maniglia */
-}
-
-.edit-mode .dashboard-card {
-    cursor: move;
-    border: 2px dashed transparent;
-}
-
-.edit-mode .dashboard-card:hover {
-    border-color: var(--primary);
-}
-
-/* Controlli di editing */
-.card-handle {
-    position: absolute;
-    left: 0.5rem;
-    top: 50%;
-    transform: translateY(-50%);
-    cursor: grab;
-    color: var(--text-muted);
-    visibility: hidden;
-}
-
-.edit-mode .card-handle {
-    visibility: visible;
-}
-
-.size-controls {
-    position: absolute;
-    bottom: 0.5rem;
-    right: 0.5rem;
-    z-index: 10;
-    background-color: rgba(255, 255, 255, 0.8);
-    padding: 0.3rem;
-    border-radius: 4px;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-}
-
-.btn-size, .btn-visibility {
-    background: none;
-    border: none;
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    line-height: 28px;
-    text-align: center;
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    cursor: pointer;
-    border-radius: 4px;
+.add-widget-btn {
     transition: all 0.2s ease;
 }
 
-.btn-size:hover, .btn-visibility:hover {
-    background-color: var(--light);
-    color: var(--primary);
+.add-widget-btn:hover {
+    transform: scale(1.05);
 }
 
-/* Stati del drag */
-.dragging {
-    opacity: 0.6;
-    transform: scale(0.95);
+/* Stili per i vari tipi di widget */
+
+/* Widget Statistiche */
+.widget-stats-item {
+    text-align: center;
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+    background-color: var(--bs-tertiary-bg, rgba(0,0,0,.05));
+    margin-bottom: 0.75rem;
 }
 
-.drag-over {
-    background-color: rgba(var(--primary-rgb), 0.1);
-    border-radius: 0.5rem;
+.widget-stats-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
 }
 
-/* Card dimensioni */
-.card-normal {
+.widget-stats-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary, #6c757d);
+}
+
+.widget-stats-trend {
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.5rem;
+}
+
+.widget-stats-trend.up {
+    color: var(--bs-success, #28a745);
+}
+
+.widget-stats-trend.down {
+    color: var(--bs-danger, #dc3545);
+}
+
+.widget-stats-trend i {
+    margin-right: 0.25rem;
+}
+
+/* Widget Calendario */
+.widget-calendar .calendar {
+    height: 100%;
     min-height: 200px;
 }
 
-.card-wide {
-    min-height: 220px;
+/* Widget To-Do */
+.widget-todo-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
-.card-full {
-    min-height: 250px;
+.widget-todo-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color, rgba(0,0,0,.125));
 }
 
-/* Stili per le variazioni di dimensione */
-.dashboard-slot.col-md-4 {
-    flex: 0 0 auto;
-    width: calc(33.33333% - 1rem);
+.widget-todo-item:last-child {
+    border-bottom: none;
 }
 
-.dashboard-slot.col-md-8 {
-    flex: 0 0 auto;
-    width: calc(66.66667% - 1rem);
+.widget-todo-checkbox {
+    margin-right: 0.75rem;
 }
 
-.dashboard-slot.col-md-12 {
-    flex: 0 0 auto;
+.widget-todo-text {
+    flex: 1;
+}
+
+.widget-todo-item.completed .widget-todo-text {
+    text-decoration: line-through;
+    color: var(--text-muted, #6c757d);
+}
+
+.widget-todo-actions {
+    margin-left: 0.5rem;
+}
+
+/* Widget Grafico */
+.widget-chart {
+    height: 100%;
+    min-height: 200px;
+}
+
+/* Widget Note */
+.widget-notes-content {
     width: 100%;
+    height: 100%;
+    min-height: 100px;
+    border: none;
+    background-color: transparent;
+    resize: none;
+    padding: 0;
 }
 
-/* Animazioni */
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.02); }
-    100% { transform: scale(1); }
+.widget-notes-content:focus {
+    outline: none;
 }
 
-.edit-mode .dashboard-card {
-    animation: pulse 2s infinite;
+/* Widget Followers */
+.widget-followers-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.widget-follower-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color, rgba(0,0,0,.125));
+}
+
+.widget-follower-item:last-child {
+    border-bottom: none;
+}
+
+.widget-follower-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-right: 0.75rem;
+    object-fit: cover;
+}
+
+.widget-follower-info {
+    flex: 1;
+}
+
+.widget-follower-name {
+    margin: 0;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.widget-follower-date {
+    font-size: 0.75rem;
+    color: var(--text-muted, #6c757d);
+}
+
+/* Animazioni per i widget */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.dashboard-widget {
+    animation: fadeIn 0.3s ease-out;
 }
 
 /* Responsive */
-@media (max-width: 768px) {
-    .dashboard-slot,
-    .dashboard-slot.col-md-4,
-    .dashboard-slot.col-md-8,
-    .dashboard-slot.col-md-12 {
-        width: 100%;
+@media (max-width: 767.98px) {
+    .dashboard-controls {
+        flex-direction: column;
     }
+    
+    .dashboard-controls .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    .widget-stats-value {
+        font-size: 1.5rem;
+    }
+}
+
+/* Placeholder per nuovi widget */
+.widget-placeholder {
+    border: 2px dashed var(--border-color, rgba(0,0,0,.125));
+    background-color: rgba(var(--primary-rgb, 13, 110, 253), 0.05);
+    border-radius: var(--border-radius, 0.25rem);
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted, #6c757d);
 } 

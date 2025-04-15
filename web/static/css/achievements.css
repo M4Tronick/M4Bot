@@ -1,0 +1,374 @@
+/**
+ * M4Bot - Badge e Achievement CSS
+ * Stili per il sistema di badge e achievement
+ */
+
+/* Container per popup achievement */
+.achievement-popup-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 300px;
+    z-index: 9999;
+}
+
+/* Popup achievement */
+.achievement-popup {
+    background-color: var(--card-bg, #fff);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    margin-bottom: 10px;
+    opacity: 0;
+    overflow: hidden;
+    position: relative;
+    transform: translateX(100%);
+    transition: all 0.3s ease;
+}
+
+.achievement-popup.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.achievement-popup.hide {
+    opacity: 0;
+    transform: translateX(100%);
+}
+
+.achievement-popup-icon {
+    align-items: center;
+    background-color: #007bff;
+    color: #fff;
+    display: flex;
+    font-size: 24px;
+    justify-content: center;
+    padding: 15px;
+    width: 60px;
+}
+
+.achievement-popup-content {
+    flex: 1;
+    padding: 12px 15px;
+}
+
+.achievement-popup-title {
+    color: var(--bs-primary, #007bff);
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+}
+
+.achievement-popup-content h5 {
+    font-size: 16px;
+    margin: 0 0 8px 0;
+}
+
+.achievement-popup-content p {
+    color: var(--text-secondary, #6c757d);
+    font-size: 13px;
+    margin: 0;
+}
+
+.achievement-popup-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary, #6c757d);
+    cursor: pointer;
+    font-size: 20px;
+    line-height: 1;
+    padding: 5px;
+    position: absolute;
+    right: 5px;
+    top: 5px;
+}
+
+/* Stili per i badge */
+.badge-item {
+    background-color: var(--card-bg, #fff);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.2s ease;
+    height: 100%;
+}
+
+.badge-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-5px);
+}
+
+.badge-icon {
+    align-items: center;
+    background-color: #007bff;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    font-size: 30px;
+    height: 80px;
+    justify-content: center;
+    margin: 0 auto 15px;
+    width: 80px;
+}
+
+.badge-name {
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+.badge-description {
+    color: var(--text-secondary, #6c757d);
+    font-size: 13px;
+    margin-bottom: 0;
+}
+
+/* Badge nel Profilo */
+.profile-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.profile-badge {
+    align-items: center;
+    background-color: var(--card-bg, #fff);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    display: flex;
+    padding: 10px;
+    transition: all 0.2s ease;
+}
+
+.profile-badge:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-3px);
+}
+
+.profile-badge-icon {
+    align-items: center;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    font-size: 16px;
+    height: 35px;
+    justify-content: center;
+    margin-right: 10px;
+    width: 35px;
+}
+
+.profile-badge-info {
+    flex: 1;
+}
+
+.profile-badge-name {
+    font-size: 14px;
+    font-weight: 500;
+    margin: 0;
+}
+
+.profile-badge-date {
+    color: var(--text-secondary, #6c757d);
+    font-size: 12px;
+    margin: 0;
+}
+
+/* Stili per gli achievement */
+.achievement-item {
+    background-color: var(--card-bg, #fff);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.2s ease;
+    position: relative;
+    height: 100%;
+}
+
+.achievement-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-5px);
+}
+
+.achievement-item.completed {
+    background-color: rgba(var(--success-rgb, 40, 167, 69), 0.1);
+}
+
+.achievement-icon {
+    align-items: center;
+    background-color: #007bff;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    font-size: 25px;
+    height: 70px;
+    justify-content: center;
+    margin: 0 auto 15px;
+    position: relative;
+    width: 70px;
+}
+
+.achievement-completed-badge {
+    align-items: center;
+    background-color: var(--bs-success, #28a745);
+    border-radius: 50%;
+    bottom: -5px;
+    color: #fff;
+    display: flex;
+    font-size: 12px;
+    height: 25px;
+    justify-content: center;
+    position: absolute;
+    right: -5px;
+    width: 25px;
+}
+
+.achievement-name {
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.achievement-description {
+    color: var(--text-secondary, #6c757d);
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+.achievement-progress {
+    margin-top: 10px;
+}
+
+.achievement-progress .progress {
+    height: 8px;
+    margin-bottom: 5px;
+}
+
+.achievement-progress .progress-text {
+    color: var(--text-secondary, #6c757d);
+    font-size: 12px;
+    text-align: center;
+}
+
+.achievement-category-title {
+    border-bottom: 1px solid var(--border-color, rgba(0,0,0,.125));
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+}
+
+/* Stili per dettagli popup */
+.badge-icon-large {
+    align-items: center;
+    background-color: #007bff;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    font-size: 40px;
+    height: 120px;
+    justify-content: center;
+    margin: 0 auto 20px;
+    position: relative;
+    width: 120px;
+}
+
+.badge-icon-large.completed .achievement-completed-badge {
+    font-size: 16px;
+    height: 35px;
+    width: 35px;
+}
+
+.achievement-progress-detail .progress {
+    height: 12px;
+}
+
+/* Lista achievement nella pagina profilo */
+.achievement-list {
+    margin-top: 20px;
+}
+
+.achievement-overview {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color, rgba(0,0,0,.125));
+}
+
+.achievement-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 30px;
+}
+
+.achievement-stat {
+    text-align: center;
+}
+
+.achievement-stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0;
+}
+
+.achievement-stat-label {
+    color: var(--text-secondary, #6c757d);
+}
+
+.achievement-progress-chart {
+    height: 100px;
+    margin-bottom: 20px;
+}
+
+.achievement-category-progress {
+    margin-bottom: 40px;
+}
+
+.achievement-category-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.achievement-category-name {
+    font-weight: 500;
+}
+
+.achievement-category-value {
+    color: var(--text-secondary, #6c757d);
+}
+
+/* Animation */
+@keyframes badge-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(var(--primary-rgb, 13, 110, 253), 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(var(--primary-rgb, 13, 110, 253), 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(var(--primary-rgb, 13, 110, 253), 0);
+    }
+}
+
+.achievement-pulse {
+    animation: badge-pulse 2s infinite;
+}
+
+/* Media query */
+@media (max-width: 576px) {
+    .achievement-popup-container {
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        top: auto;
+        width: auto;
+    }
+    
+    .achievement-stat-value {
+        font-size: 1.5rem;
+    }
+} 
