@@ -1,0 +1,628 @@
+{% extends 'base.html' %}
+
+{% block title %}M4Bot - Sondaggi{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .poll-card {
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        margin-bottom: 20px;
+    }
+    
+    .poll-card:hover {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    .poll-status {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    
+    .poll-option {
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+    
+    .poll-option .progress {
+        height: 10px;
+        border-radius: 5px;
+    }
+    
+    .progress-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .progress-container .progress {
+        flex-grow: 1;
+    }
+    
+    .option-votes {
+        min-width: 50px;
+        text-align: right;
+        font-weight: 500;
+    }
+    
+    .poll-timer {
+        display: inline-block;
+        padding: 5px 10px;
+        background-color: #f1f1f1;
+        border-radius: 20px;
+        font-size: 0.9em;
+        color: #555;
+    }
+    
+    .poll-actions {
+        margin-top: 15px;
+    }
+    
+    .platform-badge {
+        margin-right: 5px;
+        padding: 5px 8px;
+        border-radius: 5px;
+        font-size: 0.8em;
+    }
+    
+    .youtube-badge {
+        background-color: #FF0000;
+        color: white;
+    }
+    
+    .kick-badge {
+        background-color: #53FC18;
+        color: black;
+    }
+    
+    .telegram-badge {
+        background-color: #0088cc;
+        color: white;
+    }
+    
+    .whatsapp-badge {
+        background-color: #25D366;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Sondaggi</li>
+    </ol>
+</nav>
+
+<div class="container-fluid mb-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <h1 class="h2 mb-3 mb-sm-0">
+                    <i class="fas fa-poll me-2"></i>Sondaggi
+                </h1>
+                <div>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createPollModal">
+                        <i class="fas fa-plus me-1"></i>Nuovo Sondaggio
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="pollTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="active-tab" data-bs-toggle="tab" data-bs-target="#active" type="button" role="tab" aria-controls="active" aria-selected="true">
+                        <i class="fas fa-play-circle me-2"></i>Sondaggi Attivi
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="scheduled-tab" data-bs-toggle="tab" data-bs-target="#scheduled" type="button" role="tab" aria-controls="scheduled" aria-selected="false">
+                        <i class="fas fa-clock me-2"></i>Sondaggi Programmati
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="closed-tab" data-bs-toggle="tab" data-bs-target="#closed" type="button" role="tab" aria-controls="closed" aria-selected="false">
+                        <i class="fas fa-check-circle me-2"></i>Sondaggi Completati
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="tab-content">
+        <!-- Sondaggi Attivi -->
+        <div class="tab-pane fade show active" id="active" role="tabpanel" aria-labelledby="active-tab">
+            <div class="row">
+                {% set active_polls = polls.values()|selectattr('status', 'equalto', 'active')|list %}
+                {% if active_polls %}
+                    {% for poll in active_polls %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card poll-card">
+                                <div class="card-body">
+                                    <span class="badge bg-success poll-status">Attivo</span>
+                                    <h5 class="card-title mb-3">{{ poll.question }}</h5>
+                                    
+                                    <div class="d-flex flex-wrap mb-3">
+                                        {% for platform in poll.platforms %}
+                                            <span class="platform-badge {{ platform }}-badge">{{ platform|capitalize }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <div class="poll-timer mb-3">
+                                        <i class="fas fa-stopwatch me-1"></i>
+                                        <span class="countdown" data-end="{{ poll.end_time }}">In corso...</span>
+                                    </div>
+                                    
+                                    <div class="poll-options">
+                                        {% for option_id, option in poll.options.items() %}
+                                            <div class="poll-option">
+                                                <div class="d-flex justify-content-between mb-1">
+                                                    <span>{{ option.text }}</span>
+                                                </div>
+                                                <div class="progress-container">
+                                                    <div class="progress">
+                                                        {% set percentage = (option.votes / poll.total_votes * 100)|round if poll.total_votes > 0 else 0 %}
+                                                        <div class="progress-bar" role="progressbar" style="width: {{ percentage }}%" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                    <div class="option-votes">{{ option.votes }} ({{ percentage }}%)</div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <div class="mt-3 text-center">
+                                        <small class="text-muted">Voti totali: {{ poll.total_votes }}</small>
+                                    </div>
+                                    
+                                    <div class="poll-actions text-center">
+                                        <button class="btn btn-sm btn-outline-danger close-poll" data-poll-id="{{ poll.id }}">
+                                            <i class="fas fa-stop-circle me-1"></i>Chiudi sondaggio
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>Nessun sondaggio attivo al momento. Crea un nuovo sondaggio per iniziare.
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Sondaggi Programmati -->
+        <div class="tab-pane fade" id="scheduled" role="tabpanel" aria-labelledby="scheduled-tab">
+            <div class="row">
+                {% set scheduled_polls = polls.values()|selectattr('status', 'equalto', 'scheduled')|list %}
+                {% if scheduled_polls %}
+                    {% for poll in scheduled_polls %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card poll-card">
+                                <div class="card-body">
+                                    <span class="badge bg-warning text-dark poll-status">Programmato</span>
+                                    <h5 class="card-title mb-3">{{ poll.question }}</h5>
+                                    
+                                    <div class="d-flex flex-wrap mb-3">
+                                        {% for platform in poll.platforms %}
+                                            <span class="platform-badge {{ platform }}-badge">{{ platform|capitalize }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <div class="poll-timer mb-3">
+                                        <i class="fas fa-clock me-1"></i>
+                                        <span class="scheduled-time" data-time="{{ poll.scheduled_time }}">Programmato</span>
+                                    </div>
+                                    
+                                    <div class="poll-options">
+                                        {% for option_id, option in poll.options.items() %}
+                                            <div class="poll-option">
+                                                <div class="d-flex justify-content-between mb-1">
+                                                    <span>{{ option.text }}</span>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <div class="poll-actions text-center mt-3">
+                                        <button class="btn btn-sm btn-outline-primary start-poll" data-poll-id="{{ poll.id }}">
+                                            <i class="fas fa-play-circle me-1"></i>Avvia ora
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-poll" data-poll-id="{{ poll.id }}">
+                                            <i class="fas fa-trash-alt me-1"></i>Elimina
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>Nessun sondaggio programmato al momento.
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Sondaggi Completati -->
+        <div class="tab-pane fade" id="closed" role="tabpanel" aria-labelledby="closed-tab">
+            <div class="row">
+                {% set closed_polls = polls.values()|selectattr('status', 'equalto', 'closed')|list %}
+                {% if closed_polls %}
+                    {% for poll in closed_polls %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card poll-card">
+                                <div class="card-body">
+                                    <span class="badge bg-secondary poll-status">Chiuso</span>
+                                    <h5 class="card-title mb-3">{{ poll.question }}</h5>
+                                    
+                                    <div class="d-flex flex-wrap mb-3">
+                                        {% for platform in poll.platforms %}
+                                            <span class="platform-badge {{ platform }}-badge">{{ platform|capitalize }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <div class="poll-timer mb-3">
+                                        <i class="fas fa-calendar-check me-1"></i>
+                                        <span>Completato il {{ poll.end_time|timestamp_to_date }}</span>
+                                    </div>
+                                    
+                                    <div class="poll-options">
+                                        {% for option_id, option in poll.options.items() %}
+                                            <div class="poll-option">
+                                                <div class="d-flex justify-content-between mb-1">
+                                                    <span>{{ option.text }}</span>
+                                                </div>
+                                                <div class="progress-container">
+                                                    <div class="progress">
+                                                        {% set percentage = (option.votes / poll.total_votes * 100)|round if poll.total_votes > 0 else 0 %}
+                                                        <div class="progress-bar" role="progressbar" style="width: {{ percentage }}%" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                    <div class="option-votes">{{ option.votes }} ({{ percentage }}%)</div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <div class="mt-3 text-center">
+                                        <small class="text-muted">Voti totali: {{ poll.total_votes }}</small>
+                                    </div>
+                                    
+                                    <div class="poll-actions text-center">
+                                        <button class="btn btn-sm btn-outline-primary duplicate-poll" data-poll-id="{{ poll.id }}">
+                                            <i class="fas fa-copy me-1"></i>Duplica
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-poll" data-poll-id="{{ poll.id }}">
+                                            <i class="fas fa-trash-alt me-1"></i>Elimina
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>Nessun sondaggio completato al momento.
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modale per creare un sondaggio -->
+<div class="modal fade" id="createPollModal" tabindex="-1" aria-labelledby="createPollModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createPollModalLabel">Nuovo sondaggio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createPollForm">
+                    <div class="mb-3">
+                        <label for="pollQuestion" class="form-label">Domanda</label>
+                        <input type="text" class="form-control" id="pollQuestion" placeholder="La tua domanda..." required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Opzioni</label>
+                        <div id="pollOptions">
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control" placeholder="Opzione 1" name="poll_options[]" required>
+                                <button class="btn btn-outline-danger remove-option" type="button">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control" placeholder="Opzione 2" name="poll_options[]" required>
+                                <button class="btn btn-outline-danger remove-option" type="button">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="addPollOption">
+                            <i class="fas fa-plus me-1"></i>Aggiungi opzione
+                        </button>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="pollDuration" class="form-label">Durata (minuti)</label>
+                            <input type="number" class="form-control" id="pollDuration" min="1" max="1440" value="5" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="pollScheduleTime" class="form-label">Orario di inizio (opzionale)</label>
+                            <input type="datetime-local" class="form-control" id="pollScheduleTime">
+                            <div class="form-text">Lascia vuoto per avviare subito</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Piattaforme</label>
+                        <div class="d-flex flex-wrap">
+                            <div class="form-check me-3 mb-2">
+                                <input class="form-check-input" type="checkbox" id="platformYoutube" name="platforms[]" value="youtube" checked>
+                                <label class="form-check-label" for="platformYoutube">YouTube</label>
+                            </div>
+                            <div class="form-check me-3 mb-2">
+                                <input class="form-check-input" type="checkbox" id="platformKick" name="platforms[]" value="kick" checked>
+                                <label class="form-check-label" for="platformKick">Kick</label>
+                            </div>
+                            <div class="form-check me-3 mb-2">
+                                <input class="form-check-input" type="checkbox" id="platformTelegram" name="platforms[]" value="telegram" checked>
+                                <label class="form-check-label" for="platformTelegram">Telegram</label>
+                            </div>
+                            <div class="form-check me-3 mb-2">
+                                <input class="form-check-input" type="checkbox" id="platformWhatsapp" name="platforms[]" value="whatsapp">
+                                <label class="form-check-label" for="platformWhatsapp">WhatsApp</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="allowMultipleVotes">
+                            <label class="form-check-label" for="allowMultipleVotes">
+                                Consenti voti multipli
+                            </label>
+                            <div class="form-text">Gli utenti potranno cambiare il proprio voto</div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="createPollButton">Crea sondaggio</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gestione opzioni sondaggio
+        document.getElementById('addPollOption').addEventListener('click', function() {
+            const container = document.getElementById('pollOptions');
+            const optionCount = container.querySelectorAll('.input-group').length + 1;
+            
+            const newOption = document.createElement('div');
+            newOption.className = 'input-group mb-2';
+            newOption.innerHTML = `
+                <input type="text" class="form-control" placeholder="Opzione ${optionCount}" name="poll_options[]">
+                <button class="btn btn-outline-danger remove-option" type="button">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            container.appendChild(newOption);
+            
+            // Aggiungi evento al pulsante di rimozione
+            newOption.querySelector('.remove-option').addEventListener('click', function() {
+                container.removeChild(newOption);
+            });
+        });
+        
+        // Gestione pulsanti di rimozione esistenti
+        document.querySelectorAll('.remove-option').forEach(button => {
+            button.addEventListener('click', function() {
+                const optionGroup = this.parentNode;
+                if (document.querySelectorAll('.input-group').length > 2) {
+                    optionGroup.parentNode.removeChild(optionGroup);
+                } else {
+                    showToast('warning', 'Attenzione', 'Un sondaggio deve avere almeno 2 opzioni');
+                }
+            });
+        });
+        
+        // Creazione del sondaggio
+        document.getElementById('createPollButton').addEventListener('click', function() {
+            // Verifica validità del form
+            const form = document.getElementById('createPollForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            // Raccogli i dati
+            const question = document.getElementById('pollQuestion').value;
+            const optionsElements = document.querySelectorAll('input[name="poll_options[]"]');
+            const duration = parseInt(document.getElementById('pollDuration').value) * 60; // Converti in secondi
+            const scheduleTime = document.getElementById('pollScheduleTime').value;
+            const platforms = Array.from(document.querySelectorAll('input[name="platforms[]"]:checked')).map(cb => cb.value);
+            const allowMultipleVotes = document.getElementById('allowMultipleVotes').checked;
+            
+            // Verifica che ci siano almeno 2 opzioni valide
+            const options = Array.from(optionsElements).map(el => el.value.trim()).filter(Boolean);
+            if (options.length < 2) {
+                showToast('error', 'Errore', 'Inserisci almeno 2 opzioni valide');
+                return;
+            }
+            
+            // Prepara i dati per l'API
+            const pollData = {
+                question: question,
+                options: options,
+                duration: duration,
+                platforms: platforms,
+                allow_multiple_votes: allowMultipleVotes
+            };
+            
+            // Se è stato specificato un orario di inizio, aggiungilo
+            if (scheduleTime) {
+                const scheduledDate = new Date(scheduleTime);
+                pollData.scheduled_time = scheduledDate.toISOString();
+            }
+            
+            // Invia la richiesta all'API
+            fetch('/polls/api/polls', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(pollData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Chiudi la modale
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('createPollModal'));
+                    modal.hide();
+                    
+                    // Mostra un messaggio di successo
+                    showToast('success', 'Successo', 'Sondaggio creato con successo');
+                    
+                    // Ricarica la pagina dopo un breve ritardo
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    // Mostra un messaggio di errore
+                    showToast('error', 'Errore', data.error || 'Si è verificato un errore nella creazione del sondaggio');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('error', 'Errore', 'Si è verificato un errore nella comunicazione con il server');
+            });
+        });
+        
+        // Gestione pulsanti
+        document.querySelectorAll('.close-poll').forEach(button => {
+            button.addEventListener('click', function() {
+                const pollId = this.dataset.pollId;
+                
+                if (confirm('Sei sicuro di voler chiudere questo sondaggio?')) {
+                    fetch(`/polls/api/polls/${pollId}/close`, {
+                        method: 'POST'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showToast('success', 'Successo', 'Sondaggio chiuso con successo');
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            showToast('error', 'Errore', data.error || 'Si è verificato un errore');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('error', 'Errore', 'Si è verificato un errore nella comunicazione con il server');
+                    });
+                }
+            });
+        });
+        
+        document.querySelectorAll('.delete-poll').forEach(button => {
+            button.addEventListener('click', function() {
+                const pollId = this.dataset.pollId;
+                
+                if (confirm('Sei sicuro di voler eliminare questo sondaggio?')) {
+                    // Qui andrebbe implementata la chiamata API per eliminare il sondaggio
+                    // Per ora lo lasciamo come TODO
+                    showToast('info', 'Info', 'Funzionalità non ancora implementata');
+                }
+            });
+        });
+        
+        document.querySelectorAll('.start-poll').forEach(button => {
+            button.addEventListener('click', function() {
+                const pollId = this.dataset.pollId;
+                
+                if (confirm('Sei sicuro di voler avviare questo sondaggio adesso?')) {
+                    // Qui andrebbe implementata la chiamata API per avviare il sondaggio
+                    // Per ora lo lasciamo come TODO
+                    showToast('info', 'Info', 'Funzionalità non ancora implementata');
+                }
+            });
+        });
+        
+        document.querySelectorAll('.duplicate-poll').forEach(button => {
+            button.addEventListener('click', function() {
+                const pollId = this.dataset.pollId;
+                
+                // Qui andrebbe implementata la chiamata API per duplicare il sondaggio
+                // Per ora lo lasciamo come TODO
+                showToast('info', 'Info', 'Funzionalità non ancora implementata');
+            });
+        });
+        
+        // Aggiorna i countdown
+        function updateCountdowns() {
+            document.querySelectorAll('.countdown').forEach(element => {
+                const endTime = parseFloat(element.dataset.end) * 1000; // Converti in millisecondi
+                const now = Date.now();
+                const diff = endTime - now;
+                
+                if (diff <= 0) {
+                    element.innerHTML = 'Completato';
+                    element.classList.add('text-muted');
+                } else {
+                    const minutes = Math.floor(diff / 60000);
+                    const seconds = Math.floor((diff % 60000) / 1000);
+                    element.innerHTML = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                }
+            });
+        }
+        
+        // Aggiorna i tempi programmati
+        function updateScheduledTimes() {
+            document.querySelectorAll('.scheduled-time').forEach(element => {
+                const scheduleTime = parseFloat(element.dataset.time) * 1000; // Converti in millisecondi
+                const now = Date.now();
+                const diff = scheduleTime - now;
+                
+                if (diff <= 0) {
+                    element.innerHTML = 'In attesa di avvio';
+                } else {
+                    const date = new Date(scheduleTime);
+                    element.innerHTML = `Programmato per ${date.toLocaleString()}`;
+                }
+            });
+        }
+        
+        // Aggiorna i timer ogni secondo
+        setInterval(updateCountdowns, 1000);
+        setInterval(updateScheduledTimes, 30000); // Aggiorna ogni 30 secondi
+        
+        // Prima esecuzione
+        updateCountdowns();
+        updateScheduledTimes();
+    });
+</script>
+{% endblock %} 

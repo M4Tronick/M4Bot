@@ -1,0 +1,752 @@
+{% extends "base.html" %}
+
+{% block title %}Profilo Utente{% endblock %}
+
+{% block styles %}
+<style>
+    .profile-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    .profile-header {
+        position: relative;
+        background: linear-gradient(135deg, #4a6cf7 0%, #6e8df9 35%, #809aff 100%);
+        border-radius: 15px;
+        padding: 3rem 2rem 8rem;
+        margin-bottom: -6rem;
+        color: white;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transform: translateZ(0);
+    }
+    
+    .profile-header::before {
+        content: '';
+        position: absolute;
+        top: -10%;
+        right: -10%;
+        width: 40%;
+        height: 40%;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+        filter: blur(40px);
+        animation: floatAround 20s infinite ease-in-out;
+    }
+    
+    .profile-header::after {
+        content: '';
+        position: absolute;
+        bottom: -20%;
+        left: -10%;
+        width: 35%;
+        height: 35%;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+        filter: blur(30px);
+        animation: floatAround 25s infinite ease-in-out reverse;
+    }
+    
+    @keyframes floatAround {
+        0% { transform: translate(0, 0); }
+        25% { transform: translate(5%, 5%); }
+        50% { transform: translate(3%, -5%); }
+        75% { transform: translate(-5%, 3%); }
+        100% { transform: translate(0, 0); }
+    }
+    
+    .profile-avatar-container {
+        position: relative;
+        z-index: 2;
+    }
+    
+    .profile-avatar {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        border: 5px solid white;
+        object-fit: cover;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        transform: translateZ(0);
+    }
+    
+    .profile-avatar:hover {
+        transform: scale(1.05) translateZ(0);
+        border-color: #dbe6ff;
+    }
+    
+    .profile-title {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+        font-weight: 700;
+    }
+    
+    .profile-subtitle {
+        font-size: 1.2rem;
+        opacity: 0.9;
+        margin-bottom: 1rem;
+    }
+    
+    .profile-stats {
+        display: flex;
+        gap: 2rem;
+        margin-top: 1.5rem;
+    }
+    
+    .profile-stat {
+        text-align: center;
+    }
+    
+    .profile-stat-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+    }
+    
+    .profile-stat-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+    
+    .profile-content {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .profile-card {
+        background: var(--card-bg);
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        transform: translateZ(0);
+    }
+    
+    .profile-card:hover {
+        transform: translateY(-5px) translateZ(0);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .profile-card-title {
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .profile-card-title i {
+        color: var(--primary-color);
+        font-size: 1.3em;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background-color: var(--input-bg);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.15);
+        outline: none;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    @media (min-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+    
+    /* Tab navigazione */
+    .profile-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 2rem;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    
+    .profile-tabs::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .profile-tab {
+        padding: 1rem 1.5rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+    }
+    
+    .profile-tab.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+    }
+    
+    .profile-tab:hover:not(.active) {
+        color: var(--text-primary);
+        border-bottom-color: var(--border-color);
+    }
+    
+    .tab-content {
+        display: none;
+        animation: fadeIn 0.5s ease forwards;
+    }
+    
+    .tab-content.active {
+        display: block;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Interruttore di preferenza */
+    .preference-toggle {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .preference-toggle:last-child {
+        border-bottom: none;
+    }
+    
+    .preference-label {
+        font-weight: 500;
+    }
+    
+    .preference-description {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+    
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 24px;
+    }
+    
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: var(--border-color);
+        transition: 0.4s;
+        border-radius: 24px;
+    }
+    
+    .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.4s;
+        border-radius: 50%;
+    }
+    
+    input:checked + .toggle-slider {
+        background-color: var(--primary-color);
+    }
+    
+    input:checked + .toggle-slider:before {
+        transform: translateX(26px);
+    }
+    
+    /* Indicatore di forza della password */
+    .password-strength {
+        height: 5px;
+        background-color: var(--border-color);
+        border-radius: 5px;
+        margin-top: 0.5rem;
+        overflow: hidden;
+    }
+    
+    .password-strength-meter {
+        height: 100%;
+        width: 0;
+        border-radius: 5px;
+        transition: width 0.3s ease, background-color 0.3s ease;
+    }
+    
+    .password-strength-text {
+        font-size: 0.75rem;
+        margin-top: 0.5rem;
+        color: var(--text-secondary);
+    }
+    
+    /* Elementi decorativi parallax */
+    .parallax-decoration {
+        position: absolute;
+        z-index: -1;
+        border-radius: 50%;
+        filter: blur(40px);
+        opacity: 0.1;
+        background-color: var(--primary-color);
+        animation: floatY 15s infinite ease-in-out alternate;
+        transform: translateZ(0);
+    }
+    
+    .decoration-1 {
+        top: 20%;
+        left: 10%;
+        width: 300px;
+        height: 300px;
+        animation-duration: 20s;
+    }
+    
+    .decoration-2 {
+        bottom: 30%;
+        right: 5%;
+        width: 250px;
+        height: 250px;
+        animation-duration: 15s;
+        animation-delay: 2s;
+    }
+    
+    @keyframes floatY {
+        0% { transform: translateY(0) translateZ(0); }
+        100% { transform: translateY(-50px) translateZ(0); }
+    }
+    
+    /* Animazioni per gli avvisi */
+    .alert {
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        border-radius: 8px;
+        animation: slideInDown 0.5s ease forwards;
+    }
+    
+    .alert-success {
+        background-color: #d4f7e9;
+        color: #0c6b58;
+    }
+    
+    .alert-danger {
+        background-color: #ffe5e8;
+        color: #b91c1c;
+    }
+    
+    @keyframes slideInDown {
+        from { transform: translateY(-20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    
+    /* Ripristino della password con feedback visivo */
+    .password-reset-btn {
+        color: var(--primary-color);
+        background: none;
+        border: none;
+        padding: 0;
+        font: inherit;
+        cursor: pointer;
+        text-decoration: underline;
+        margin-top: 0.5rem;
+        transition: color 0.3s ease;
+    }
+    
+    .password-reset-btn:hover {
+        color: var(--primary-hover);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-container hardware-accelerated">
+    <!-- Elementi decorativi con effetto parallasse -->
+    <div class="parallax-decoration decoration-1"></div>
+    <div class="parallax-decoration decoration-2"></div>
+    
+    <!-- Header del profilo con effetto gradiente e animations -->
+    <div class="profile-header hardware-accelerated">
+        <div class="profile-avatar-container text-center">
+            <img src="{{ url_for('static', filename='img/avatar-placeholder.jpg') }}" alt="Avatar utente" class="profile-avatar" />
+            <h1 class="profile-title">{{ current_user.username }}</h1>
+            <p class="profile-subtitle">{{ current_user.email }}</p>
+            
+            <div class="profile-stats">
+                <div class="profile-stat">
+                    <div class="profile-stat-value">{{ command_count }}</div>
+                    <div class="profile-stat-label">Comandi</div>
+                </div>
+                <div class="profile-stat">
+                    <div class="profile-stat-value">{{ stream_count }}</div>
+                    <div class="profile-stat-label">Streams</div>
+                </div>
+                <div class="profile-stat">
+                    <div class="profile-stat-value">{{ days_member }}</div>
+                    <div class="profile-stat-label">Giorni</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Contenuto del profilo con schede a tab -->
+    <div class="profile-content">
+        <div class="profile-card">
+            <!-- Navigazione a tab -->
+            <div class="profile-tabs">
+                <div class="profile-tab active" data-tab="info">
+                    <i class="fas fa-user"></i> Informazioni
+                </div>
+                <div class="profile-tab" data-tab="security">
+                    <i class="fas fa-shield-alt"></i> Sicurezza
+                </div>
+                <div class="profile-tab" data-tab="preferences">
+                    <i class="fas fa-cog"></i> Preferenze
+                </div>
+                <div class="profile-tab" data-tab="api">
+                    <i class="fas fa-code"></i> API
+                </div>
+            </div>
+            
+            <!-- Contenuto delle tab -->
+            <div class="tab-content active" id="info-tab">
+                <h3 class="profile-card-title"><i class="fas fa-user-edit"></i> Informazioni personali</h3>
+                
+                <form id="profile-form" method="POST" action="{{ url_for('update_profile') }}">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="username" class="form-label">Nome utente</label>
+                            <input type="text" id="username" name="username" class="form-control" value="{{ current_user.username }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" id="email" name="email" class="form-control" value="{{ current_user.email }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="full_name" class="form-label">Nome completo</label>
+                            <input type="text" id="full_name" name="full_name" class="form-control" value="{{ current_user.full_name if current_user.full_name else '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="timezone" class="form-label">Fuso orario</label>
+                            <select id="timezone" name="timezone" class="form-control">
+                                <option value="UTC" {% if current_user.timezone == "UTC" %}selected{% endif %}>UTC</option>
+                                <option value="Europe/Rome" {% if current_user.timezone == "Europe/Rome" %}selected{% endif %}>Europa/Roma</option>
+                                <option value="America/New_York" {% if current_user.timezone == "America/New_York" %}selected{% endif %}>America/New York</option>
+                                <option value="Asia/Tokyo" {% if current_user.timezone == "Asia/Tokyo" %}selected{% endif %}>Asia/Tokyo</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="bio" class="form-label">Bio</label>
+                        <textarea id="bio" name="bio" class="form-control" rows="3">{{ current_user.bio if current_user.bio else '' }}</textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Salva modifiche
+                    </button>
+                </form>
+            </div>
+            
+            <div class="tab-content" id="security-tab">
+                <h3 class="profile-card-title"><i class="fas fa-lock"></i> Sicurezza</h3>
+                
+                <form id="security-form" method="POST" action="{{ url_for('update_password') }}">
+                    <div class="form-group">
+                        <label for="current_password" class="form-label">Password attuale</label>
+                        <input type="password" id="current_password" name="current_password" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="new_password" class="form-label">Nuova password</label>
+                        <input type="password" id="new_password" name="new_password" class="form-control" required>
+                        <div class="password-strength">
+                            <div class="password-strength-meter"></div>
+                        </div>
+                        <div class="password-strength-text">Inserisci una password sicura</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="confirm_password" class="form-label">Conferma password</label>
+                        <input type="password" id="confirm_password" name="confirm_password" class="form-control" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-key"></i> Aggiorna password
+                    </button>
+                    
+                    <button type="button" class="password-reset-btn">
+                        Hai dimenticato la password?
+                    </button>
+                </form>
+                
+                <div class="mt-4">
+                    <h4>Attività recente</h4>
+                    <div class="activity-log">
+                        <div class="activity-item">
+                            <div class="activity-time">Oggi, 14:32</div>
+                            <div class="activity-description">Accesso effettuato da Roma, Italia</div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-time">Ieri, 09:15</div>
+                            <div class="activity-description">Password modificata</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="preferences-tab">
+                <h3 class="profile-card-title"><i class="fas fa-sliders-h"></i> Preferenze</h3>
+                
+                <div class="preference-toggle">
+                    <div>
+                        <div class="preference-label">Tema scuro</div>
+                        <div class="preference-description">Attiva il tema scuro per tutta l'interfaccia</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="dark_mode_toggle" {% if dark_mode %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                
+                <div class="preference-toggle">
+                    <div>
+                        <div class="preference-label">Notifiche email</div>
+                        <div class="preference-description">Ricevi email per aggiornamenti importanti</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="email_notifications" {% if email_notifications %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                
+                <div class="preference-toggle">
+                    <div>
+                        <div class="preference-label">Riduci animazioni</div>
+                        <div class="preference-description">Disabilita le animazioni per migliorare le prestazioni</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="reduce_motion" {% if reduce_motion %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                
+                <div class="preference-toggle">
+                    <div>
+                        <div class="preference-label">Autenticazione a due fattori</div>
+                        <div class="preference-description">Aumenta la sicurezza del tuo account</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="two_factor_auth" {% if two_factor_auth %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                
+                <button type="button" class="btn btn-primary mt-4" id="save_preferences">
+                    <i class="fas fa-save"></i> Salva preferenze
+                </button>
+            </div>
+            
+            <div class="tab-content" id="api-tab">
+                <h3 class="profile-card-title"><i class="fas fa-key"></i> Chiavi API</h3>
+                
+                <div class="api-key-container">
+                    <div class="api-key-info">
+                        <p>Usa questa chiave API per accedere a M4Bot tramite API REST.</p>
+                        <div class="form-group">
+                            <label for="api_key" class="form-label">Chiave API</label>
+                            <div class="api-key-display">
+                                <input type="text" id="api_key" class="form-control" value="•••••••••••••••••••••••••••••" readonly>
+                                <button type="button" class="btn btn-secondary btn-sm" id="show_api_key">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" id="copy_api_key">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="button" class="btn btn-primary" id="generate_api_key">
+                            <i class="fas fa-sync-alt"></i> Genera nuova chiave
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gestione dei tab
+        const tabs = document.querySelectorAll('.profile-tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabId = tab.dataset.tab;
+                
+                // Rimuovi la classe active da tutti i tab
+                tabs.forEach(t => t.classList.remove('active'));
+                
+                // Aggiungi la classe active al tab corrente
+                tab.classList.add('active');
+                
+                // Nascondi tutti i contenuti dei tab
+                tabContents.forEach(content => content.classList.remove('active'));
+                
+                // Mostra il contenuto del tab selezionato
+                document.getElementById(`${tabId}-tab`).classList.add('active');
+            });
+        });
+        
+        // Verifica della forza della password
+        const passwordInput = document.getElementById('new_password');
+        const passwordStrengthMeter = document.querySelector('.password-strength-meter');
+        const passwordStrengthText = document.querySelector('.password-strength-text');
+        
+        passwordInput?.addEventListener('input', function() {
+            const password = this.value;
+            let strength = 0;
+            let text = '';
+            
+            if (password.length >= 8) strength += 25;
+            if (password.match(/[a-z]+/)) strength += 25;
+            if (password.match(/[A-Z]+/)) strength += 25;
+            if (password.match(/[0-9]+/)) strength += 25;
+            
+            passwordStrengthMeter.style.width = strength + '%';
+            
+            if (strength <= 25) {
+                passwordStrengthMeter.style.backgroundColor = '#dc3545';
+                text = 'Molto debole';
+            } else if (strength <= 50) {
+                passwordStrengthMeter.style.backgroundColor = '#ffc107';
+                text = 'Debole';
+            } else if (strength <= 75) {
+                passwordStrengthMeter.style.backgroundColor = '#6c757d';
+                text = 'Buona';
+            } else {
+                passwordStrengthMeter.style.backgroundColor = '#28a745';
+                text = 'Forte';
+            }
+            
+            passwordStrengthText.textContent = text;
+        });
+        
+        // Toggle per mostrare/nascondere la chiave API
+        const apiKeyInput = document.getElementById('api_key');
+        const showApiKeyBtn = document.getElementById('show_api_key');
+        let apiKeyVisible = false;
+        
+        showApiKeyBtn?.addEventListener('click', function() {
+            if (apiKeyVisible) {
+                apiKeyInput.value = '•••••••••••••••••••••••••••••';
+                showApiKeyBtn.innerHTML = '<i class="fas fa-eye"></i>';
+                apiKeyVisible = false;
+            } else {
+                // In un'app reale, qui faresti una chiamata API per ottenere la chiave
+                apiKeyInput.value = 'sk_live_' + Math.random().toString(36).substring(2, 15);
+                showApiKeyBtn.innerHTML = '<i class="fas fa-eye-slash"></i>';
+                apiKeyVisible = true;
+            }
+        });
+        
+        // Copia dell'API key negli appunti
+        const copyApiKeyBtn = document.getElementById('copy_api_key');
+        
+        copyApiKeyBtn?.addEventListener('click', function() {
+            // Prima mostra la chiave se non è visibile
+            if (!apiKeyVisible) {
+                apiKeyInput.value = 'sk_live_' + Math.random().toString(36).substring(2, 15);
+                showApiKeyBtn.innerHTML = '<i class="fas fa-eye-slash"></i>';
+                apiKeyVisible = true;
+            }
+            
+            apiKeyInput.select();
+            document.execCommand('copy');
+            
+            // Feedback visivo
+            copyApiKeyBtn.innerHTML = '<i class="fas fa-check"></i>';
+            setTimeout(() => {
+                copyApiKeyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+            }, 2000);
+        });
+        
+        // Gestione dei toggle per le preferenze
+        const darkModeToggle = document.getElementById('dark_mode_toggle');
+        
+        darkModeToggle?.addEventListener('change', function() {
+            if (this.checked) {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('darkMode', 'enabled');
+            } else {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('darkMode', 'disabled');
+            }
+        });
+        
+        // Animazione per parallax su movimento del mouse
+        const parallaxElements = document.querySelectorAll('.parallax-decoration');
+        
+        document.addEventListener('mousemove', function(e) {
+            const x = e.clientX / window.innerWidth;
+            const y = e.clientY / window.innerHeight;
+            
+            parallaxElements.forEach(element => {
+                const speed = parseFloat(element.getAttribute('data-speed') || 30);
+                const offsetX = (0.5 - x) * speed;
+                const offsetY = (0.5 - y) * speed;
+                
+                element.style.transform = `translate(${offsetX}px, ${offsetY}px) translateZ(0)`;
+            });
+        });
+    });
+</script>
+{% endblock %} 

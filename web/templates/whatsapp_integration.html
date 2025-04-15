@@ -1,0 +1,832 @@
+{% extends 'base.html' %}
+
+{% block title %}M4Bot - Integrazione WhatsApp{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .whatsapp-bg {
+        background-color: #25D366;
+    }
+    .whatsapp-text {
+        color: #25D366;
+    }
+    .setup-step {
+        position: relative;
+        padding-left: 30px;
+        margin-bottom: 15px;
+    }
+    .setup-step-number {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 24px;
+        height: 24px;
+        background-color: #25D366;
+        color: white;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 24px;
+        font-weight: bold;
+    }
+    .contact-item {
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        border: 1px solid #e0e0e0;
+        transition: all 0.2s;
+    }
+    .contact-item:hover {
+        background-color: #f9f9f9;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Integrazione WhatsApp</li>
+    </ol>
+</nav>
+
+<div class="container mb-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <h1 class="h2 mb-3 mb-sm-0">
+                    <i class="fab fa-whatsapp me-2 whatsapp-text"></i>Integrazione WhatsApp
+                </h1>
+                
+                <div>
+                    {% if whatsapp_connected %}
+                    <span class="badge bg-success me-2"><i class="fas fa-check-circle me-1"></i>Connesso</span>
+                    <button id="disconnect-whatsapp" class="btn btn-outline-danger">
+                        <i class="fas fa-unlink me-1"></i>Disconnetti
+                    </button>
+                    {% else %}
+                    <span class="badge bg-danger me-2"><i class="fas fa-times-circle me-1"></i>Non connesso</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header whatsapp-bg text-white">
+                    <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Configurazione</h5>
+                </div>
+                <div class="card-body">
+                    {% if whatsapp_connected %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>Il tuo account WhatsApp Business è collegato e funzionante.
+                    </div>
+                    
+                    <h6 class="mt-4">Dettagli dell'account</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tr>
+                                <th style="width: 140px;">Phone Number ID:</th>
+                                <td>{{ whatsapp_settings.phone_number_id }}</td>
+                            </tr>
+                            <tr>
+                                <th>Numero WhatsApp:</th>
+                                <td>{{ whatsapp_settings.display_phone_number }}</td>
+                            </tr>
+                            <tr>
+                                <th>Nome Business:</th>
+                                <td>{{ whatsapp_settings.business_name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Stato:</th>
+                                <td>
+                                    {% if whatsapp_settings.verified %}
+                                    <span class="badge bg-success">Verificato</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Non verificato</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <h6 class="mt-4">Webhook</h6>
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">URL</span>
+                        <input type="text" class="form-control" value="{{ whatsapp_settings.webhook_url }}" id="webhook-url" readonly>
+                        <button class="btn btn-outline-secondary" type="button" id="copy-webhook">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Token</span>
+                        <input type="text" class="form-control" value="{{ whatsapp_settings.webhook_token }}" id="webhook-token" readonly>
+                        <button class="btn btn-outline-secondary" type="button" id="copy-token">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    
+                    <form id="whatsapp-token-form" class="mt-4">
+                        <div class="mb-3">
+                            <label for="access-token" class="form-label">Access Token</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="access-token" value="{{ whatsapp_settings.access_token }}" required>
+                                <button class="btn btn-outline-secondary" type="button" id="show-token">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">Token di accesso permanente all'API WhatsApp Business.</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Aggiorna Access Token
+                        </button>
+                    </form>
+                    
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Il tuo account WhatsApp Business non è ancora connesso.
+                    </div>
+                    
+                    <p>Per integrare WhatsApp con M4Bot, devi configurare un'app WhatsApp Business tramite Facebook.</p>
+                    
+                    <h6 class="mb-3">Segui questi passaggi per collegare WhatsApp:</h6>
+                    
+                    <div class="setup-steps">
+                        <div class="setup-step">
+                            <div class="setup-step-number">1</div>
+                            <div class="setup-step-content">
+                                <p>Crea un'app dal <a href="https://developers.facebook.com/" target="_blank">Facebook Developer Portal</a></p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="setup-step-number">2</div>
+                            <div class="setup-step-content">
+                                <p>Aggiungi WhatsApp Business API alla tua app</p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="setup-step-number">3</div>
+                            <div class="setup-step-content">
+                                <p>Configura un numero WhatsApp Business</p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="setup-step-number">4</div>
+                            <div class="setup-step-content">
+                                <p>Configura i webhook usando l'URL qui sotto</p>
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">URL</span>
+                                    <input type="text" class="form-control" value="{{ webhook_url }}" id="webhook-url-setup" readonly>
+                                    <button class="btn btn-outline-secondary" type="button" id="copy-webhook-setup">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">Token</span>
+                                    <input type="text" class="form-control" value="{{ webhook_token }}" id="webhook-token-setup" readonly>
+                                    <button class="btn btn-outline-secondary" type="button" id="copy-token-setup">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form id="whatsapp-setup-form" class="mt-4">
+                        <div class="mb-3">
+                            <label for="phone-number-id" class="form-label">Phone Number ID</label>
+                            <input type="text" class="form-control" id="phone-number-id" placeholder="123456789012345" required>
+                            <div class="form-text">Trovi questo ID nella sezione WhatsApp della tua app Facebook.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="setup-access-token" class="form-label">Access Token</label>
+                            <input type="text" class="form-control" id="setup-access-token" placeholder="EAAxxxxx..." required>
+                            <div class="form-text">Token di accesso permanente all'API WhatsApp Business.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="verification-token" class="form-label">Verification Token</label>
+                            <input type="text" class="form-control" id="verification-token" value="{{ webhook_token }}" required>
+                            <div class="form-text">Token di verifica per i webhook, deve corrispondere a quello configurato su Facebook.</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-link me-1"></i>Collega WhatsApp Business
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header whatsapp-bg text-white">
+                    <h5 class="mb-0"><i class="fas fa-bell me-2"></i>Notifiche</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="enable-notifications" {% if whatsapp_settings.notifications_enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="enable-notifications">Abilita notifiche automatiche</label>
+                    </div>
+                    
+                    <p class="mb-4">
+                        Le notifiche WhatsApp richiedono template approvati. Configura qui i template da usare per ogni tipo di notifica.
+                    </p>
+                    
+                    <h6>Template per le notifiche</h6>
+                    
+                    <div class="mb-3">
+                        <label for="stream-start-template" class="form-label">Inizio diretta</label>
+                        <select class="form-select" id="stream-start-template">
+                            <option value="">Non inviare</option>
+                            {% for template in whatsapp_settings.templates %}
+                            <option value="{{ template.name }}" {% if whatsapp_settings.stream_start_template == template.name %}selected{% endif %}>{{ template.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="new-video-template" class="form-label">Nuovo video</label>
+                        <select class="form-select" id="new-video-template">
+                            <option value="">Non inviare</option>
+                            {% for template in whatsapp_settings.templates %}
+                            <option value="{{ template.name }}" {% if whatsapp_settings.new_video_template == template.name %}selected{% endif %}>{{ template.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="channel-update-template" class="form-label">Aggiornamenti canale</label>
+                        <select class="form-select" id="channel-update-template">
+                            <option value="">Non inviare</option>
+                            {% for template in whatsapp_settings.templates %}
+                            <option value="{{ template.name }}" {% if whatsapp_settings.channel_update_template == template.name %}selected{% endif %}>{{ template.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="custom-template" class="form-label">Notifica personalizzata</label>
+                        <select class="form-select" id="custom-template">
+                            <option value="">Seleziona template</option>
+                            {% for template in whatsapp_settings.templates %}
+                            <option value="{{ template.name }}">{{ template.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="d-flex">
+                        <button id="save-notification-settings" class="btn btn-primary me-2">
+                            <i class="fas fa-save me-1"></i>Salva Impostazioni
+                        </button>
+                        
+                        <button id="test-notification" class="btn btn-outline-primary" {% if not whatsapp_connected %}disabled{% endif %}>
+                            <i class="fas fa-paper-plane me-1"></i>Invia test
+                        </button>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <h6 class="d-flex justify-content-between align-items-center">
+                        <span>Contatti ({{ whatsapp_settings.contacts|length|default(0) }})</span>
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addContactModal">
+                            <i class="fas fa-plus"></i> Aggiungi
+                        </button>
+                    </h6>
+                    
+                    <div class="contact-list mt-3" style="max-height: 250px; overflow-y: auto;">
+                        {% if whatsapp_settings.contacts and whatsapp_settings.contacts|length > 0 %}
+                            {% for contact in whatsapp_settings.contacts %}
+                            <div class="contact-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ contact.name }}</strong>
+                                        <div class="text-muted">{{ contact.phone }}</div>
+                                    </div>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-primary send-to-contact" data-phone="{{ contact.phone }}">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-contact" data-id="{{ contact.id }}">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>Nessun contatto salvato.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modali -->
+<div class="modal fade" id="disconnectModal" tabindex="-1" aria-labelledby="disconnectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="disconnectModalLabel">Conferma disconnessione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Attenzione!
+                </div>
+                <p>Sei sicuro di voler disconnettere il tuo account WhatsApp Business?</p>
+                <p>Questa azione rimuoverà tutte le impostazioni di integrazione con WhatsApp.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-danger" id="confirm-disconnect">Disconnetti</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="testNotificationModal" tabindex="-1" aria-labelledby="testNotificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="testNotificationModalLabel">Invia notifica di test</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="test-notification-form">
+                    <div class="mb-3">
+                        <label for="test-template" class="form-label">Template</label>
+                        <select class="form-select" id="test-template" required>
+                            {% for template in whatsapp_settings.templates %}
+                            <option value="{{ template.name }}">{{ template.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="test-phone" class="form-label">Numero di telefono</label>
+                        <input type="text" class="form-control" id="test-phone" placeholder="+393123456789" required>
+                        <div class="form-text">Includi il prefisso internazionale (es. +39 per l'Italia)</div>
+                    </div>
+                    <!-- Parametri dinamici in base al template selezionato -->
+                    <div id="template-params">
+                        <!-- I campi verranno generati dinamicamente in base al template selezionato -->
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="send-test-notification">Invia</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addContactModal" tabindex="-1" aria-labelledby="addContactModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addContactModalLabel">Aggiungi contatto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="add-contact-form">
+                    <div class="mb-3">
+                        <label for="contact-name" class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="contact-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contact-phone" class="form-label">Numero di telefono</label>
+                        <input type="text" class="form-control" id="contact-phone" placeholder="+393123456789" required>
+                        <div class="form-text">Includi il prefisso internazionale (es. +39 per l'Italia)</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contact-group" class="form-label">Gruppo</label>
+                        <select class="form-select" id="contact-group">
+                            <option value="">Nessun gruppo</option>
+                            <option value="subscribers">Iscritti</option>
+                            <option value="moderators">Moderatori</option>
+                            <option value="vip">VIP</option>
+                            <option value="custom">Personalizzato</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="save-contact">Salva</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Funzioni di copia negli appunti
+        const copyButtons = document.querySelectorAll('[id^="copy-"]');
+        copyButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const inputId = this.id.replace('copy-', '');
+                const input = document.getElementById(inputId);
+                input.select();
+                document.execCommand('copy');
+                showToast('success', 'Successo', 'Copiato negli appunti');
+            });
+        });
+        
+        // Mostra/nascondi token
+        const showTokenBtn = document.getElementById('show-token');
+        if (showTokenBtn) {
+            showTokenBtn.addEventListener('click', function() {
+                const tokenInput = document.getElementById('access-token');
+                if (tokenInput.type === 'password') {
+                    tokenInput.type = 'text';
+                    this.innerHTML = '<i class="fas fa-eye-slash"></i>';
+                } else {
+                    tokenInput.type = 'password';
+                    this.innerHTML = '<i class="fas fa-eye"></i>';
+                }
+            });
+        }
+        
+        // Setup form per WhatsApp
+        const whatsappSetupForm = document.getElementById('whatsapp-setup-form');
+        if (whatsappSetupForm) {
+            whatsappSetupForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const phoneNumberId = document.getElementById('phone-number-id').value.trim();
+                const accessToken = document.getElementById('setup-access-token').value.trim();
+                const verificationToken = document.getElementById('verification-token').value.trim();
+                
+                if (!phoneNumberId || !accessToken || !verificationToken) {
+                    showToast('error', 'Errore', 'Compila tutti i campi richiesti');
+                    return;
+                }
+                
+                // Invia la configurazione al server
+                fetch('/api/whatsapp/setup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        phoneNumberId,
+                        accessToken,
+                        verificationToken
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', 'Successo', 'Integrazione WhatsApp configurata con successo');
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showToast('error', 'Errore', data.message || 'Errore nella configurazione');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Errore', 'Si è verificato un errore nella configurazione');
+                });
+            });
+        }
+        
+        // Aggiornamento access token
+        const whatsappTokenForm = document.getElementById('whatsapp-token-form');
+        if (whatsappTokenForm) {
+            whatsappTokenForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const accessToken = document.getElementById('access-token').value.trim();
+                
+                if (!accessToken) {
+                    showToast('error', 'Errore', 'L\'access token non può essere vuoto');
+                    return;
+                }
+                
+                // Invia l'aggiornamento al server
+                fetch('/api/whatsapp/update-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ accessToken })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', 'Successo', 'Access token aggiornato con successo');
+                    } else {
+                        showToast('error', 'Errore', data.message || 'Errore nell\'aggiornamento del token');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Errore', 'Si è verificato un errore');
+                });
+            });
+        }
+        
+        // Salva impostazioni notifiche
+        const saveNotificationBtn = document.getElementById('save-notification-settings');
+        if (saveNotificationBtn) {
+            saveNotificationBtn.addEventListener('click', function() {
+                const notificationsEnabled = document.getElementById('enable-notifications').checked;
+                const streamStartTemplate = document.getElementById('stream-start-template').value;
+                const newVideoTemplate = document.getElementById('new-video-template').value;
+                const channelUpdateTemplate = document.getElementById('channel-update-template').value;
+                
+                // Invia le impostazioni al server
+                fetch('/api/whatsapp/update-notification-settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        notificationsEnabled,
+                        streamStartTemplate,
+                        newVideoTemplate,
+                        channelUpdateTemplate
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', 'Successo', 'Impostazioni notifiche aggiornate');
+                    } else {
+                        showToast('error', 'Errore', data.message || 'Errore nell\'aggiornamento delle impostazioni');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Errore', 'Si è verificato un errore');
+                });
+            });
+        }
+        
+        // Disconnessione
+        const disconnectBtn = document.getElementById('disconnect-whatsapp');
+        if (disconnectBtn) {
+            disconnectBtn.addEventListener('click', function() {
+                const modal = new bootstrap.Modal(document.getElementById('disconnectModal'));
+                modal.show();
+            });
+        }
+        
+        // Conferma disconnessione
+        const confirmDisconnectBtn = document.getElementById('confirm-disconnect');
+        if (confirmDisconnectBtn) {
+            confirmDisconnectBtn.addEventListener('click', function() {
+                fetch('/api/whatsapp/disconnect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', 'Successo', 'WhatsApp Business disconnesso con successo');
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showToast('error', 'Errore', data.message || 'Errore nella disconnessione');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Errore', 'Si è verificato un errore');
+                });
+            });
+        }
+        
+        // Test notifica
+        const testNotificationBtn = document.getElementById('test-notification');
+        if (testNotificationBtn) {
+            testNotificationBtn.addEventListener('click', function() {
+                const templateSelect = document.getElementById('custom-template');
+                const templateId = templateSelect.value;
+                
+                if (!templateId) {
+                    showToast('error', 'Errore', 'Seleziona un template');
+                    return;
+                }
+                
+                // Prepara la modale
+                document.getElementById('test-template').value = templateId;
+                
+                // Recupera i parametri del template
+                fetch(`/api/whatsapp/template-params/${templateId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const container = document.getElementById('template-params');
+                        container.innerHTML = '';
+                        
+                        // Genera i campi per i parametri
+                        data.params.forEach((param, index) => {
+                            const div = document.createElement('div');
+                            div.className = 'mb-3';
+                            div.innerHTML = `
+                                <label for="param-${index}" class="form-label">${param.name || `Parametro ${index + 1}`}</label>
+                                <input type="text" class="form-control" id="param-${index}" name="param-${index}" placeholder="${param.example || ''}" required>
+                            `;
+                            container.appendChild(div);
+                        });
+                        
+                        // Mostra la modale
+                        const modal = new bootstrap.Modal(document.getElementById('testNotificationModal'));
+                        modal.show();
+                    } else {
+                        showToast('error', 'Errore', data.message || 'Errore nel recupero dei parametri del template');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Errore', 'Si è verificato un errore');
+                });
+            });
+        }
+        
+        // Invio notifica di test
+        const sendTestNotificationBtn = document.getElementById('send-test-notification');
+        if (sendTestNotificationBtn) {
+            sendTestNotificationBtn.addEventListener('click', function() {
+                const template = document.getElementById('test-template').value;
+                const phone = document.getElementById('test-phone').value.trim();
+                
+                if (!template || !phone) {
+                    showToast('error', 'Errore', 'Compila tutti i campi richiesti');
+                    return;
+                }
+                
+                // Raccogli i parametri
+                const paramInputs = document.querySelectorAll('#template-params input');
+                const parameters = Array.from(paramInputs).map(input => input.value);
+                
+                // Invia la richiesta al server
+                fetch('/api/whatsapp/send-test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        template,
+                        phone,
+                        parameters
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', 'Successo', 'Messaggio di test inviato con successo');
+                        // Chiudi la modale
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('testNotificationModal'));
+                        modal.hide();
+                    } else {
+                        showToast('error', 'Errore', data.message || 'Errore nell\'invio del messaggio');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Errore', 'Si è verificato un errore');
+                });
+            });
+        }
+        
+        // Aggiunta contatto
+        const saveContactBtn = document.getElementById('save-contact');
+        if (saveContactBtn) {
+            saveContactBtn.addEventListener('click', function() {
+                const name = document.getElementById('contact-name').value.trim();
+                const phone = document.getElementById('contact-phone').value.trim();
+                const group = document.getElementById('contact-group').value;
+                
+                if (!name || !phone) {
+                    showToast('error', 'Errore', 'Nome e numero di telefono sono obbligatori');
+                    return;
+                }
+                
+                // Invia la richiesta al server
+                fetch('/api/whatsapp/add-contact', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name,
+                        phone,
+                        group
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', 'Successo', 'Contatto aggiunto con successo');
+                        // Chiudi la modale
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('addContactModal'));
+                        modal.hide();
+                        // Ricarica la pagina dopo un breve ritardo
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showToast('error', 'Errore', data.message || 'Errore nell\'aggiunta del contatto');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Errore', 'Si è verificato un errore');
+                });
+            });
+        }
+        
+        // Eliminazione contatto
+        const deleteContactBtns = document.querySelectorAll('.delete-contact');
+        if (deleteContactBtns.length > 0) {
+            deleteContactBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (confirm('Sei sicuro di voler eliminare questo contatto?')) {
+                        const contactId = this.getAttribute('data-id');
+                        
+                        // Invia la richiesta al server
+                        fetch(`/api/whatsapp/delete-contact/${contactId}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                showToast('success', 'Successo', 'Contatto eliminato con successo');
+                                // Ricarica la pagina dopo un breve ritardo
+                                setTimeout(() => window.location.reload(), 1500);
+                            } else {
+                                showToast('error', 'Errore', data.message || 'Errore nell\'eliminazione del contatto');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showToast('error', 'Errore', 'Si è verificato un errore');
+                        });
+                    }
+                });
+            });
+        }
+        
+        // Invio messaggio a contatto
+        const sendToContactBtns = document.querySelectorAll('.send-to-contact');
+        if (sendToContactBtns.length > 0) {
+            sendToContactBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const phone = this.getAttribute('data-phone');
+                    document.getElementById('test-phone').value = phone;
+                    
+                    // Simula click sul pulsante di test notifica
+                    document.getElementById('test-notification').click();
+                });
+            });
+        }
+        
+        // Helper per mostrare toast
+        function showToast(type, title, message) {
+            const toastContainer = document.querySelector('.toast-container');
+            if (!toastContainer) return;
+            
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            
+            const iconClass = type === 'success' ? 'fas fa-check-circle text-success' : 
+                             type === 'error' ? 'fas fa-exclamation-circle text-danger' : 
+                             'fas fa-info-circle text-info';
+            
+            toast.innerHTML = `
+                <div class="toast-header">
+                    <i class="${iconClass} me-2"></i>
+                    <strong class="me-auto">${title}</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">${message}</div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            toast.addEventListener('hidden.bs.toast', function() {
+                toastContainer.removeChild(toast);
+            });
+        }
+    });
+</script>
+{% endblock %} 

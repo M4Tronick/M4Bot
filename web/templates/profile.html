@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block title %}Profilo Utente{% endblock %}
+
+{% block content %}
+<div class="container-fluid animate__animated animate__fadeIn">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm mb-4 hardware-accelerated">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Profilo Utente</h5>
+                    <span class="badge bg-primary">{{ current_user.role }}</span>
+                </div>
+                <div class="card-body">
+                    <form id="profile-form" method="post" action="{{ url_for('user_profile') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-4 text-center">
+                                <div class="avatar-wrapper mb-3">
+                                    <div class="avatar-circle hardware-accelerated">
+                                        {% if current_user.avatar %}
+                                            <img src="{{ url_for('static', filename='img/avatars/' + current_user.avatar) }}" alt="Avatar" class="img-fluid rounded-circle">
+                                        {% else %}
+                                            <div class="avatar-placeholder">
+                                                <span>{{ current_user.username[:1].upper() }}</span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#changeAvatarModal">
+                                    <i class="fas fa-camera me-1"></i> Cambia Avatar
+                                </button>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">Nome Utente</label>
+                                    <input type="text" class="form-control" id="username" name="username" value="{{ current_user.username }}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="email" name="email" value="{{ current_user.email }}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="biography" class="form-label">Biografia</label>
+                                    <textarea class="form-control" id="biography" name="biography" rows="3">{{ current_user.biography }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" name="action" value="update_profile" class="btn btn-primary transition-optimized">
+                                <i class="fas fa-save me-1"></i> Salva Modifiche
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm mb-4 hardware-accelerated">
+                <div class="card-header">
+                    <h5 class="mb-0">Sicurezza</h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="mb-3">Cambio Password</h6>
+                    <form id="change-password-form" method="post" action="{{ url_for('user_profile') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <input type="password" class="form-control" id="current_password" name="current_password" required>
+                                    <label for="current_password">Password Attuale</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <input type="password" class="form-control" id="new_password" name="new_password" required>
+                                    <label for="new_password">Nuova Password</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                                    <label for="confirm_password">Conferma Password</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+                            <button type="submit" name="action" value="change_password" class="btn btn-primary transition-optimized">
+                                <i class="fas fa-key me-1"></i> Aggiorna Password
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <hr class="my-4">
+                    
+                    <h6 class="mb-3">Autenticazione a Due Fattori</h6>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="mb-1">Status: <span class="badge bg-{% if current_user.two_factor_enabled %}success{% else %}warning{% endif %}">
+                                {% if current_user.two_factor_enabled %}Attivo{% else %}Disattivo{% endif %}
+                            </span></p>
+                            <p class="text-muted small">L'autenticazione a due fattori aggiunge un ulteriore livello di sicurezza al tuo account.</p>
+                        </div>
+                        <form method="post" action="{{ url_for('user_profile') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" name="action" value="toggle_2fa" class="btn btn-{% if current_user.two_factor_enabled %}danger{% else %}success{% endif %} transition-optimized">
+                                {% if current_user.two_factor_enabled %}
+                                    <i class="fas fa-toggle-off me-1"></i> Disattiva
+                                {% else %}
+                                    <i class="fas fa-toggle-on me-1"></i> Attiva
+                                {% endif %}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm mb-4 hardware-accelerated">
+                <div class="card-header">
+                    <h5 class="mb-0">Preferenze</h5>
+                </div>
+                <div class="card-body">
+                    <form id="preferences-form" method="post" action="{{ url_for('user_profile') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Tema</label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="theme" id="theme-light" value="light" {% if current_user.preferences.theme == 'light' %}checked{% endif %}>
+                                        <label class="form-check-label" for="theme-light">
+                                            <i class="fas fa-sun me-1"></i> Chiaro
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="theme" id="theme-dark" value="dark" {% if current_user.preferences.theme == 'dark' %}checked{% endif %}>
+                                        <label class="form-check-label" for="theme-dark">
+                                            <i class="fas fa-moon me-1"></i> Scuro
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="theme" id="theme-system" value="system" {% if current_user.preferences.theme == 'system' %}checked{% endif %}>
+                                        <label class="form-check-label" for="theme-system">
+                                            <i class="fas fa-laptop me-1"></i> Sistema
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Notifiche</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="email_notifications" name="email_notifications" {% if current_user.preferences.email_notifications %}checked{% endif %}>
+                                    <label class="form-check-label" for="email_notifications">Email</label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="browser_notifications" name="browser_notifications" {% if current_user.preferences.browser_notifications %}checked{% endif %}>
+                                    <label class="form-check-label" for="browser_notifications">Browser</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+                            <button type="submit" name="action" value="update_preferences" class="btn btn-primary transition-optimized">
+                                <i class="fas fa-save me-1"></i> Salva Preferenze
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for changing avatar -->
+<div class="modal fade" id="changeAvatarModal" tabindex="-1" aria-labelledby="changeAvatarModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changeAvatarModalLabel">Cambia Avatar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="avatar-form" method="post" action="{{ url_for('user_profile') }}" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="avatar" class="form-label">Seleziona un'immagine</label>
+                        <input class="form-control" type="file" id="avatar" name="avatar" accept="image/*">
+                    </div>
+                    <div class="avatar-preview mt-3 text-center d-none">
+                        <img id="avatar-preview-img" src="#" alt="Preview" class="img-fluid rounded-circle" style="max-width: 150px; max-height: 150px;">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="submit" form="avatar-form" name="action" value="update_avatar" class="btn btn-primary">Salva</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Preview avatar image before upload
+    document.getElementById('avatar').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewImg = document.getElementById('avatar-preview-img');
+                previewImg.src = e.target.result;
+                document.querySelector('.avatar-preview').classList.remove('d-none');
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // Password validation
+    document.getElementById('change-password-form').addEventListener('submit', function(e) {
+        const newPassword = document.getElementById('new_password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        
+        if (newPassword !== confirmPassword) {
+            e.preventDefault();
+            alert('Le password non corrispondono!');
+        }
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,808 @@
+{% extends 'base.html' %}
+
+{% block title %}M4Bot - Gestione Template{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .template-card {
+        border-radius: 12px;
+        transition: all 0.2s ease;
+    }
+    
+    .template-card:hover {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    .template-header {
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+    }
+    
+    .whatsapp-bg {
+        background-color: #25D366;
+    }
+    
+    .telegram-bg {
+        background-color: #0088cc;
+    }
+    
+    .youtube-bg {
+        background-color: #FF0000;
+    }
+    
+    .template-param {
+        background-color: #f8f9fa;
+        padding: 5px 10px;
+        border-radius: 6px;
+        margin-right: 5px;
+        font-size: 0.9em;
+        color: #495057;
+    }
+    
+    .template-actions {
+        opacity: 0.7;
+        transition: all 0.2s ease;
+    }
+    
+    .template-card:hover .template-actions {
+        opacity: 1;
+    }
+    
+    .CodeMirror {
+        height: auto;
+        min-height: 100px;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+    }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Gestione Template</li>
+    </ol>
+</nav>
+
+<div class="container-fluid mb-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <h1 class="h2 mb-3 mb-sm-0">
+                    <i class="fas fa-file-alt me-2"></i>Gestione Template
+                </h1>
+                <div>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTemplateModal">
+                        <i class="fas fa-plus me-1"></i>Nuovo Template
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="templateTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="whatsapp-tab" data-bs-toggle="tab" data-bs-target="#whatsapp" type="button" role="tab" aria-controls="whatsapp" aria-selected="true">
+                        <i class="fab fa-whatsapp me-2"></i>WhatsApp
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="telegram-tab" data-bs-toggle="tab" data-bs-target="#telegram" type="button" role="tab" aria-controls="telegram" aria-selected="false">
+                        <i class="fab fa-telegram-plane me-2"></i>Telegram
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="youtube-tab" data-bs-toggle="tab" data-bs-target="#youtube" type="button" role="tab" aria-controls="youtube" aria-selected="false">
+                        <i class="fab fa-youtube me-2"></i>YouTube
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="tab-content">
+        <!-- Template WhatsApp -->
+        <div class="tab-pane fade show active" id="whatsapp" role="tabpanel" aria-labelledby="whatsapp-tab">
+            <div class="row">
+                {% if whatsapp_templates %}
+                    {% for template in whatsapp_templates %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100 template-card">
+                            <div class="card-header whatsapp-bg text-white template-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">{{ template.name }}</h5>
+                                    <span class="badge bg-light text-dark">{{ template.language|default('it') }}</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">{{ template.description|default('Nessuna descrizione')|truncate(100) }}</p>
+                                <div class="mb-2">
+                                    <small class="text-muted">Componenti:</small>
+                                    <div class="mt-1">
+                                        {% for param in template.components %}
+                                        <span class="template-param">{{ param.name }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="mt-3 d-flex justify-content-between">
+                                    <small class="text-muted">Stato: <span class="fw-bold{% if template.status == 'approved' %} text-success{% else %} text-warning{% endif %}">{{ template.status|capitalize }}</span></small>
+                                    <div class="template-actions">
+                                        <button class="btn btn-sm btn-outline-primary edit-template" data-platform="whatsapp" data-id="{{ template.id }}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-template" data-platform="whatsapp" data-id="{{ template.id }}">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>Nessun template WhatsApp configurato. Puoi creare un nuovo template usando il pulsante "Nuovo Template".
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Template Telegram -->
+        <div class="tab-pane fade" id="telegram" role="tabpanel" aria-labelledby="telegram-tab">
+            <div class="row">
+                {% if telegram_templates %}
+                    {% for template in telegram_templates %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100 template-card">
+                            <div class="card-header telegram-bg text-white template-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">{{ template.name }}</h5>
+                                    <span class="badge bg-light text-dark">{{ template.parse_mode|default('HTML') }}</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">{{ template.description|default('Nessuna descrizione')|truncate(100) }}</p>
+                                <div class="mb-2">
+                                    <small class="text-muted">Parametri:</small>
+                                    <div class="mt-1">
+                                        {% for param in template.params %}
+                                        <span class="template-param">{{ param }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="mt-3 d-flex justify-content-between">
+                                    <small class="text-muted">Anteprima disabilitata: <span class="fw-bold">{{ 'Sì' if template.disable_web_page_preview else 'No' }}</span></small>
+                                    <div class="template-actions">
+                                        <button class="btn btn-sm btn-outline-primary edit-template" data-platform="telegram" data-id="{{ template.id }}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-template" data-platform="telegram" data-id="{{ template.id }}">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>Nessun template Telegram configurato. Puoi creare un nuovo template usando il pulsante "Nuovo Template".
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Template YouTube -->
+        <div class="tab-pane fade" id="youtube" role="tabpanel" aria-labelledby="youtube-tab">
+            <div class="row">
+                {% if youtube_templates %}
+                    {% for template in youtube_templates %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100 template-card">
+                            <div class="card-header youtube-bg text-white template-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">{{ template.name }}</h5>
+                                    <span class="badge bg-light text-dark">{{ template.type|default('Comment') }}</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">{{ template.description|default('Nessuna descrizione')|truncate(100) }}</p>
+                                <div class="mb-2">
+                                    <small class="text-muted">Parametri:</small>
+                                    <div class="mt-1">
+                                        {% for param in template.params %}
+                                        <span class="template-param">{{ param }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="mt-3 d-flex justify-content-between">
+                                    <small class="text-muted">Ultimo utilizzo: <span class="fw-bold">{{ template.last_used|default('Mai') }}</span></small>
+                                    <div class="template-actions">
+                                        <button class="btn btn-sm btn-outline-primary edit-template" data-platform="youtube" data-id="{{ template.id }}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-template" data-platform="youtube" data-id="{{ template.id }}">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>Nessun template YouTube configurato. Puoi creare un nuovo template usando il pulsante "Nuovo Template".
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modale creazione template -->
+<div class="modal fade" id="createTemplateModal" tabindex="-1" aria-labelledby="createTemplateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createTemplateModalLabel">Nuovo Template</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createTemplateForm">
+                    <div class="mb-3">
+                        <label for="templatePlatform" class="form-label">Piattaforma</label>
+                        <select class="form-select" id="templatePlatform" required>
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="telegram">Telegram</option>
+                            <option value="youtube">YouTube</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="templateName" class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="templateName" placeholder="Nome del template" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="templateDescription" class="form-label">Descrizione</label>
+                        <textarea class="form-control" id="templateDescription" rows="2" placeholder="Breve descrizione del template"></textarea>
+                    </div>
+                    
+                    <!-- Campi specifici per WhatsApp -->
+                    <div id="whatsappFields" class="platform-fields">
+                        <div class="mb-3">
+                            <label for="whatsappLanguage" class="form-label">Lingua</label>
+                            <select class="form-select" id="whatsappLanguage">
+                                <option value="it">Italiano</option>
+                                <option value="en">Inglese</option>
+                                <option value="es">Spagnolo</option>
+                                <option value="fr">Francese</option>
+                                <option value="de">Tedesco</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="whatsappBody" class="form-label">Corpo del messaggio</label>
+                            <textarea class="form-control" id="whatsappBody" rows="5" placeholder="Testo del template"></textarea>
+                            <div class="form-text">Usa {{1}}, {{2}}, ecc. per i parametri.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Componenti</label>
+                            <div id="whatsappComponents">
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" placeholder="Nome parametro" name="param_name[]">
+                                    <input type="text" class="form-control" placeholder="Esempio" name="param_example[]">
+                                    <button class="btn btn-outline-danger remove-param" type="button">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="addWhatsappParam">
+                                <i class="fas fa-plus me-1"></i>Aggiungi parametro
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Campi specifici per Telegram -->
+                    <div id="telegramFields" class="platform-fields d-none">
+                        <div class="mb-3">
+                            <label for="telegramParseMode" class="form-label">Formato testo</label>
+                            <select class="form-select" id="telegramParseMode">
+                                <option value="HTML">HTML</option>
+                                <option value="Markdown">Markdown</option>
+                                <option value="MarkdownV2">MarkdownV2</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="telegramDisablePreview">
+                                <label class="form-check-label" for="telegramDisablePreview">
+                                    Disabilita anteprima link
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="telegramText" class="form-label">Testo del messaggio</label>
+                            <textarea class="form-control" id="telegramText" rows="5" placeholder="Testo del template"></textarea>
+                            <div class="form-text">Usa {nome_parametro} per i parametri. In modalità HTML puoi usare i tag supportati da Telegram.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Parametri</label>
+                            <div id="telegramParams">
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" placeholder="Nome parametro" name="telegram_param[]">
+                                    <button class="btn btn-outline-danger remove-param" type="button">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="addTelegramParam">
+                                <i class="fas fa-plus me-1"></i>Aggiungi parametro
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Campi specifici per YouTube -->
+                    <div id="youtubeFields" class="platform-fields d-none">
+                        <div class="mb-3">
+                            <label for="youtubeType" class="form-label">Tipo</label>
+                            <select class="form-select" id="youtubeType">
+                                <option value="comment">Commento</option>
+                                <option value="chat">Messaggio chat</option>
+                                <option value="description">Descrizione video</option>
+                                <option value="title">Titolo video</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="youtubeContent" class="form-label">Contenuto</label>
+                            <textarea class="form-control" id="youtubeContent" rows="5" placeholder="Testo del template"></textarea>
+                            <div class="form-text">Usa {nome_parametro} per i parametri.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Parametri</label>
+                            <div id="youtubeParams">
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" placeholder="Nome parametro" name="youtube_param[]">
+                                    <button class="btn btn-outline-danger remove-param" type="button">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="addYoutubeParam">
+                                <i class="fas fa-plus me-1"></i>Aggiungi parametro
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="saveTemplate">Salva Template</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modale modifica template -->
+<div class="modal fade" id="editTemplateModal" tabindex="-1" aria-labelledby="editTemplateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editTemplateModalLabel">Modifica Template</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editTemplateForm">
+                    <input type="hidden" id="editTemplateId">
+                    <input type="hidden" id="editTemplatePlatform">
+                    
+                    <div class="mb-3">
+                        <label for="editTemplateName" class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="editTemplateName" placeholder="Nome del template" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editTemplateDescription" class="form-label">Descrizione</label>
+                        <textarea class="form-control" id="editTemplateDescription" rows="2" placeholder="Breve descrizione del template"></textarea>
+                    </div>
+                    
+                    <!-- Campi specifici per WhatsApp in modalità modifica -->
+                    <div id="editWhatsappFields" class="edit-platform-fields d-none">
+                        <!-- Contenuto generato dinamicamente -->
+                    </div>
+                    
+                    <!-- Campi specifici per Telegram in modalità modifica -->
+                    <div id="editTelegramFields" class="edit-platform-fields d-none">
+                        <!-- Contenuto generato dinamicamente -->
+                    </div>
+                    
+                    <!-- Campi specifici per YouTube in modalità modifica -->
+                    <div id="editYoutubeFields" class="edit-platform-fields d-none">
+                        <!-- Contenuto generato dinamicamente -->
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="updateTemplate">Aggiorna Template</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modale conferma eliminazione -->
+<div class="modal fade" id="deleteTemplateModal" tabindex="-1" aria-labelledby="deleteTemplateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteTemplateModalLabel">Conferma eliminazione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Attenzione!
+                </div>
+                <p>Sei sicuro di voler eliminare il template <span id="deleteTemplateName" class="fw-bold"></span>?</p>
+                <p>Questa azione non può essere annullata.</p>
+                <input type="hidden" id="deleteTemplateId">
+                <input type="hidden" id="deleteTemplatePlatform">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteTemplate">Elimina</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/markdown/markdown.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Editor CodeMirror per i template
+        let whatsappEditor, telegramEditor, youtubeEditor;
+        
+        // Mostra i campi specifici per la piattaforma selezionata
+        const templatePlatform = document.getElementById('templatePlatform');
+        const platformFields = document.querySelectorAll('.platform-fields');
+        
+        templatePlatform.addEventListener('change', function() {
+            platformFields.forEach(field => field.classList.add('d-none'));
+            document.getElementById(`${this.value}Fields`).classList.remove('d-none');
+            
+            // Inizializza gli editor solo quando necessario
+            if (this.value === 'whatsapp' && !whatsappEditor) {
+                whatsappEditor = CodeMirror.fromTextArea(document.getElementById('whatsappBody'), {
+                    mode: 'text/plain',
+                    lineNumbers: true,
+                    lineWrapping: true
+                });
+            } else if (this.value === 'telegram' && !telegramEditor) {
+                telegramEditor = CodeMirror.fromTextArea(document.getElementById('telegramText'), {
+                    mode: 'text/html',
+                    lineNumbers: true,
+                    lineWrapping: true
+                });
+            } else if (this.value === 'youtube' && !youtubeEditor) {
+                youtubeEditor = CodeMirror.fromTextArea(document.getElementById('youtubeContent'), {
+                    mode: 'text/plain',
+                    lineNumbers: true,
+                    lineWrapping: true
+                });
+            }
+        });
+        
+        // Mostra i campi WhatsApp di default
+        document.getElementById('whatsappFields').classList.remove('d-none');
+        
+        // Aggiungi parametro WhatsApp
+        document.getElementById('addWhatsappParam').addEventListener('click', function() {
+            const container = document.getElementById('whatsappComponents');
+            const newParam = document.createElement('div');
+            newParam.className = 'input-group mb-2';
+            newParam.innerHTML = `
+                <input type="text" class="form-control" placeholder="Nome parametro" name="param_name[]">
+                <input type="text" class="form-control" placeholder="Esempio" name="param_example[]">
+                <button class="btn btn-outline-danger remove-param" type="button">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(newParam);
+            
+            // Aggiungi event listener al pulsante di rimozione
+            newParam.querySelector('.remove-param').addEventListener('click', function() {
+                container.removeChild(newParam);
+            });
+        });
+        
+        // Aggiungi parametro Telegram
+        document.getElementById('addTelegramParam').addEventListener('click', function() {
+            const container = document.getElementById('telegramParams');
+            const newParam = document.createElement('div');
+            newParam.className = 'input-group mb-2';
+            newParam.innerHTML = `
+                <input type="text" class="form-control" placeholder="Nome parametro" name="telegram_param[]">
+                <button class="btn btn-outline-danger remove-param" type="button">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(newParam);
+            
+            // Aggiungi event listener al pulsante di rimozione
+            newParam.querySelector('.remove-param').addEventListener('click', function() {
+                container.removeChild(newParam);
+            });
+        });
+        
+        // Aggiungi parametro YouTube
+        document.getElementById('addYoutubeParam').addEventListener('click', function() {
+            const container = document.getElementById('youtubeParams');
+            const newParam = document.createElement('div');
+            newParam.className = 'input-group mb-2';
+            newParam.innerHTML = `
+                <input type="text" class="form-control" placeholder="Nome parametro" name="youtube_param[]">
+                <button class="btn btn-outline-danger remove-param" type="button">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(newParam);
+            
+            // Aggiungi event listener al pulsante di rimozione
+            newParam.querySelector('.remove-param').addEventListener('click', function() {
+                container.removeChild(newParam);
+            });
+        });
+        
+        // Event listener per i pulsanti di rimozione esistenti
+        document.querySelectorAll('.remove-param').forEach(button => {
+            button.addEventListener('click', function() {
+                const container = this.closest('.input-group');
+                container.parentNode.removeChild(container);
+            });
+        });
+        
+        // Salva template
+        document.getElementById('saveTemplate').addEventListener('click', function() {
+            const platform = document.getElementById('templatePlatform').value;
+            const name = document.getElementById('templateName').value;
+            const description = document.getElementById('templateDescription').value;
+            
+            if (!name) {
+                showToast('error', 'Errore', 'Il nome del template è obbligatorio');
+                return;
+            }
+            
+            let templateData = {
+                platform,
+                name,
+                description
+            };
+            
+            // Raccogli i dati specifici della piattaforma
+            if (platform === 'whatsapp') {
+                // Aggiorna il contenuto dall'editor CodeMirror se inizializzato
+                if (whatsappEditor) {
+                    whatsappEditor.save();
+                }
+                
+                const language = document.getElementById('whatsappLanguage').value;
+                const body = document.getElementById('whatsappBody').value;
+                
+                if (!body) {
+                    showToast('error', 'Errore', 'Il corpo del messaggio è obbligatorio');
+                    return;
+                }
+                
+                // Raccogli i parametri
+                const paramNames = Array.from(document.querySelectorAll('input[name="param_name[]"]')).map(input => input.value);
+                const paramExamples = Array.from(document.querySelectorAll('input[name="param_example[]"]')).map(input => input.value);
+                
+                const components = paramNames.map((name, index) => ({
+                    name: name || `Parametro ${index + 1}`,
+                    example: paramExamples[index] || ''
+                }));
+                
+                templateData = {
+                    ...templateData,
+                    language,
+                    body,
+                    components
+                };
+            } else if (platform === 'telegram') {
+                // Aggiorna il contenuto dall'editor CodeMirror se inizializzato
+                if (telegramEditor) {
+                    telegramEditor.save();
+                }
+                
+                const parseMode = document.getElementById('telegramParseMode').value;
+                const disableWebPagePreview = document.getElementById('telegramDisablePreview').checked;
+                const text = document.getElementById('telegramText').value;
+                
+                if (!text) {
+                    showToast('error', 'Errore', 'Il testo del messaggio è obbligatorio');
+                    return;
+                }
+                
+                // Raccogli i parametri
+                const params = Array.from(document.querySelectorAll('input[name="telegram_param[]"]')).map(input => input.value).filter(Boolean);
+                
+                templateData = {
+                    ...templateData,
+                    parse_mode: parseMode,
+                    disable_web_page_preview: disableWebPagePreview,
+                    text,
+                    params
+                };
+            } else if (platform === 'youtube') {
+                // Aggiorna il contenuto dall'editor CodeMirror se inizializzato
+                if (youtubeEditor) {
+                    youtubeEditor.save();
+                }
+                
+                const type = document.getElementById('youtubeType').value;
+                const content = document.getElementById('youtubeContent').value;
+                
+                if (!content) {
+                    showToast('error', 'Errore', 'Il contenuto è obbligatorio');
+                    return;
+                }
+                
+                // Raccogli i parametri
+                const params = Array.from(document.querySelectorAll('input[name="youtube_param[]"]')).map(input => input.value).filter(Boolean);
+                
+                templateData = {
+                    ...templateData,
+                    type,
+                    content,
+                    params
+                };
+            }
+            
+            // Invia i dati al server
+            fetch('/api/templates/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(templateData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('success', 'Successo', 'Template creato con successo');
+                    // Chiudi la modale
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('createTemplateModal'));
+                    modal.hide();
+                    // Ricarica la pagina dopo un breve ritardo
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    showToast('error', 'Errore', data.message || 'Errore nella creazione del template');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('error', 'Errore', 'Si è verificato un errore nella creazione del template');
+            });
+        });
+        
+        // Edita template
+        document.querySelectorAll('.edit-template').forEach(button => {
+            button.addEventListener('click', function() {
+                const platform = this.dataset.platform;
+                const id = this.dataset.id;
+                
+                // Ottieni i dettagli del template dal server
+                fetch(`/api/templates/${platform}/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const template = data.template;
+                        
+                        // Imposta i campi comuni
+                        document.getElementById('editTemplateId').value = id;
+                        document.getElementById('editTemplatePlatform').value = platform;
+                        document.getElementById('editTemplateName').value = template.name;
+                        document.getElementById('editTemplateDescription').value = template.description || '';
+                        
+                        // Mostra i campi specifici per la piattaforma
+                        document.querySelectorAll('.edit-platform-fields').forEach(field => field.classList.add('d-none'));
+                        const platformFields = document.getElementById(`edit${platform.charAt(0).toUpperCase() + platform.slice(1)}Fields`);
+                        platformFields.classList.remove('d-none');
+                        
+                        // Genera i campi specifici per la piattaforma
+                        if (platform === 'whatsapp') {
+                            // Implementa la generazione dei campi WhatsApp
+                        } else if (platform === 'telegram') {
+                            // Implementa la generazione dei campi Telegram
+                        } else if (platform === 'youtube') {
+                            // Implementa la generazione dei campi YouTube
+                        }
+                        
+                        // Mostra la modale
+                        const modal = new bootstrap.Modal(document.getElementById('editTemplateModal'));
+                        modal.show();
+                    } else {
+                        showToast('error', 'Errore', data.message || 'Errore nel recupero del template');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Errore', 'Si è verificato un errore nel recupero del template');
+                });
+            });
+        });
+        
+        // Elimina template
+        document.querySelectorAll('.delete-template').forEach(button => {
+            button.addEventListener('click', function() {
+                const platform = this.dataset.platform;
+                const id = this.dataset.id;
+                
+                // Ottieni il nome del template
+                const templateCard = this.closest('.template-card');
+                const templateName = templateCard.querySelector('.card-header h5').textContent;
+                
+                // Imposta i dati nel modale di conferma
+                document.getElementById('deleteTemplateId').value = id;
+                document.getElementById('deleteTemplatePlatform').value = platform;
+                document.getElementById('deleteTemplateName').textContent = templateName;
+                
+                // Mostra il modale di conferma
+                const modal = new bootstrap.Modal(document.getElementById('deleteTemplateModal'));
+                modal.show();
+            });
+        });
+        
+        // Conferma eliminazione template
+        document.getElementById('confirmDeleteTemplate').addEventListener('click', function() {
+            const id = document.getElementById('deleteTemplateId').value;
+            const platform = document.getElementById('deleteTemplatePlatform').value;
+            
+            // Invia la richiesta di eliminazione al server
+            fetch(`/api/templates/${platform}/${id}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('success', 'Successo', 'Template eliminato con successo');
+                    // Chiudi la modale
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('deleteTemplateModal'));
+                    modal.hide();
+                    // Ricarica la pagina dopo un breve ritardo
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    showToast('error', 'Errore', data.message || 'Errore nell\'eliminazione del template');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('error', 'Errore', 'Si è verificato un errore nell\'eliminazione del template');
+            });
+        });
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+
+{% block title %}M4Bot - Badge e Achievement{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/achievements.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <h1 class="h2 mb-3 mb-sm-0">
+                <i class="fas fa-award me-2"></i>Badge e Achievement
+            </h1>
+        </div>
+    </div>
+</div>
+
+<!-- Panoramica achievement -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="achievement-overview">
+                    <div class="row w-100">
+                        <div class="col-md-6">
+                            <h4>Riepilogo Achievement</h4>
+                            <p class="text-secondary">Il tuo progresso negli obiettivi di M4Bot</p>
+                            
+                            <div class="achievement-stats mt-4">
+                                <div class="achievement-stat">
+                                    <p class="achievement-stat-value">{{ user_stats.total_completed|default('0') }}</p>
+                                    <p class="achievement-stat-label">Completati</p>
+                                </div>
+                                <div class="achievement-stat">
+                                    <p class="achievement-stat-value">{{ user_stats.total_badges|default('0') }}</p>
+                                    <p class="achievement-stat-label">Badge</p>
+                                </div>
+                                <div class="achievement-stat">
+                                    <p class="achievement-stat-value">{{ user_stats.completion_rate|default('0') }}%</p>
+                                    <p class="achievement-stat-label">Completamento</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h4>Ultimi Achievement</h4>
+                            <div class="recent-achievements mt-3">
+                                {% if recent_achievements %}
+                                    <div class="list-group">
+                                        {% for achievement in recent_achievements %}
+                                        <div class="list-group-item d-flex align-items-center">
+                                            <div class="profile-badge-icon me-3" style="background-color: {{ achievement.color|default('#007bff') }}">
+                                                <i class="fas fa-{{ achievement.icon|default('award') }}"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-0">{{ achievement.name }}</h6>
+                                                <p class="text-secondary small mb-0">{{ achievement.date_earned|default('') }}</p>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <div class="text-center py-3">
+                                        <p class="text-secondary mb-0">Nessun achievement completato recentemente</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h4>Progresso Categorie</h4>
+                <div class="row">
+                    {% for category in categories %}
+                    <div class="col-md-6 mb-3">
+                        <div class="achievement-category-progress">
+                            <div class="achievement-category-label">
+                                <span class="achievement-category-name">{{ category.name }}</span>
+                                <span class="achievement-category-value">{{ category.completed }}/{{ category.total }}</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar" role="progressbar" style="width: {{ category.percent }}%;" 
+                                     aria-valuenow="{{ category.percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Badge dell'utente -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">I Tuoi Badge</h5>
+            </div>
+            <div class="card-body">
+                <div class="row" id="badges-container">
+                    {% if user_badges %}
+                        {% for badge in user_badges %}
+                        <div class="col-md-3 col-sm-4 col-6 mb-4">
+                            <div class="badge-item" data-badge-id="{{ badge.id }}">
+                                <div class="badge-icon" style="background-color: {{ badge.color|default('#007bff') }}">
+                                    <i class="fas fa-{{ badge.icon|default('award') }}"></i>
+                                </div>
+                                <h5 class="badge-name">{{ badge.name }}</h5>
+                                <p class="badge-description">{{ badge.description }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="col-12">
+                            <div class="text-center py-4">
+                                <i class="fas fa-award fa-3x text-muted mb-3"></i>
+                                <h5>Nessun Badge Ottenuto</h5>
+                                <p class="text-muted">Continua a streamare per sbloccare badge!</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Achievement disponibili -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Achievement Disponibili</h5>
+            </div>
+            <div class="card-body">
+                <div id="achievements-container">
+                    {% for category, achievements in achievements_by_category.items() %}
+                        <div class="achievement-category mb-5">
+                            <h3 class="achievement-category-title mb-4">{{ category|title }}</h3>
+                            <div class="row" id="category-{{ category }}">
+                                {% for achievement in achievements %}
+                                    <div class="col-md-4 col-sm-6 mb-4">
+                                        <div class="achievement-item {% if achievement.completed %}completed{% endif %}" data-achievement-id="{{ achievement.id }}">
+                                            <div class="achievement-icon" style="background-color: {{ achievement.color|default('#007bff') }}">
+                                                <i class="fas fa-{{ achievement.icon|default('award') }}"></i>
+                                                {% if achievement.completed %}
+                                                <div class="achievement-completed-badge"><i class="fas fa-check"></i></div>
+                                                {% endif %}
+                                            </div>
+                                            <h5 class="achievement-name">{{ achievement.name }}</h5>
+                                            <p class="achievement-description">{{ achievement.description }}</p>
+                                            
+                                            {% if not achievement.completed and achievement.threshold %}
+                                                <div class="achievement-progress" data-achievement-id="{{ achievement.id }}">
+                                                    <div class="progress">
+                                                        <div class="progress-bar" role="progressbar" style="width: {{ achievement.percent }}%" 
+                                                            aria-valuenow="{{ achievement.percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                    <div class="progress-text">{{ achievement.current }}/{{ achievement.threshold }}</div>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/achievements.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Sistema di badge e achievement inizializzato automaticamente
+    });
+</script>
+{% endblock %} 

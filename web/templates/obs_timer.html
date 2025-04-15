@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M4Bot - Timer OBS</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        #timer-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        #timer-title {
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        #timer-display {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+        
+        .blinking {
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+        
+        .alert {
+            color: #ff0000 !important;
+            transform: scale(1.1);
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="timer-container">
+        <div id="timer-title">Caricamento...</div>
+        <div id="timer-display">00:00:00</div>
+    </div>
+    
+    <script>
+        // Recupera l'ID del timer dall'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const timerIdFromUrl = "{{ timer_id }}";
+        
+        // Elementi del DOM
+        const timerContainer = document.getElementById('timer-container');
+        const timerTitle = document.getElementById('timer-title');
+        const timerDisplay = document.getElementById('timer-display');
+        
+        // Dati del timer
+        let timerData = null;
+        let lastRemainingTime = null;
+        let lastElapsedTime = null;
+        let isInAlert = false;
+        let alertTimeout = null;
+        
+        // Funzione per formattare il tempo
+        function formatTime(seconds, showMilliseconds = false) {
+            const isNegative = seconds < 0;
+            seconds = Math.abs(seconds);
+            
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            const ms = Math.floor((seconds % 1) * 1000);
+            
+            const format = timerData?.settings?.format || 'hh:mm:ss';
+            let formattedTime = '';
+            
+            if (format.includes('hh')) {
+                formattedTime += h.toString().padStart(2, '0') + ':';
+            }
+            
+            if (format.includes('mm')) {
+                formattedTime += m.toString().padStart(2, '0') + ':';
+            }
+            
+            formattedTime += s.toString().padStart(2, '0');
+            
+            if (showMilliseconds) {
+                formattedTime += '.' + ms.toString().padStart(3, '0').substring(0, 3);
+            }
+            
+            return (isNegative ? '-' : '') + formattedTime;
+        }
+        
+        // Funzione per aggiornare la visualizzazione del timer
+        function updateTimerDisplay() {
+            if (!timerData) return;
+            
+            const showTitle = timerData.settings.show_title !== false;
+            const showMilliseconds = timerData.settings.show_milliseconds === true;
+            
+            // Aggiorna il titolo
+            timerTitle.style.display = showTitle ? 'block' : 'none';
+            timerTitle.textContent = timerData.name;
+            
+            // Gestisce lo stile del contenitore
+            timerContainer.style.backgroundColor = timerData.settings.background_color || 'rgba(0,0,0,0.5)';
+            timerTitle.style.color = timerData.settings.text_color || '#FFFFFF';
+            timerDisplay.style.color = timerData.settings.text_color || '#FFFFFF';
+            timerDisplay.style.fontSize = timerData.settings.font_size || '48px';
+            
+            // Gestisce il tipo di timer e lo stato
+            if (timerData.type === 'countdown') {
+                const timeRemaining = timerData.time_remaining;
+                
+                // Aggiorna la visualizzazione solo se il tempo è cambiato
+                if (timeRemaining !== lastRemainingTime) {
+                    lastRemainingTime = timeRemaining;
+                    timerDisplay.textContent = formatTime(timeRemaining, showMilliseconds);
+                    
+                    // Controlla se è in un punto di avviso
+                    if (timerData.alerts && timerData.alerts.length > 0) {
+                        if (!isInAlert) {
+                            isInAlert = true;
+                            timerDisplay.classList.add('alert');
+                            
+                            // Rimuovi l'effetto di avviso dopo 3 secondi
+                            if (alertTimeout) {
+                                clearTimeout(alertTimeout);
+                            }
+                            
+                            alertTimeout = setTimeout(() => {
+                                timerDisplay.classList.remove('alert');
+                                isInAlert = false;
+                            }, 3000);
+                        }
+                    } else if (isInAlert) {
+                        timerDisplay.classList.remove('alert');
+                        isInAlert = false;
+                    }
+                    
+                    // Effetto lampeggiante quando il timer è a zero
+                    if (timeRemaining <= 0) {
+                        timerDisplay.classList.add('blinking');
+                    } else {
+                        timerDisplay.classList.remove('blinking');
+                    }
+                }
+            } else {
+                // Per i cronometri, mostra il tempo trascorso
+                const elapsedTime = timerData.elapsed_time;
+                
+                // Aggiorna la visualizzazione solo se il tempo è cambiato
+                if (elapsedTime !== lastElapsedTime) {
+                    lastElapsedTime = elapsedTime;
+                    timerDisplay.textContent = formatTime(elapsedTime, showMilliseconds);
+                }
+            }
+        }
+        
+        // Funzione per ottenere i dati del timer
+        function fetchTimerData() {
+            fetch(`/api/timer/${timerIdFromUrl}/status`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        timerData = data;
+                        updateTimerDisplay();
+                    } else {
+                        timerTitle.textContent = 'Errore';
+                        timerDisplay.textContent = data.error || 'Impossibile caricare il timer';
+                    }
+                })
+                .catch(error => {
+                    console.error('Errore durante il recupero dei dati del timer:', error);
+                    timerTitle.textContent = 'Errore';
+                    timerDisplay.textContent = 'Errore di connessione';
+                });
+        }
+        
+        // Inizializza la pagina
+        fetchTimerData();
+        
+        // Aggiorna i dati ogni 100ms
+        setInterval(fetchTimerData, 100);
+    </script>
+</body>
+</html> 

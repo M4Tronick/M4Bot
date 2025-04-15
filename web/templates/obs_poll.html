@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBS Poll Overlay</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        :root {
+            --background-color: rgba(0, 0, 0, 0.7);
+            --text-color: #ffffff;
+            --accent-color: #0d6efd;
+            --option-color: rgba(255, 255, 255, 0.1);
+            --option-border: rgba(255, 255, 255, 0.2);
+            --option-fill: rgba(13, 110, 253, 0.8);
+            --highlight-color: rgba(255, 255, 255, 0.8);
+            --font-family: 'Arial', sans-serif;
+            --border-radius: 8px;
+            --animation-duration: 0.5s;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: var(--font-family);
+            color: var(--text-color);
+            background-color: transparent;
+        }
+        
+        .poll-container {
+            background-color: var(--background-color);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            width: 400px;
+            max-width: 100%;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fade-in var(--animation-duration) forwards;
+        }
+        
+        .poll-header {
+            margin-bottom: 15px;
+        }
+        
+        .poll-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0 0 10px 0;
+            line-height: 1.2;
+        }
+        
+        .poll-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        .poll-votes {
+            font-weight: bold;
+        }
+        
+        .poll-timer {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+        
+        .poll-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .poll-option {
+            position: relative;
+            background-color: var(--option-color);
+            border: 1px solid var(--option-border);
+            border-radius: var(--border-radius);
+            padding: 10px 15px;
+            overflow: hidden;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            animation: slide-in var(--animation-duration) forwards;
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        
+        .option-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background-color: var(--option-fill);
+            width: 0;
+            transition: width 1s ease-in-out;
+            z-index: 1;
+        }
+        
+        .option-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .option-text {
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 80%;
+        }
+        
+        .option-percent {
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .poll-footer {
+            margin-top: 15px;
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        .winner {
+            background-color: var(--accent-color);
+        }
+        
+        .winner .option-fill {
+            background-color: var(--highlight-color);
+            opacity: 0.2;
+        }
+        
+        /* Animazioni */
+        @keyframes fade-in {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes slide-in {
+            0% {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        /* Animazione per i risultati */
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        
+        .poll-complete .winner {
+            animation: pulse 1s infinite;
+        }
+        
+        /* Stili per la modalità completato */
+        .poll-completed-label {
+            background-color: rgba(40, 167, 69, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="poll-container" id="pollContainer">
+        <div class="poll-header">
+            <h1 class="poll-title" id="pollQuestion">Caricamento sondaggio...</h1>
+            <div class="poll-meta">
+                <div class="poll-votes">
+                    <span id="totalVotes">0</span> voti
+                </div>
+                <div class="poll-timer" id="pollTimer">
+                    --:--
+                </div>
+            </div>
+        </div>
+        
+        <div class="poll-options" id="pollOptions">
+            <!-- Le opzioni del sondaggio verranno generate dinamicamente -->
+        </div>
+        
+        <div class="poll-footer" id="pollFooter">
+            Vota ora!
+        </div>
+    </div>
+    
+    <script>
+        // Configurazione
+        const pollId = '{{ poll_id }}';
+        const refreshInterval = 2000; // Frequenza di aggiornamento in millisecondi
+        
+        let lastPollData = null;
+        let updateTimer = null;
+        
+        // Inizializzazione
+        $(document).ready(function() {
+            loadPollData();
+            
+            // Avvia l'aggiornamento periodico
+            setInterval(loadPollData, refreshInterval);
+        });
+        
+        // Carica i dati del sondaggio
+        function loadPollData() {
+            $.ajax({
+                url: `/api/polls/${pollId}/live`,
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        renderPoll(response.poll);
+                    } else {
+                        showError('Errore nel caricamento del sondaggio');
+                    }
+                },
+                error: function() {
+                    showError('Impossibile caricare il sondaggio');
+                }
+            });
+        }
+        
+        // Renderizza il sondaggio
+        function renderPoll(poll) {
+            // Aggiorna solo se i dati sono cambiati
+            if (lastPollData && JSON.stringify(lastPollData) === JSON.stringify(poll)) {
+                updateTimer(poll);
+                return;
+            }
+            
+            lastPollData = JSON.parse(JSON.stringify(poll));
+            
+            // Imposta il titolo
+            $('#pollQuestion').text(poll.question);
+            
+            // Imposta il numero di voti
+            $('#totalVotes').text(poll.total_votes || 0);
+            
+            // Aggiorna il timer
+            updateTimer(poll);
+            
+            // Controlla lo stato del sondaggio
+            const pollContainer = $('#pollContainer');
+            if (poll.status === 'completed') {
+                pollContainer.addClass('poll-complete');
+                $('#pollFooter').html(`Sondaggio completato <span class="poll-completed-label">TERMINATO</span>`);
+            } else if (poll.status === 'active') {
+                pollContainer.removeClass('poll-complete');
+                $('#pollFooter').text('Vota ora!');
+            } else {
+                pollContainer.removeClass('poll-complete');
+                $('#pollFooter').text('Il sondaggio inizierà a breve');
+            }
+            
+            // Renderizza le opzioni
+            renderOptions(poll);
+        }
+        
+        // Aggiorna il timer
+        function updateTimer(poll) {
+            if (poll.status === 'active' && poll.time_remaining !== undefined) {
+                const minutes = Math.floor(poll.time_remaining / 60);
+                const seconds = Math.floor(poll.time_remaining % 60);
+                $('#pollTimer').text(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+                $('#pollTimer').show();
+            } else if (poll.status === 'completed') {
+                $('#pollTimer').hide();
+            } else {
+                $('#pollTimer').hide();
+            }
+        }
+        
+        // Renderizza le opzioni del sondaggio
+        function renderOptions(poll) {
+            const options = poll.options || [];
+            const totalVotes = poll.total_votes || 0;
+            
+            // Trova l'opzione con più voti
+            let maxVotes = 0;
+            if (poll.status === 'completed') {
+                options.forEach(option => {
+                    if (option.votes > maxVotes) {
+                        maxVotes = option.votes;
+                    }
+                });
+            }
+            
+            const optionsContainer = $('#pollOptions');
+            optionsContainer.empty();
+            
+            options.forEach((option, index) => {
+                const votes = option.votes || 0;
+                const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+                const isWinner = poll.status === 'completed' && votes === maxVotes && votes > 0;
+                
+                const delay = index * 0.1;
+                
+                const optionHtml = `
+                    <div class="poll-option ${isWinner ? 'winner' : ''}" style="animation-delay: ${delay}s;">
+                        <div class="option-fill" style="width: ${percentage}%;"></div>
+                        <div class="option-content">
+                            <div class="option-text">${option.text}</div>
+                            <div class="option-percent">${percentage}%</div>
+                        </div>
+                    </div>
+                `;
+                
+                optionsContainer.append(optionHtml);
+            });
+        }
+        
+        // Mostra un messaggio di errore
+        function showError(message) {
+            $('#pollQuestion').text('Errore');
+            $('#pollOptions').html(`<div class="error-message">${message}</div>`);
+        }
+    </script>
+</body>
+</html> 

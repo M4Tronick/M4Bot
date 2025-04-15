@@ -3,221 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>M4Bot Overlay</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>M4Bot - OBS Overlay</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        :root {
-            --primary-color: #9147ff;
-            --primary-color-dark: #7a39e0;
-            --secondary-color: #41a4ff;
-            --text-color: #ffffff;
-            --text-color-muted: rgba(255, 255, 255, 0.7);
-            --background-color: transparent;
-            --surface-color: rgba(30, 30, 40, 0.85);
-            --surface-color-alt: rgba(50, 50, 65, 0.8);
-            --border-color: rgba(255, 255, 255, 0.1);
-            --success-color: #5cdb95;
-            --warning-color: #ffcd56;
-            --danger-color: #ff6b6b;
-            --info-color: #4cc3ff;
-            --alert-bg-color: rgba(20, 20, 30, 0.9);
-            --shadow-color: rgba(0, 0, 0, 0.4);
-            
-            /* Dimensioni e animazioni personalizzabili */
-            --alert-duration: 5s;
-            --alert-font-size: 28px;
-            --alert-avatar-size: 80px;
-            --alert-height: 120px;
-            --alert-spacing: 20px;
-            --alert-border-radius: 10px;
-            --animation-speed: 0.5s;
-        }
-        
-        /* Reset e stili base */
-        * {
+        body {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
+            overflow: hidden;
+            background-color: transparent;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-            position: relative;
         }
         
-        /* Contenitore principale */
-        .overlay-container {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            pointer-events: none;
-        }
-        
-        /* Container per le diverse aree degli alert */
-        .alert-container {
-            position: absolute;
-            display: flex;
-            flex-direction: column;
-            gap: var(--alert-spacing);
-            width: 500px;
-            max-width: 80%;
-            z-index: 10;
-        }
-        
-        /* Posizionamento dei container */
-        .top-left {
-            top: 20px;
-            left: 20px;
-            align-items: flex-start;
-        }
-        
-        .top-right {
-            top: 20px;
-            right: 20px;
-            align-items: flex-end;
-        }
-        
-        .bottom-left {
-            bottom: 20px;
-            left: 20px;
-            align-items: flex-start;
-        }
-        
-        .bottom-right {
-            bottom: 20px;
-            right: 20px;
-            align-items: flex-end;
-        }
-        
-        .center-top {
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            align-items: center;
-        }
-        
-        .center-bottom {
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            align-items: center;
-        }
-        
-        /* Alert di base */
-        .alert {
-            display: flex;
-            align-items: center;
-            background-color: var(--alert-bg-color);
-            border-radius: var(--alert-border-radius);
-            padding: 15px 20px;
-            box-shadow: 0 8px 20px var(--shadow-color);
-            width: 100%;
-            min-height: var(--alert-height);
-            opacity: 0;
-            transform: translateY(20px);
-            animation: alertFadeIn var(--animation-speed) forwards, alertFadeOut var(--animation-speed) forwards var(--alert-duration);
-            border-left: 5px solid var(--primary-color);
-            overflow: hidden;
-            position: relative;
-        }
-        
-        /* Effetto sfumato sul bordo */
-        .alert::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent 50%, rgba(145, 71, 255, 0.1));
-            pointer-events: none;
-        }
-        
-        /* Avatar dell'utente */
-        .alert-avatar {
-            width: var(--alert-avatar-size);
-            height: var(--alert-avatar-size);
-            border-radius: 50%;
-            margin-right: 15px;
-            border: 3px solid var(--primary-color);
-            box-shadow: 0 0 10px rgba(145, 71, 255, 0.5);
-            object-fit: cover;
-            flex-shrink: 0;
-        }
-        
-        /* Contenuto dell'alert */
-        .alert-content {
-            flex: 1;
-        }
-        
-        .alert-title {
-            font-size: var(--alert-font-size);
-            font-weight: 700;
-            margin-bottom: 5px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .alert-message {
-            font-size: calc(var(--alert-font-size) * 0.6);
-            color: var(--text-color-muted);
-            opacity: 0;
-            transform: translateY(10px);
-            animation: messageReveal 0.3s 0.2s forwards;
-        }
-        
-        /* Badage per tipo di alert */
-        .alert-badge {
-            font-size: calc(var(--alert-font-size) * 0.5);
-            padding: 3px 8px;
-            border-radius: 20px;
-            margin-left: 10px;
-            background-color: var(--primary-color);
+        .metric-container {
             display: inline-flex;
             align-items: center;
-            gap: 5px;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 12px;
+            padding: 10px 20px;
+            margin: 10px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
         }
         
-        /* Icona dell'alert */
-        .alert-icon {
-            font-size: calc(var(--alert-font-size) * 0.8);
-            color: var(--primary-color);
-            margin-right: 5px;
-            animation: iconPulse 1.5s infinite;
+        .metric-container.youtube {
+            background-color: rgba(255, 0, 0, 0.8);
         }
         
-        /* Varianti per gli alert */
-        .follow-alert {
-            --primary-color: #9147ff;
-            border-left-color: var(--primary-color);
+        .metric-container.kick {
+            background-color: rgba(0, 187, 0, 0.8);
         }
         
-        .sub-alert {
-            --primary-color: #41a4ff;
-            border-left-color: var(--primary-color);
+        .metric-icon {
+            font-size: 1.5em;
+            margin-right: 10px;
         }
         
-        .donation-alert {
-            --primary-color: #5cdb95;
-            border-left-color: var(--primary-color);
+        .metric-value {
+            font-size: 1.8em;
+            font-weight: bold;
         }
         
-        .raid-alert {
-            --primary-color: #ff6b6b;
-            border-left-color: var(--primary-color);
+        .metric-label {
+            margin-left: 8px;
+            font-size: 1em;
+            opacity: 0.9;
         }
         
-        /* Animazioni per gli alert */
-        @keyframes alertFadeIn {
+        .pulse {
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+        
+        @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(20px);
+                transform: translateY(10px);
             }
             to {
                 opacity: 1;
@@ -225,708 +87,187 @@
             }
         }
         
-        @keyframes alertFadeOut {
-            0%, 80% {
-                opacity: 1;
-                transform: translateY(0);
-            }
-            100% {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
+        /* Stili per la modalità compatta */
+        .compact-mode .metric-container {
+            padding: 5px 10px;
+            margin: 5px;
         }
         
-        @keyframes messageReveal {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .compact-mode .metric-icon {
+            font-size: 1.2em;
         }
         
-        @keyframes iconPulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
+        .compact-mode .metric-value {
+            font-size: 1.4em;
         }
         
-        /* Design moderna per barra informazioni */
-        .info-bar {
-            position: absolute;
-            background-color: var(--alert-bg-color);
-            backdrop-filter: blur(10px);
-            padding: 15px 20px;
-            border-radius: var(--alert-border-radius);
-            box-shadow: 0 8px 20px var(--shadow-color);
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            z-index: 20;
-        }
-        
-        .info-bar.bottom {
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: auto;
-            min-width: 500px;
-        }
-        
-        .info-bar.top {
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: auto;
-            min-width: 500px;
-        }
-        
-        .info-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .info-icon {
-            font-size: 18px;
-            color: var(--primary-color);
-        }
-        
-        .info-label {
-            font-size: 14px;
-            color: var(--text-color-muted);
-        }
-        
-        .info-value {
-            font-size: 18px;
-            font-weight: 600;
-        }
-        
-        .info-divider {
-            width: 1px;
-            height: 25px;
-            background-color: var(--border-color);
-        }
-        
-        /* Layout ticker per messaggi scorrevoli */
-        .ticker-container {
-            position: absolute;
-            width: 100%;
-            overflow: hidden;
-            background-color: var(--alert-bg-color);
-            backdrop-filter: blur(10px);
-            padding: 10px 0;
-            z-index: 15;
-        }
-        
-        .ticker-container.top {
-            top: 0;
-        }
-        
-        .ticker-container.bottom {
-            bottom: 0;
-        }
-        
-        .ticker-content {
-            display: flex;
-            align-items: center;
-            white-space: nowrap;
-            animation: tickerScroll 30s linear infinite;
-            gap: 50px;
-            padding: 0 20px;
-        }
-        
-        .ticker-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .ticker-icon {
-            font-size: 18px;
-            color: var(--primary-color);
-        }
-        
-        .ticker-text {
-            font-size: 16px;
-        }
-        
-        @keyframes tickerScroll {
-            0% { transform: translateX(100%); }
-            100% { transform: translateX(-100%); }
-        }
-        
-        /* Animazioni centrali (fullscreen) */
-        .center-animation {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 30;
-            pointer-events: none;
-            opacity: 0;
-            animation: centerAnim 5s forwards;
-        }
-        
-        .center-content {
-            text-align: center;
-            background-color: var(--alert-bg-color);
-            padding: 40px 60px;
-            border-radius: var(--alert-border-radius);
-            box-shadow: 0 15px 40px var(--shadow-color);
-            transform: scale(0.8);
-            animation: centerReveal 1s forwards;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .center-content::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at center, rgba(145, 71, 255, 0.2), transparent 70%);
-            pointer-events: none;
-        }
-        
-        .center-title {
-            font-size: 48px;
-            font-weight: 800;
-            margin-bottom: 20px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .center-message {
-            font-size: 24px;
-            color: var(--text-color);
-            opacity: 0;
-            transform: translateY(20px);
-            animation: centerMessageReveal 0.5s 0.5s forwards;
-        }
-        
-        .center-icon {
-            font-size: 60px;
-            color: var(--primary-color);
-            margin-bottom: 20px;
-            animation: iconBounce 1s ease infinite;
-        }
-        
-        @keyframes centerAnim {
-            0%, 90% { opacity: 1; }
-            100% { opacity: 0; }
-        }
-        
-        @keyframes centerReveal {
-            from { transform: scale(0.8); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-        
-        @keyframes centerMessageReveal {
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes iconBounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-15px); }
-        }
-        
-        /* Barra di progresso per obiettivi */
-        .goal-bar {
-            position: absolute;
-            width: 300px;
-            background-color: var(--alert-bg-color);
-            border-radius: var(--alert-border-radius);
-            padding: 15px;
-            box-shadow: 0 8px 20px var(--shadow-color);
-            z-index: 25;
-        }
-        
-        .goal-bar.left {
-            left: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-        
-        .goal-bar.right {
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-        
-        .goal-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .goal-progress-container {
-            width: 100%;
-            height: 10px;
-            background-color: var(--surface-color-alt);
-            border-radius: 5px;
-            overflow: hidden;
-            margin-bottom: 10px;
-        }
-        
-        .goal-progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-            border-radius: 5px;
-            width: 65%;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .goal-progress-bar::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
-            animation: progressShine 2s infinite;
-        }
-        
-        .goal-stats {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-        }
-        
-        .goal-current {
-            color: var(--text-color);
-        }
-        
-        .goal-target {
-            color: var(--text-color-muted);
-        }
-        
-        @keyframes progressShine {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-        
-        /* Notifica per eventi recenti (ultimo follower, donatore, ecc.) */
-        .recent-events {
-            position: absolute;
-            width: 250px;
-            background-color: var(--alert-bg-color);
-            border-radius: var(--alert-border-radius);
-            padding: 15px;
-            box-shadow: 0 8px 20px var(--shadow-color);
-            z-index: 15;
-        }
-        
-        .recent-events.left {
-            left: 20px;
-            top: 150px;
-        }
-        
-        .recent-events.right {
-            right: 20px;
-            top: 150px;
-        }
-        
-        .recent-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            text-align: center;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .recent-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        
-        .recent-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .recent-icon {
-            width: 25px;
-            height: 25px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            background-color: var(--surface-color-alt);
-            color: var(--primary-color);
-            font-size: 12px;
-        }
-        
-        .recent-text {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .recent-label {
-            font-size: 12px;
-            color: var(--text-color-muted);
-        }
-        
-        .recent-value {
-            font-size: 14px;
-            font-weight: 500;
-        }
-        
-        /* Modificatori per tema personalizzato */
-        .neon-theme {
-            --primary-color: #00ff9f;
-            --secondary-color: #00b8ff;
-            --alert-bg-color: rgba(10, 10, 20, 0.9);
-            --shadow-color: rgba(0, 255, 159, 0.4);
-        }
-        
-        .retro-theme {
-            --primary-color: #ff00ff;
-            --secondary-color: #00ffff;
-            --alert-bg-color: rgba(40, 0, 40, 0.9);
-            --shadow-color: rgba(255, 0, 255, 0.4);
-        }
-        
-        .minimal-theme {
-            --primary-color: #ffffff;
-            --secondary-color: #cccccc;
-            --alert-bg-color: rgba(0, 0, 0, 0.7);
-            --shadow-color: rgba(255, 255, 255, 0.2);
-        }
-        
-        /* Animazione per confetti per grandi eventi */
-        .confetti-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 100;
-            overflow: hidden;
-        }
-        
-        .confetti {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background-color: var(--primary-color);
-            opacity: 0.8;
-            animation: confettiFall 5s linear forwards;
-        }
-        
-        @keyframes confettiFall {
-            0% {
-                transform: translateY(-100px) rotate(0deg);
-                opacity: 1;
-            }
-            100% {
-                transform: translateY(calc(100vh + 100px)) rotate(360deg);
-                opacity: 0;
-            }
+        .compact-mode .metric-label {
+            font-size: 0.8em;
         }
     </style>
 </head>
 <body>
-    <div class="overlay-container">
-        <!-- Container degli alert per le varie posizioni -->
-        <div class="alert-container top-right">
-            <!-- Esempi di alert -->
-            <div class="alert follow-alert">
-                <img src="https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile_0-70x70.png" alt="User avatar" class="alert-avatar">
-                <div class="alert-content">
-                    <div class="alert-title">
-                        <i class="fas fa-star alert-icon"></i>
-                        <span>Nuovo Follower</span>
-                        <span class="alert-badge"><i class="fas fa-heart"></i> Follow</span>
-                    </div>
-                    <div class="alert-message">StreamUser123 ha appena iniziato a seguirti!</div>
-                </div>
-            </div>
-            
-            <div class="alert sub-alert">
-                <img src="https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile_0-70x70.png" alt="User avatar" class="alert-avatar">
-                <div class="alert-content">
-                    <div class="alert-title">
-                        <i class="fas fa-gem alert-icon"></i>
-                        <span>Nuovo Abbonato</span>
-                        <span class="alert-badge"><i class="fas fa-crown"></i> Tier 1</span>
-                    </div>
-                    <div class="alert-message">SuperFan456 si è abbonato per 3 mesi consecutivi!</div>
-                </div>
+    <div id="metrics-container" class="d-flex flex-wrap">
+        <!-- YouTube Like Counter -->
+        <div id="youtube-likes" class="metric-container youtube" style="display: none;">
+            <i class="metric-icon fab fa-youtube"></i>
+            <div>
+                <span class="metric-value" id="youtube-likes-count">0</span>
+                <span class="metric-label"><i class="fas fa-thumbs-up"></i></span>
             </div>
         </div>
         
-        <!-- Barra informazioni -->
-        <div class="info-bar bottom">
-            <div class="info-item">
-                <i class="fas fa-users info-icon"></i>
-                <div>
-                    <div class="info-label">Spettatori</div>
-                    <div class="info-value">247</div>
-                </div>
-            </div>
-            
-            <div class="info-divider"></div>
-            
-            <div class="info-item">
-                <i class="fas fa-heart info-icon"></i>
-                <div>
-                    <div class="info-label">Nuovi follower</div>
-                    <div class="info-value">12</div>
-                </div>
-            </div>
-            
-            <div class="info-divider"></div>
-            
-            <div class="info-item">
-                <i class="fas fa-gem info-icon"></i>
-                <div>
-                    <div class="info-label">Abbonati</div>
-                    <div class="info-value">56</div>
-                </div>
-            </div>
-            
-            <div class="info-divider"></div>
-            
-            <div class="info-item">
-                <i class="fas fa-stopwatch info-icon"></i>
-                <div>
-                    <div class="info-label">Uptime</div>
-                    <div class="info-value">2:45:12</div>
-                </div>
+        <!-- YouTube Live Viewers -->
+        <div id="youtube-viewers" class="metric-container youtube" style="display: none;">
+            <i class="metric-icon fab fa-youtube"></i>
+            <div>
+                <span class="metric-value" id="youtube-viewers-count">0</span>
+                <span class="metric-label"><i class="fas fa-user"></i></span>
             </div>
         </div>
         
-        <!-- Barra ticker inferiore -->
-        <div class="ticker-container bottom">
-            <div class="ticker-content">
-                <div class="ticker-item">
-                    <i class="fas fa-trophy ticker-icon"></i>
-                    <span class="ticker-text">PremiumUser999 ha donato 1000 bits!</span>
-                </div>
-                
-                <div class="ticker-item">
-                    <i class="fas fa-star ticker-icon"></i>
-                    <span class="ticker-text">TopStreamer ha effettuato un raid con 120 spettatori!</span>
-                </div>
-                
-                <div class="ticker-item">
-                    <i class="fas fa-calendar ticker-icon"></i>
-                    <span class="ticker-text">Prossimo evento: Torneo di Fortnite - Domenica ore 18:00</span>
-                </div>
-                
-                <div class="ticker-item">
-                    <i class="fas fa-gift ticker-icon"></i>
-                    <span class="ticker-text">Abbonati per sbloccare 10 nuove emote esclusive!</span>
-                </div>
-                
-                <div class="ticker-item">
-                    <i class="fas fa-bullhorn ticker-icon"></i>
-                    <span class="ticker-text">Usa il codice "STREAM10" per uno sconto del 10% sui prodotti!</span>
-                </div>
+        <!-- Kick Live Viewers -->
+        <div id="kick-viewers" class="metric-container kick" style="display: none;">
+            <i class="metric-icon fab fa-kickstarter-k"></i>
+            <div>
+                <span class="metric-value" id="kick-viewers-count">0</span>
+                <span class="metric-label"><i class="fas fa-user"></i></span>
             </div>
         </div>
-        
-        <!-- Animazione centrale (esempio) -->
-        <div class="center-animation">
-            <div class="center-content">
-                <i class="fas fa-gift center-icon"></i>
-                <div class="center-title">SUPER DONAZIONE!</div>
-                <div class="center-message">MegaFan2000 ha donato €50.00!</div>
-            </div>
-        </div>
-        
-        <!-- Barra obiettivo -->
-        <div class="goal-bar right">
-            <div class="goal-title">
-                <span>Obiettivo abbonati</span>
-                <span>65%</span>
-            </div>
-            <div class="goal-progress-container">
-                <div class="goal-progress-bar" style="width: 65%"></div>
-            </div>
-            <div class="goal-stats">
-                <div class="goal-current">65/100</div>
-                <div class="goal-target">Obiettivo: 100</div>
-            </div>
-        </div>
-        
-        <!-- Eventi recenti -->
-        <div class="recent-events left">
-            <div class="recent-title">Eventi Recenti</div>
-            <div class="recent-list">
-                <div class="recent-item">
-                    <div class="recent-icon">
-                        <i class="fas fa-heart"></i>
-                    </div>
-                    <div class="recent-text">
-                        <div class="recent-label">Ultimo follower</div>
-                        <div class="recent-value">GameMaster42</div>
-                    </div>
-                </div>
-                
-                <div class="recent-item">
-                    <div class="recent-icon">
-                        <i class="fas fa-gem"></i>
-                    </div>
-                    <div class="recent-text">
-                        <div class="recent-label">Ultimo abbonato</div>
-                        <div class="recent-value">StreamLover99</div>
-                    </div>
-                </div>
-                
-                <div class="recent-item">
-                    <div class="recent-icon">
-                        <i class="fas fa-coins"></i>
-                    </div>
-                    <div class="recent-text">
-                        <div class="recent-label">Ultima donazione</div>
-                        <div class="recent-value">SuperTipper - €25</div>
-                    </div>
-                </div>
-                
-                <div class="recent-item">
-                    <div class="recent-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <div class="recent-text">
-                        <div class="recent-label">Ultimo raid</div>
-                        <div class="recent-value">ProGamer - 75 spettatori</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Container per l'animazione confetti (per grandi eventi) -->
-        <div class="confetti-container" id="confettiContainer"></div>
     </div>
     
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Simulazione di nuovi alert
-            setTimeout(function() {
-                createAlert('donation-alert', 'https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile_0-70x70.png', 'Nuova Donazione', 'BigDonor777 ha donato €10.00!', 'Donazione');
-            }, 6000);
+        // Configurazione
+        const config = {
+            refreshInterval: {{ refresh_interval | default(5000) }}, // Milliseconds
+            compactMode: {{ 'true' if compact_mode else 'false' }},
+            showYoutubeLikes: {{ 'true' if show_youtube_likes else 'false' }},
+            showYoutubeViewers: {{ 'true' if show_youtube_viewers else 'false' }},
+            showKickViewers: {{ 'true' if show_kick_viewers else 'false' }},
+            animateChanges: {{ 'true' if animate_changes else 'false' }},
+            formatNumbers: {{ 'true' if format_numbers else 'false' }}
+        };
+        
+        // Elementi DOM
+        const metricsContainer = document.getElementById('metrics-container');
+        const youtubeLikesElement = document.getElementById('youtube-likes');
+        const youtubeLikesCount = document.getElementById('youtube-likes-count');
+        const youtubeViewersElement = document.getElementById('youtube-viewers');
+        const youtubeViewersCount = document.getElementById('youtube-viewers-count');
+        const kickViewersElement = document.getElementById('kick-viewers');
+        const kickViewersCount = document.getElementById('kick-viewers-count');
+        
+        // Valori correnti
+        let currentYoutubeLikes = 0;
+        let currentYoutubeViewers = 0;
+        let currentKickViewers = 0;
+        
+        // Imposta la modalità compatta se richiesta
+        if (config.compactMode) {
+            metricsContainer.classList.add('compact-mode');
+        }
+        
+        // Mostra/nascondi metriche in base alla configurazione
+        if (config.showYoutubeLikes) {
+            youtubeLikesElement.style.display = 'inline-flex';
+        }
+        
+        if (config.showYoutubeViewers) {
+            youtubeViewersElement.style.display = 'inline-flex';
+        }
+        
+        if (config.showKickViewers) {
+            kickViewersElement.style.display = 'inline-flex';
+        }
+        
+        // Formatta i numeri per la leggibilità (es. 1,500 invece di 1500)
+        function formatNumber(num) {
+            if (!config.formatNumbers) return num.toString();
             
-            setTimeout(function() {
-                createAlert('raid-alert', 'https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile_0-70x70.png', 'Nuovo Raid', 'PopularStreamer ha effettuato un raid con 87 spettatori!', 'Raid');
-                showConfetti(100);
-            }, 10000);
-            
-            // Funzione per creare un nuovo alert dinamicamente
-            function createAlert(className, avatar, title, message, badgeText) {
-                const alertContainer = document.querySelector('.alert-container.top-right');
-                
-                const alert = document.createElement('div');
-                alert.className = `alert ${className}`;
-                
-                const alertContent = `
-                    <img src="${avatar}" alt="User avatar" class="alert-avatar">
-                    <div class="alert-content">
-                        <div class="alert-title">
-                            <i class="fas fa-${getBadgeIcon(className)} alert-icon"></i>
-                            <span>${title}</span>
-                            <span class="alert-badge"><i class="fas fa-${getBadgeIcon(className)}"></i> ${badgeText}</span>
-                        </div>
-                        <div class="alert-message">${message}</div>
-                    </div>
-                `;
-                
-                alert.innerHTML = alertContent;
-                alertContainer.appendChild(alert);
-                
-                // Rimuovi l'alert dopo la fine dell'animazione
-            setTimeout(() => {
-                    alert.remove();
-                }, parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--alert-duration')) * 1000);
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1) + 'M';
+            } else if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'K';
             }
+            return num.toString();
+        }
+        
+        // Aggiorna un contatore con animazione opzionale
+        function updateCounter(element, newValue, oldValue) {
+            const formattedValue = formatNumber(newValue);
+            element.textContent = formattedValue;
             
-            // Funzione per ottenere l'icona appropriata per il tipo di alert
-            function getBadgeIcon(className) {
-                switch(className) {
-                    case 'follow-alert': return 'star';
-                    case 'sub-alert': return 'gem';
-                    case 'donation-alert': return 'coins';
-                    case 'raid-alert': return 'users';
-                    default: return 'bell';
-                }
+            if (config.animateChanges && newValue > oldValue) {
+                element.classList.add('pulse');
+                setTimeout(() => {
+                    element.classList.remove('pulse');
+                }, 1000);
             }
-            
-            // Funzione per aggiornare dinamicamente l'uptime
-            function updateUptime() {
-                const uptimeElement = document.querySelector('.info-value:nth-child(2)');
-                let [hours, minutes, seconds] = uptimeElement.textContent.split(':').map(Number);
+        }
+        
+        // Funzione per aggiornare le metriche
+        async function updateMetrics() {
+            try {
+                // Richiesta all'API per ottenere le metriche aggiornate
+                const response = await fetch('/api/metrics/live');
+                const data = await response.json();
                 
-                seconds++;
-                if (seconds >= 60) {
-                    seconds = 0;
-                    minutes++;
-                    if (minutes >= 60) {
-                        minutes = 0;
-                        hours++;
-                    }
-                }
-                
-                uptimeElement.textContent = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            }
-            
-            // Aggiorna l'uptime ogni secondo
-            setInterval(updateUptime, 1000);
-            
-            // Funzione per generare confetti
-            function showConfetti(count) {
-                const container = document.getElementById('confettiContainer');
-                const colors = ['#9147ff', '#41a4ff', '#5cdb95', '#ff6b6b', '#f7d51d'];
-                
-                for (let i = 0; i < count; i++) {
-                    const confetti = document.createElement('div');
-                    confetti.className = 'confetti';
-                    confetti.style.left = Math.random() * 100 + '%';
-                    confetti.style.width = Math.random() * 10 + 5 + 'px';
-                    confetti.style.height = confetti.style.width;
-                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
-                    confetti.style.animationDuration = Math.random() * 3 + 2 + 's';
-                    
-                    // Forma casuale
-                    if (Math.random() > 0.5) {
-                        confetti.style.borderRadius = '50%';
-                    } else if (Math.random() > 0.5) {
-                        confetti.style.borderRadius = '2px';
-                        confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                if (data.success) {
+                    // Aggiorna YouTube Likes
+                    if (config.showYoutubeLikes && data.youtube && data.youtube.likes !== undefined) {
+                        const newLikes = parseInt(data.youtube.likes, 10);
+                        updateCounter(youtubeLikesCount, newLikes, currentYoutubeLikes);
+                        currentYoutubeLikes = newLikes;
                     }
                     
-                    container.appendChild(confetti);
+                    // Aggiorna YouTube Viewers
+                    if (config.showYoutubeViewers && data.youtube && data.youtube.live_viewers !== undefined) {
+                        const newViewers = parseInt(data.youtube.live_viewers, 10);
+                        updateCounter(youtubeViewersCount, newViewers, currentYoutubeViewers);
+                        currentYoutubeViewers = newViewers;
+                        
+                        // Mostra/nascondi in base allo stato della diretta
+                        if (data.youtube.live_status) {
+                            youtubeViewersElement.classList.remove('hidden');
+                        } else if (!data.youtube.live_status && !config.showOfflineViewers) {
+                            youtubeViewersElement.classList.add('hidden');
+                        }
+                    }
                     
-                    // Rimuovi il confetto dopo l'animazione
-                    setTimeout(() => {
-                        confetti.remove();
-                    }, parseFloat(getComputedStyle(confetti).animationDuration) * 1000);
+                    // Aggiorna Kick Viewers
+                    if (config.showKickViewers && data.kick && data.kick.live_viewers !== undefined) {
+                        const newViewers = parseInt(data.kick.live_viewers, 10);
+                        updateCounter(kickViewersCount, newViewers, currentKickViewers);
+                        currentKickViewers = newViewers;
+                        
+                        // Mostra/nascondi in base allo stato della diretta
+                        if (data.kick.live_status) {
+                            kickViewersElement.classList.remove('hidden');
+                        } else if (!data.kick.live_status && !config.showOfflineViewers) {
+                            kickViewersElement.classList.add('hidden');
+                        }
+                    }
                 }
+            } catch (error) {
+                console.error('Errore durante l\'aggiornamento delle metriche:', error);
             }
             
-            // Funzione per aggiornare il tema
-            function changeTheme(theme) {
-                document.body.className = theme;
-            }
+            // Pianifica il prossimo aggiornamento
+            setTimeout(updateMetrics, config.refreshInterval);
+        }
+        
+        // Avvia l'aggiornamento delle metriche
+        document.addEventListener('DOMContentLoaded', () => {
+            // Animazione iniziale
+            const metrics = document.querySelectorAll('.metric-container');
+            metrics.forEach((metric, index) => {
+                setTimeout(() => {
+                    metric.classList.add('fade-in');
+                }, index * 200);
+            });
             
-            // Esempio di cambio tema (uncommenta per testare)
-            // setTimeout(() => changeTheme('neon-theme'), 5000);
-            // setTimeout(() => changeTheme('retro-theme'), 10000);
-            // setTimeout(() => changeTheme('minimal-theme'), 15000);
+            // Primo aggiornamento
+            updateMetrics();
         });
     </script>
 </body>

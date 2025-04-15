@@ -1,0 +1,1001 @@
+{% extends "base.html" %}
+
+{% block title %}M4Bot - Programmazione Contenuti{% endblock %}
+
+{% block styles %}
+<style>
+    .scheduler-card {
+        transition: transform 0.3s;
+        margin-bottom: 1rem;
+    }
+    
+    .scheduler-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .scheduled-item {
+        border-left: 4px solid #3498db;
+    }
+    
+    .completed-item {
+        border-left: 4px solid #2ecc71;
+    }
+    
+    .failed-item {
+        border-left: 4px solid #e74c3c;
+    }
+    
+    .parameter-badge {
+        background-color: #f8f9fa;
+        color: #495057;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+        display: inline-block;
+        font-size: 0.875rem;
+    }
+    
+    .tab-pane {
+        padding-top: 1.5rem;
+    }
+    
+    #calendar {
+        height: 600px;
+    }
+    
+    .fc-event {
+        cursor: pointer;
+    }
+    
+    .item-details h6 {
+        margin-bottom: 0.25rem;
+        margin-top: 0.75rem;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        color: #dee2e6;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Programmazione Contenuti</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">Programmazione Contenuti</h1>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createItemModal">
+            <i class="fas fa-plus me-2"></i>Nuovo Elemento
+        </button>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="schedulerTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="scheduled-tab" data-bs-toggle="tab" data-bs-target="#scheduled" type="button" role="tab" aria-controls="scheduled" aria-selected="true">
+                                <i class="fas fa-clock me-2"></i>Programmati
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="calendar-tab" data-bs-toggle="tab" data-bs-target="#calendar-view" type="button" role="tab" aria-controls="calendar-view" aria-selected="false">
+                                <i class="fas fa-calendar-alt me-2"></i>Calendario
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab" aria-controls="history" aria-selected="false">
+                                <i class="fas fa-history me-2"></i>Storico
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="schedulerTabContent">
+                        <!-- Scheduled Items Tab -->
+                        <div class="tab-pane fade show active" id="scheduled" role="tabpanel" aria-labelledby="scheduled-tab">
+                            <div class="row" id="scheduledItems">
+                                <!-- Scheduled items will be loaded here via JavaScript -->
+                                <div class="col-12 empty-state" id="emptyScheduled">
+                                    <i class="fas fa-calendar-day"></i>
+                                    <h4>Nessun contenuto programmato</h4>
+                                    <p>Inizia aggiungendo nuovi contenuti da pubblicare automaticamente</p>
+                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createItemModal">
+                                        <i class="fas fa-plus me-2"></i>Nuovo Elemento
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Calendar View Tab -->
+                        <div class="tab-pane fade" id="calendar-view" role="tabpanel" aria-labelledby="calendar-tab">
+                            <div id="calendar"></div>
+                        </div>
+                        
+                        <!-- History Tab -->
+                        <div class="tab-pane fade" id="history" role="tabpanel" aria-labelledby="history-tab">
+                            <div class="table-responsive">
+                                <table class="table table-striped" id="historyTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Titolo</th>
+                                            <th>Tipo</th>
+                                            <th>Piattaforma</th>
+                                            <th>Schedulato per</th>
+                                            <th>Eseguito il</th>
+                                            <th>Stato</th>
+                                            <th>Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- History items will be loaded here via JavaScript -->
+                                    </tbody>
+                                </table>
+                                <div class="col-12 empty-state" id="emptyHistory">
+                                    <i class="fas fa-history"></i>
+                                    <h4>Nessuna pubblicazione nello storico</h4>
+                                    <p>Lo storico mostrerà le pubblicazioni completate o fallite</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Item Modal -->
+<div class="modal fade" id="createItemModal" tabindex="-1" aria-labelledby="createItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createItemModalLabel">Programma Nuovo Contenuto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createItemForm">
+                    <div class="mb-3">
+                        <label for="itemTitle" class="form-label">Titolo</label>
+                        <input type="text" class="form-control" id="itemTitle" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="itemType" class="form-label">Tipo di Contenuto</label>
+                                <select class="form-select" id="itemType" required>
+                                    <option value="" selected disabled>Seleziona tipo...</option>
+                                    <option value="message">Messaggio</option>
+                                    <option value="poll">Sondaggio</option>
+                                    <option value="giveaway">Giveaway</option>
+                                    <option value="announcement">Annuncio</option>
+                                    <option value="reminder">Promemoria</option>
+                                    <option value="custom">Personalizzato</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="itemPlatform" class="form-label">Piattaforma</label>
+                                <select class="form-select" id="itemPlatform" required>
+                                    <option value="" selected disabled>Seleziona piattaforma...</option>
+                                    <option value="youtube">YouTube</option>
+                                    <option value="twitch">Twitch</option>
+                                    <option value="telegram">Telegram</option>
+                                    <option value="whatsapp">WhatsApp</option>
+                                    <option value="discord">Discord</option>
+                                    <option value="kick">Kick</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="itemContent" class="form-label">Contenuto</label>
+                        <textarea class="form-control" id="itemContent" rows="5" required></textarea>
+                        <small class="text-muted">Puoi usare variabili come {channel}, {date}, {time}, ecc.</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="scheduledDate" class="form-label">Data</label>
+                                <input type="date" class="form-control" id="scheduledDate" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="scheduledTime" class="form-label">Ora</label>
+                                <input type="time" class="form-control" id="scheduledTime" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Opzioni</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="repeatEnabled">
+                            <label class="form-check-label" for="repeatEnabled">
+                                Ripeti
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="repeatOptionsContainer" class="mb-3 border rounded p-3" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="repeatInterval" class="form-label">Intervallo</label>
+                                    <select class="form-select" id="repeatInterval">
+                                        <option value="daily">Giornaliero</option>
+                                        <option value="weekly">Settimanale</option>
+                                        <option value="monthly">Mensile</option>
+                                        <option value="custom">Personalizzato</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6 custom-interval-container" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="customInterval" class="form-label">Intervallo Personalizzato (ore)</label>
+                                    <input type="number" class="form-control" id="customInterval" min="1" value="24">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="repeatEnd" class="form-label">Termina Dopo</label>
+                                    <select class="form-select" id="repeatEnd">
+                                        <option value="never">Mai</option>
+                                        <option value="after">Dopo N occorrenze</option>
+                                        <option value="on-date">In data</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6 repeat-end-occurrences" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="repeatOccurrences" class="form-label">Numero Occorrenze</label>
+                                    <input type="number" class="form-control" id="repeatOccurrences" min="1" value="5">
+                                </div>
+                            </div>
+                            <div class="col-md-6 repeat-end-date" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="repeatEndDate" class="form-label">Data Fine</label>
+                                    <input type="date" class="form-control" id="repeatEndDate">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="saveItemBtn">Salva</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View/Edit Item Modal -->
+<div class="modal fade" id="editItemModal" tabindex="-1" aria-labelledby="editItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editItemModalLabel">Modifica Contenuto Programmato</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editItemForm">
+                    <input type="hidden" id="editItemId">
+                    <!-- Same form fields as create modal -->
+                    <div class="mb-3">
+                        <label for="editItemTitle" class="form-label">Titolo</label>
+                        <input type="text" class="form-control" id="editItemTitle" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editItemType" class="form-label">Tipo di Contenuto</label>
+                                <select class="form-select" id="editItemType" required>
+                                    <option value="" selected disabled>Seleziona tipo...</option>
+                                    <option value="message">Messaggio</option>
+                                    <option value="poll">Sondaggio</option>
+                                    <option value="giveaway">Giveaway</option>
+                                    <option value="announcement">Annuncio</option>
+                                    <option value="reminder">Promemoria</option>
+                                    <option value="custom">Personalizzato</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editItemPlatform" class="form-label">Piattaforma</label>
+                                <select class="form-select" id="editItemPlatform" required>
+                                    <option value="" selected disabled>Seleziona piattaforma...</option>
+                                    <option value="youtube">YouTube</option>
+                                    <option value="twitch">Twitch</option>
+                                    <option value="telegram">Telegram</option>
+                                    <option value="whatsapp">WhatsApp</option>
+                                    <option value="discord">Discord</option>
+                                    <option value="kick">Kick</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editItemContent" class="form-label">Contenuto</label>
+                        <textarea class="form-control" id="editItemContent" rows="5" required></textarea>
+                        <small class="text-muted">Puoi usare variabili come {channel}, {date}, {time}, ecc.</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editScheduledDate" class="form-label">Data</label>
+                                <input type="date" class="form-control" id="editScheduledDate" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editScheduledTime" class="form-label">Ora</label>
+                                <input type="time" class="form-control" id="editScheduledTime" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Repeat options same as create modal -->
+                    <div class="mb-3">
+                        <label class="form-label">Opzioni</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editRepeatEnabled">
+                            <label class="form-check-label" for="editRepeatEnabled">
+                                Ripeti
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="editRepeatOptionsContainer" class="mb-3 border rounded p-3" style="display: none;">
+                        <!-- Same repeat options as create modal -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editRepeatInterval" class="form-label">Intervallo</label>
+                                    <select class="form-select" id="editRepeatInterval">
+                                        <option value="daily">Giornaliero</option>
+                                        <option value="weekly">Settimanale</option>
+                                        <option value="monthly">Mensile</option>
+                                        <option value="custom">Personalizzato</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6 edit-custom-interval-container" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="editCustomInterval" class="form-label">Intervallo Personalizzato (ore)</label>
+                                    <input type="number" class="form-control" id="editCustomInterval" min="1" value="24">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editRepeatEnd" class="form-label">Termina Dopo</label>
+                                    <select class="form-select" id="editRepeatEnd">
+                                        <option value="never">Mai</option>
+                                        <option value="after">Dopo N occorrenze</option>
+                                        <option value="on-date">In data</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6 edit-repeat-end-occurrences" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="editRepeatOccurrences" class="form-label">Numero Occorrenze</label>
+                                    <input type="number" class="form-control" id="editRepeatOccurrences" min="1" value="5">
+                                </div>
+                            </div>
+                            <div class="col-md-6 edit-repeat-end-date" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="editRepeatEndDate" class="form-label">Data Fine</label>
+                                    <input type="date" class="form-control" id="editRepeatEndDate">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger me-auto" id="deleteItemBtn">Elimina</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="updateItemBtn">Aggiorna</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">Conferma Eliminazione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Sei sicuro di voler eliminare questo elemento programmato?</p>
+                <p>Questa azione non può essere annullata.</p>
+                <input type="hidden" id="deleteItemId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Elimina</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css" rel="stylesheet">
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize FullCalendar
+        const calendarEl = document.getElementById('calendar');
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            eventClick: function(info) {
+                openEditModal(info.event.id);
+            },
+            eventTimeFormat: {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            }
+        });
+        calendar.render();
+        
+        // Load scheduled items
+        loadScheduledItems();
+        
+        // Load history items
+        loadHistoryItems();
+        
+        // Toggle repeat options
+        document.getElementById('repeatEnabled').addEventListener('change', function() {
+            document.getElementById('repeatOptionsContainer').style.display = this.checked ? 'block' : 'none';
+        });
+        
+        document.getElementById('editRepeatEnabled').addEventListener('change', function() {
+            document.getElementById('editRepeatOptionsContainer').style.display = this.checked ? 'block' : 'none';
+        });
+        
+        // Toggle custom interval inputs
+        document.getElementById('repeatInterval').addEventListener('change', function() {
+            document.querySelector('.custom-interval-container').style.display = 
+                this.value === 'custom' ? 'block' : 'none';
+        });
+        
+        document.getElementById('editRepeatInterval').addEventListener('change', function() {
+            document.querySelector('.edit-custom-interval-container').style.display = 
+                this.value === 'custom' ? 'block' : 'none';
+        });
+        
+        // Toggle repeat end inputs
+        document.getElementById('repeatEnd').addEventListener('change', function() {
+            document.querySelector('.repeat-end-occurrences').style.display = 
+                this.value === 'after' ? 'block' : 'none';
+            document.querySelector('.repeat-end-date').style.display = 
+                this.value === 'on-date' ? 'block' : 'none';
+        });
+        
+        document.getElementById('editRepeatEnd').addEventListener('change', function() {
+            document.querySelector('.edit-repeat-end-occurrences').style.display = 
+                this.value === 'after' ? 'block' : 'none';
+            document.querySelector('.edit-repeat-end-date').style.display = 
+                this.value === 'on-date' ? 'block' : 'none';
+        });
+        
+        // Set default date values to today
+        const today = new Date();
+        const dateString = today.toISOString().split('T')[0];
+        document.getElementById('scheduledDate').value = dateString;
+        
+        // Save new scheduled item
+        document.getElementById('saveItemBtn').addEventListener('click', function() {
+            saveScheduledItem();
+        });
+        
+        // Update scheduled item
+        document.getElementById('updateItemBtn').addEventListener('click', function() {
+            updateScheduledItem();
+        });
+        
+        // Delete button in edit modal
+        document.getElementById('deleteItemBtn').addEventListener('click', function() {
+            const itemId = document.getElementById('editItemId').value;
+            document.getElementById('deleteItemId').value = itemId;
+            $('#editItemModal').modal('hide');
+            $('#deleteConfirmModal').modal('show');
+        });
+        
+        // Confirm delete button
+        document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+            const itemId = document.getElementById('deleteItemId').value;
+            deleteScheduledItem(itemId);
+        });
+    });
+    
+    // Function to load scheduled items
+    function loadScheduledItems() {
+        fetch('/api/scheduler/items')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const scheduledItems = document.getElementById('scheduledItems');
+                    const calendarEvents = [];
+                    
+                    // Clear existing items
+                    document.getElementById('emptyScheduled').style.display = 
+                        data.items.length > 0 ? 'none' : 'block';
+                    
+                    // Clear scheduled items except empty state
+                    const existingItems = scheduledItems.querySelectorAll('.col-md-4');
+                    existingItems.forEach(item => item.remove());
+                    
+                    // Add each item
+                    data.items.forEach(item => {
+                        // Add to card view
+                        const itemHtml = createItemCard(item);
+                        scheduledItems.insertAdjacentHTML('afterbegin', itemHtml);
+                        
+                        // Add to calendar
+                        calendarEvents.push({
+                            id: item.id,
+                            title: item.title,
+                            start: new Date(item.scheduled_time),
+                            backgroundColor: getPlatformColor(item.platform),
+                            borderColor: getPlatformColor(item.platform)
+                        });
+                    });
+                    
+                    // Update calendar events
+                    const calendar = document.querySelector('#calendar').FullCalendar;
+                    if (calendar) {
+                        calendar.removeAllEvents();
+                        calendar.addEventSource(calendarEvents);
+                    }
+                } else {
+                    showAlert('Errore nel caricamento degli elementi programmati', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading scheduled items:', error);
+                showAlert('Errore di connessione', 'danger');
+            });
+    }
+    
+    // Function to load history items
+    function loadHistoryItems() {
+        fetch('/api/scheduler/history')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const historyTableBody = document.querySelector('#historyTable tbody');
+                    
+                    // Clear existing items
+                    historyTableBody.innerHTML = '';
+                    document.getElementById('emptyHistory').style.display = 
+                        data.items.length > 0 ? 'none' : 'block';
+                    
+                    // Add each history item
+                    data.items.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.className = item.status === 'success' ? 'table-success' : 'table-danger';
+                        
+                        row.innerHTML = `
+                            <td>${item.title}</td>
+                            <td>${getItemTypeLabel(item.type)}</td>
+                            <td>${getPlatformLabel(item.platform)}</td>
+                            <td>${formatDateTime(item.scheduled_time)}</td>
+                            <td>${formatDateTime(item.executed_time)}</td>
+                            <td>
+                                <span class="badge ${item.status === 'success' ? 'bg-success' : 'bg-danger'}">
+                                    ${item.status === 'success' ? 'Successo' : 'Fallito'}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-info view-details-btn" data-item-id="${item.id}">
+                                    <i class="fas fa-info-circle"></i>
+                                </button>
+                            </td>
+                        `;
+                        
+                        historyTableBody.appendChild(row);
+                    });
+                    
+                    // Add event listeners for view details buttons
+                    document.querySelectorAll('.view-details-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const itemId = this.getAttribute('data-item-id');
+                            viewHistoryItemDetails(itemId);
+                        });
+                    });
+                } else {
+                    showAlert('Errore nel caricamento dello storico', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading history items:', error);
+                showAlert('Errore di connessione', 'danger');
+            });
+    }
+    
+    // Function to create an item card HTML
+    function createItemCard(item) {
+        const scheduledDate = new Date(item.scheduled_time);
+        const isRecurring = item.repeat_info && item.repeat_info.enabled;
+        
+        return `
+            <div class="col-md-4">
+                <div class="card scheduler-card scheduled-item">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">${item.title}</h5>
+                        <div>
+                            ${isRecurring ? '<i class="fas fa-sync-alt me-2" title="Ricorrente"></i>' : ''}
+                            <span class="badge bg-primary">${getPlatformLabel(item.platform)}</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">${getItemTypeLabel(item.type)}</h6>
+                        <p class="card-text">${truncateText(item.content, 100)}</p>
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div>
+                                <i class="far fa-calendar-alt me-1"></i> ${formatDate(scheduledDate)}
+                                <br>
+                                <i class="far fa-clock me-1"></i> ${formatTime(scheduledDate)}
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-success me-1 execute-now-btn" data-item-id="${item.id}" title="Esegui ora">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                                <button class="btn btn-sm btn-primary edit-item-btn" data-item-id="${item.id}" title="Modifica">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Function to save a new scheduled item
+    function saveScheduledItem() {
+        const form = document.getElementById('createItemForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        // Build scheduled time
+        const date = document.getElementById('scheduledDate').value;
+        const time = document.getElementById('scheduledTime').value;
+        const scheduledDateTime = new Date(`${date}T${time}`);
+        
+        // Build repeat info
+        const repeatEnabled = document.getElementById('repeatEnabled').checked;
+        let repeatInfo = null;
+        
+        if (repeatEnabled) {
+            const interval = document.getElementById('repeatInterval').value;
+            const endType = document.getElementById('repeatEnd').value;
+            
+            repeatInfo = {
+                enabled: true,
+                interval: interval,
+                custom_interval: interval === 'custom' ? parseInt(document.getElementById('customInterval').value) : null,
+                end_type: endType,
+                occurrences: endType === 'after' ? parseInt(document.getElementById('repeatOccurrences').value) : null,
+                end_date: endType === 'on-date' ? document.getElementById('repeatEndDate').value : null
+            };
+        }
+        
+        const itemData = {
+            title: document.getElementById('itemTitle').value,
+            type: document.getElementById('itemType').value,
+            platform: document.getElementById('itemPlatform').value,
+            content: document.getElementById('itemContent').value,
+            scheduled_time: scheduledDateTime.toISOString(),
+            repeat_info: repeatInfo
+        };
+        
+        fetch('/api/scheduler/items', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(itemData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                $('#createItemModal').modal('hide');
+                loadScheduledItems();
+                showAlert('Elemento programmato con successo', 'success');
+                resetCreateForm();
+            } else {
+                showAlert('Errore nella programmazione: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error saving scheduled item:', error);
+            showAlert('Errore di connessione', 'danger');
+        });
+    }
+    
+    // Function to update a scheduled item
+    function updateScheduledItem() {
+        const form = document.getElementById('editItemForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        const itemId = document.getElementById('editItemId').value;
+        
+        // Build scheduled time
+        const date = document.getElementById('editScheduledDate').value;
+        const time = document.getElementById('editScheduledTime').value;
+        const scheduledDateTime = new Date(`${date}T${time}`);
+        
+        // Build repeat info
+        const repeatEnabled = document.getElementById('editRepeatEnabled').checked;
+        let repeatInfo = null;
+        
+        if (repeatEnabled) {
+            const interval = document.getElementById('editRepeatInterval').value;
+            const endType = document.getElementById('editRepeatEnd').value;
+            
+            repeatInfo = {
+                enabled: true,
+                interval: interval,
+                custom_interval: interval === 'custom' ? parseInt(document.getElementById('editCustomInterval').value) : null,
+                end_type: endType,
+                occurrences: endType === 'after' ? parseInt(document.getElementById('editRepeatOccurrences').value) : null,
+                end_date: endType === 'on-date' ? document.getElementById('editRepeatEndDate').value : null
+            };
+        }
+        
+        const itemData = {
+            title: document.getElementById('editItemTitle').value,
+            type: document.getElementById('editItemType').value,
+            platform: document.getElementById('editItemPlatform').value,
+            content: document.getElementById('editItemContent').value,
+            scheduled_time: scheduledDateTime.toISOString(),
+            repeat_info: repeatInfo
+        };
+        
+        fetch(`/api/scheduler/items/${itemId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(itemData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                $('#editItemModal').modal('hide');
+                loadScheduledItems();
+                showAlert('Elemento aggiornato con successo', 'success');
+            } else {
+                showAlert('Errore nell\'aggiornamento: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating scheduled item:', error);
+            showAlert('Errore di connessione', 'danger');
+        });
+    }
+    
+    // Function to delete a scheduled item
+    function deleteScheduledItem(itemId) {
+        fetch(`/api/scheduler/items/${itemId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                $('#deleteConfirmModal').modal('hide');
+                loadScheduledItems();
+                showAlert('Elemento eliminato con successo', 'success');
+            } else {
+                showAlert('Errore nell\'eliminazione: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting scheduled item:', error);
+            showAlert('Errore di connessione', 'danger');
+        });
+    }
+    
+    // Function to open the edit modal with item data
+    function openEditModal(itemId) {
+        fetch(`/api/scheduler/items/${itemId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const item = data.item;
+                    const scheduledDate = new Date(item.scheduled_time);
+                    
+                    // Set form values
+                    document.getElementById('editItemId').value = item.id;
+                    document.getElementById('editItemTitle').value = item.title;
+                    document.getElementById('editItemType').value = item.type;
+                    document.getElementById('editItemPlatform').value = item.platform;
+                    document.getElementById('editItemContent').value = item.content;
+                    
+                    // Set date and time
+                    document.getElementById('editScheduledDate').value = formatDateForInput(scheduledDate);
+                    document.getElementById('editScheduledTime').value = formatTimeForInput(scheduledDate);
+                    
+                    // Set repeat options
+                    const repeatEnabled = item.repeat_info && item.repeat_info.enabled;
+                    document.getElementById('editRepeatEnabled').checked = repeatEnabled;
+                    document.getElementById('editRepeatOptionsContainer').style.display = repeatEnabled ? 'block' : 'none';
+                    
+                    if (repeatEnabled) {
+                        document.getElementById('editRepeatInterval').value = item.repeat_info.interval;
+                        
+                        if (item.repeat_info.interval === 'custom') {
+                            document.querySelector('.edit-custom-interval-container').style.display = 'block';
+                            document.getElementById('editCustomInterval').value = item.repeat_info.custom_interval;
+                        } else {
+                            document.querySelector('.edit-custom-interval-container').style.display = 'none';
+                        }
+                        
+                        document.getElementById('editRepeatEnd').value = item.repeat_info.end_type;
+                        
+                        if (item.repeat_info.end_type === 'after') {
+                            document.querySelector('.edit-repeat-end-occurrences').style.display = 'block';
+                            document.getElementById('editRepeatOccurrences').value = item.repeat_info.occurrences;
+                        } else {
+                            document.querySelector('.edit-repeat-end-occurrences').style.display = 'none';
+                        }
+                        
+                        if (item.repeat_info.end_type === 'on-date') {
+                            document.querySelector('.edit-repeat-end-date').style.display = 'block';
+                            document.getElementById('editRepeatEndDate').value = item.repeat_info.end_date;
+                        } else {
+                            document.querySelector('.edit-repeat-end-date').style.display = 'none';
+                        }
+                    }
+                    
+                    // Show modal
+                    $('#editItemModal').modal('show');
+                } else {
+                    showAlert('Errore nel caricamento dei dettagli dell\'elemento', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading item details:', error);
+                showAlert('Errore di connessione', 'danger');
+            });
+    }
+    
+    // Helper functions
+    function resetCreateForm() {
+        document.getElementById('createItemForm').reset();
+        document.getElementById('repeatOptionsContainer').style.display = 'none';
+        document.querySelector('.custom-interval-container').style.display = 'none';
+        document.querySelector('.repeat-end-occurrences').style.display = 'none';
+        document.querySelector('.repeat-end-date').style.display = 'none';
+        
+        // Set default date to today
+        const today = new Date();
+        document.getElementById('scheduledDate').value = formatDateForInput(today);
+    }
+    
+    function formatDateTime(dateString) {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleString('it-IT');
+    }
+    
+    function formatDate(date) {
+        return date.toLocaleDateString('it-IT');
+    }
+    
+    function formatTime(date) {
+        return date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    function formatDateForInput(date) {
+        return date.toISOString().split('T')[0];
+    }
+    
+    function formatTimeForInput(date) {
+        return date.toTimeString().slice(0, 5);
+    }
+    
+    function truncateText(text, maxLength) {
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
+    }
+    
+    function getItemTypeLabel(type) {
+        const types = {
+            'message': 'Messaggio',
+            'poll': 'Sondaggio',
+            'giveaway': 'Giveaway',
+            'announcement': 'Annuncio',
+            'reminder': 'Promemoria',
+            'custom': 'Personalizzato'
+        };
+        return types[type] || type;
+    }
+    
+    function getPlatformLabel(platform) {
+        const platforms = {
+            'youtube': 'YouTube',
+            'twitch': 'Twitch',
+            'telegram': 'Telegram',
+            'whatsapp': 'WhatsApp',
+            'discord': 'Discord',
+            'kick': 'Kick'
+        };
+        return platforms[platform] || platform;
+    }
+    
+    function getPlatformColor(platform) {
+        const colors = {
+            'youtube': '#FF0000',
+            'twitch': '#6441A4',
+            'telegram': '#0088cc',
+            'whatsapp': '#25D366',
+            'discord': '#5865F2',
+            'kick': '#53FC18'
+        };
+        return colors[platform] || '#3498db';
+    }
+    
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+        alertDiv.style.zIndex = 1050;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        document.body.appendChild(alertDiv);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            alertDiv.classList.remove('show');
+            setTimeout(() => alertDiv.remove(), 150);
+        }, 5000);
+    }
+</script>
+{% endblock %} 

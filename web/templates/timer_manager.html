@@ -1,0 +1,976 @@
+{% extends "base.html" %}
+
+{% block title %}M4Bot - Gestione Timer{% endblock %}
+
+{% block styles %}
+<style>
+    .timer-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        transition: transform 0.2s;
+    }
+    
+    .timer-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .timer-card .card-header {
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+        font-weight: bold;
+    }
+    
+    .timer-card .card-footer {
+        border-bottom-left-radius: 10px;
+        border-bottom-right-radius: 10px;
+    }
+    
+    .timer-display {
+        font-size: 24px;
+        font-weight: bold;
+        font-family: 'Courier New', monospace;
+    }
+    
+    .timer-badge {
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    
+    .input-group-sm .coloris {
+        height: 31px;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        border-radius: 0.2rem;
+    }
+    
+    .timer-controls {
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+    }
+    
+    .timer-controls .btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+    
+    .alert-points-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-top: 10px;
+    }
+    
+    .alert-point {
+        background-color: #f0f0f0;
+        border-radius: 20px;
+        padding: 5px 10px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .alert-point .close {
+        margin-left: 5px;
+        font-size: 14px;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb" class="d-none d-md-inline-block">
+        <ol class="breadcrumb breadcrumb-dark breadcrumb-transparent mb-0">
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('dashboard.dashboard_page') }}">
+                    <i class="fas fa-home"></i>
+                </a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Gestione Timer</li>
+        </ol>
+    </nav>
+    
+    <div class="row my-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Timer e Countdown</h4>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTimerModal">
+                        <i class="fas fa-plus"></i> Nuovo Timer
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-primary filter-btn active" data-filter="all">Tutti</button>
+                                <button type="button" class="btn btn-outline-primary filter-btn" data-filter="countdown">Countdown</button>
+                                <button type="button" class="btn btn-outline-primary filter-btn" data-filter="stopwatch">Cronometro</button>
+                            </div>
+                            <div class="btn-group ms-2" role="group">
+                                <button type="button" class="btn btn-outline-secondary filter-status-btn active" data-status="all">Tutti gli stati</button>
+                                <button type="button" class="btn btn-outline-secondary filter-status-btn" data-status="running">In esecuzione</button>
+                                <button type="button" class="btn btn-outline-secondary filter-status-btn" data-status="paused">In pausa</button>
+                                <button type="button" class="btn btn-outline-secondary filter-status-btn" data-status="stopped">Fermati</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row" id="timers-container">
+                        <!-- I timer verranno caricati dinamicamente qui -->
+                        <div class="col-12 text-center py-5" id="no-timers-message" style="display: none;">
+                            <h4 class="text-muted">Nessun timer disponibile</h4>
+                            <p>Crea un nuovo timer o countdown per iniziare</p>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTimerModal">
+                                <i class="fas fa-plus"></i> Crea Timer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per creare un nuovo timer -->
+<div class="modal fade" id="createTimerModal" tabindex="-1" aria-labelledby="createTimerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createTimerModalLabel">Crea Nuovo Timer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="create-timer-form">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="timer-name" class="form-label">Nome Timer</label>
+                                <input type="text" class="form-control" id="timer-name" name="name" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="timer-type" class="form-label">Tipo Timer</label>
+                                <select class="form-select" id="timer-type" name="type" required>
+                                    <option value="countdown">Countdown</option>
+                                    <option value="stopwatch">Cronometro</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3 countdown-field">
+                                <label for="timer-duration" class="form-label">Durata (hh:mm:ss)</label>
+                                <input type="text" class="form-control" id="timer-duration" name="duration" placeholder="00:00:00" pattern="^([0-9]+:)?([0-5]?[0-9]:)?([0-5]?[0-9])$">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="timer-background" class="form-label">Colore Sfondo</label>
+                                <input type="text" class="form-control coloris" id="timer-background" name="background_color" value="rgba(0,0,0,0.5)">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="timer-text-color" class="form-label">Colore Testo</label>
+                                <input type="text" class="form-control coloris" id="timer-text-color" name="text_color" value="#FFFFFF">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="timer-font-size" class="form-label">Dimensione Font</label>
+                                <select class="form-select" id="timer-font-size" name="font_size">
+                                    <option value="24px">Piccolo (24px)</option>
+                                    <option value="48px" selected>Medio (48px)</option>
+                                    <option value="72px">Grande (72px)</option>
+                                    <option value="96px">Molto grande (96px)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="timer-format" class="form-label">Formato Display</label>
+                                <select class="form-select" id="timer-format" name="format">
+                                    <option value="hh:mm:ss">hh:mm:ss</option>
+                                    <option value="mm:ss">mm:ss</option>
+                                    <option value="seconds">Secondi</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3 countdown-field">
+                                <label class="form-label">Avvisa quando mancano (secondi)</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="alert-seconds" placeholder="Secondi" min="0">
+                                    <button class="btn btn-secondary" type="button" id="add-alert-btn">Aggiungi</button>
+                                </div>
+                                <div class="alert-points-container" id="alert-points-container"></div>
+                                <input type="hidden" id="alert-points" name="alert_at" value="[]">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="show-milliseconds" name="show_milliseconds">
+                                <label class="form-check-label" for="show-milliseconds">
+                                    Mostra millisecondi
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="show-title" name="show_title" checked>
+                                <label class="form-check-label" for="show-title">
+                                    Mostra titolo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="create-timer-btn">Crea Timer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per modificare un timer -->
+<div class="modal fade" id="editTimerModal" tabindex="-1" aria-labelledby="editTimerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editTimerModalLabel">Modifica Timer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-timer-form">
+                    <input type="hidden" id="edit-timer-id" name="timer_id">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit-timer-name" class="form-label">Nome Timer</label>
+                                <input type="text" class="form-control" id="edit-timer-name" name="name" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="edit-timer-type" class="form-label">Tipo Timer</label>
+                                <input type="text" class="form-control" id="edit-timer-type" readonly>
+                            </div>
+                            
+                            <div class="mb-3 edit-countdown-field">
+                                <label for="edit-timer-duration" class="form-label">Durata (hh:mm:ss)</label>
+                                <input type="text" class="form-control" id="edit-timer-duration" name="duration" placeholder="00:00:00" pattern="^([0-9]+:)?([0-5]?[0-9]:)?([0-5]?[0-9])$">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit-timer-background" class="form-label">Colore Sfondo</label>
+                                <input type="text" class="form-control coloris" id="edit-timer-background" name="background_color">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="edit-timer-text-color" class="form-label">Colore Testo</label>
+                                <input type="text" class="form-control coloris" id="edit-timer-text-color" name="text_color">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="edit-timer-font-size" class="form-label">Dimensione Font</label>
+                                <select class="form-select" id="edit-timer-font-size" name="font_size">
+                                    <option value="24px">Piccolo (24px)</option>
+                                    <option value="48px">Medio (48px)</option>
+                                    <option value="72px">Grande (72px)</option>
+                                    <option value="96px">Molto grande (96px)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit-timer-format" class="form-label">Formato Display</label>
+                                <select class="form-select" id="edit-timer-format" name="format">
+                                    <option value="hh:mm:ss">hh:mm:ss</option>
+                                    <option value="mm:ss">mm:ss</option>
+                                    <option value="seconds">Secondi</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3 edit-countdown-field">
+                                <label class="form-label">Avvisa quando mancano (secondi)</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="edit-alert-seconds" placeholder="Secondi" min="0">
+                                    <button class="btn btn-secondary" type="button" id="edit-add-alert-btn">Aggiungi</button>
+                                </div>
+                                <div class="alert-points-container" id="edit-alert-points-container"></div>
+                                <input type="hidden" id="edit-alert-points" name="alert_at" value="[]">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="edit-show-milliseconds" name="show_milliseconds">
+                                <label class="form-check-label" for="edit-show-milliseconds">
+                                    Mostra millisecondi
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="edit-show-title" name="show_title">
+                                <label class="form-check-label" for="edit-show-title">
+                                    Mostra titolo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="update-timer-btn">Aggiorna Timer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per confermare l'eliminazione di un timer -->
+<div class="modal fade" id="deleteTimerModal" tabindex="-1" aria-labelledby="deleteTimerModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteTimerModalLabel">Conferma Eliminazione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Sei sicuro di voler eliminare il timer "<span id="delete-timer-name"></span>"?</p>
+                <p class="text-danger">Questa azione non può essere annullata.</p>
+                <input type="hidden" id="delete-timer-id">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete-btn">Elimina</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/@melloware/coloris@0.15.0/dist/coloris.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@melloware/coloris@0.15.0/dist/coloris.min.css">
+
+<script>
+    // Template per la card del timer
+    function timerCardTemplate(timer) {
+        const statusClass = {
+            'running': 'success',
+            'paused': 'warning',
+            'stopped': 'secondary',
+            'completed': 'info'
+        }[timer.status] || 'secondary';
+        
+        const statusText = {
+            'running': 'In esecuzione',
+            'paused': 'In pausa',
+            'stopped': 'Fermo',
+            'completed': 'Completato'
+        }[timer.status] || 'Sconosciuto';
+        
+        const typeText = timer.type === 'countdown' ? 'Countdown' : 'Cronometro';
+        const typeClass = timer.type === 'countdown' ? 'primary' : 'dark';
+        
+        // Formatta il tempo per il display
+        let timeDisplay = '00:00:00';
+        if (timer.type === 'countdown') {
+            const hours = Math.floor(timer.time_remaining / 3600);
+            const minutes = Math.floor((timer.time_remaining % 3600) / 60);
+            const seconds = Math.floor(timer.time_remaining % 60);
+            timeDisplay = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        } else {
+            const hours = Math.floor(timer.elapsed_time / 3600);
+            const minutes = Math.floor((timer.elapsed_time % 3600) / 60);
+            const seconds = Math.floor(timer.elapsed_time % 60);
+            timeDisplay = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        return `
+            <div class="col-md-6 col-lg-4 timer-item" data-timer-id="${timer.id}" data-timer-type="${timer.type}" data-timer-status="${timer.status}">
+                <div class="card timer-card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>${timer.name}</span>
+                        <div>
+                            <span class="badge bg-${typeClass} timer-badge">${typeText}</span>
+                            <span class="badge bg-${statusClass} timer-badge">${statusText}</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-center mb-3">
+                            <div class="timer-display">${timeDisplay}</div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-12 mt-2">
+                                <div class="timer-controls">
+                                    ${timer.status === 'running' ? `
+                                        <button class="btn btn-warning pause-timer" data-timer-id="${timer.id}" title="Pausa">
+                                            <i class="fas fa-pause"></i>
+                                        </button>
+                                    ` : ''}
+                                    
+                                    ${timer.status === 'paused' ? `
+                                        <button class="btn btn-success start-timer" data-timer-id="${timer.id}" title="Riprendi">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                    ` : ''}
+                                    
+                                    ${timer.status === 'stopped' || timer.status === 'completed' ? `
+                                        <button class="btn btn-success start-timer" data-timer-id="${timer.id}" title="Avvia">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                    ` : ''}
+                                    
+                                    ${timer.status !== 'stopped' ? `
+                                        <button class="btn btn-danger stop-timer" data-timer-id="${timer.id}" title="Ferma">
+                                            <i class="fas fa-stop"></i>
+                                        </button>
+                                    ` : ''}
+                                    
+                                    <button class="btn btn-primary reset-timer" data-timer-id="${timer.id}" title="Reset">
+                                        <i class="fas fa-redo"></i>
+                                    </button>
+                                    
+                                    <button class="btn btn-secondary edit-timer" data-timer-id="${timer.id}" title="Modifica">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                    
+                                    <button class="btn btn-danger delete-timer" data-timer-id="${timer.id}" title="Elimina">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer text-center">
+                        <button class="btn btn-sm btn-outline-primary copy-obs-url" data-timer-id="${timer.id}">
+                            <i class="fas fa-link"></i> Copia URL per OBS
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Funzione per caricare i timer
+    function loadTimers() {
+        $.ajax({
+            url: '/api/timer/',
+            method: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                const timersContainer = $('#timers-container');
+                timersContainer.empty();
+                
+                if (response.success && response.timers && response.timers.length > 0) {
+                    $('#no-timers-message').hide();
+                    
+                    response.timers.forEach(timer => {
+                        timersContainer.append(timerCardTemplate(timer));
+                    });
+                    
+                    applyFilters();
+                } else {
+                    $('#no-timers-message').show();
+                }
+            },
+            error: function(error) {
+                console.error("Errore durante il caricamento dei timer:", error);
+                toastr.error("Errore durante il caricamento dei timer");
+            }
+        });
+    }
+    
+    // Funzione per convertire la durata in secondi
+    function durationToSeconds(duration) {
+        if (!duration) return 0;
+        
+        const parts = duration.split(':').map(part => parseInt(part));
+        let seconds = 0;
+        
+        if (parts.length === 3) {
+            seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+        } else if (parts.length === 2) {
+            seconds = parts[0] * 60 + parts[1];
+        } else if (parts.length === 1) {
+            seconds = parts[0];
+        }
+        
+        return seconds;
+    }
+    
+    // Funzione per convertire secondi in formato hh:mm:ss
+    function secondsToDuration(seconds) {
+        if (!seconds) return "00:00:00";
+        
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60);
+        
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    
+    // Gestione degli alert points
+    function updateAlertPoints(containerId, inputId) {
+        const container = $(`#${containerId}`);
+        const input = $(`#${inputId}`);
+        let points = [];
+        
+        try {
+            points = JSON.parse(input.val() || '[]');
+        } catch (e) {
+            points = [];
+        }
+        
+        container.empty();
+        
+        points.sort((a, b) => b - a).forEach(point => {
+            container.append(`
+                <div class="alert-point" data-value="${point}">
+                    ${secondsToDuration(point)} <span class="close">&times;</span>
+                </div>
+            `);
+        });
+        
+        // Aggiungi handler per la rimozione
+        container.find('.alert-point .close').on('click', function() {
+            const point = $(this).parent().data('value');
+            points = points.filter(p => p !== point);
+            input.val(JSON.stringify(points));
+            updateAlertPoints(containerId, inputId);
+        });
+    }
+    
+    // Funzione per applicare i filtri ai timer
+    function applyFilters() {
+        const typeFilter = $('.filter-btn.active').data('filter');
+        const statusFilter = $('.filter-status-btn.active').data('status');
+        
+        $('.timer-item').each(function() {
+            const timerType = $(this).data('timer-type');
+            const timerStatus = $(this).data('timer-status');
+            
+            const typeMatch = typeFilter === 'all' || timerType === typeFilter;
+            const statusMatch = statusFilter === 'all' || timerStatus === statusFilter;
+            
+            $(this).toggle(typeMatch && statusMatch);
+        });
+        
+        // Mostra messaggio se non ci sono timer visibili
+        if ($('.timer-item:visible').length === 0) {
+            if ($('.timer-item').length > 0) {
+                // Ci sono timer ma nessuno corrisponde ai filtri
+                $('#no-timers-message').show().find('h4').text('Nessun timer corrisponde ai filtri');
+                $('#no-timers-message').find('p').text('Prova a cambiare i filtri di ricerca');
+                $('#no-timers-message').find('button').hide();
+            } else {
+                // Non ci sono timer in totale
+                $('#no-timers-message').show().find('h4').text('Nessun timer disponibile');
+                $('#no-timers-message').find('p').text('Crea un nuovo timer o countdown per iniziare');
+                $('#no-timers-message').find('button').show();
+            }
+        } else {
+            $('#no-timers-message').hide();
+        }
+    }
+    
+    $(document).ready(function() {
+        // Inizializza Coloris
+        Coloris.init();
+        Coloris({
+            themeMode: 'dark',
+            alpha: true,
+            format: 'rgba'
+        });
+        
+        // Carica i timer all'avvio
+        loadTimers();
+        
+        // Gestione dei campi in base al tipo di timer
+        $('#timer-type').on('change', function() {
+            if ($(this).val() === 'countdown') {
+                $('.countdown-field').show();
+            } else {
+                $('.countdown-field').hide();
+            }
+        });
+        
+        // Filtri per tipo di timer
+        $('.filter-btn').on('click', function() {
+            $('.filter-btn').removeClass('active');
+            $(this).addClass('active');
+            applyFilters();
+        });
+        
+        // Filtri per stato del timer
+        $('.filter-status-btn').on('click', function() {
+            $('.filter-status-btn').removeClass('active');
+            $(this).addClass('active');
+            applyFilters();
+        });
+        
+        // Aggiunta di alert points per i countdown
+        $('#add-alert-btn').on('click', function() {
+            const seconds = parseInt($('#alert-seconds').val());
+            if (isNaN(seconds) || seconds < 0) return;
+            
+            let points = [];
+            try {
+                points = JSON.parse($('#alert-points').val() || '[]');
+            } catch (e) {
+                points = [];
+            }
+            
+            if (!points.includes(seconds)) {
+                points.push(seconds);
+                $('#alert-points').val(JSON.stringify(points));
+                updateAlertPoints('alert-points-container', 'alert-points');
+                $('#alert-seconds').val('');
+            }
+        });
+        
+        // Aggiunta di alert points nella modalità modifica
+        $('#edit-add-alert-btn').on('click', function() {
+            const seconds = parseInt($('#edit-alert-seconds').val());
+            if (isNaN(seconds) || seconds < 0) return;
+            
+            let points = [];
+            try {
+                points = JSON.parse($('#edit-alert-points').val() || '[]');
+            } catch (e) {
+                points = [];
+            }
+            
+            if (!points.includes(seconds)) {
+                points.push(seconds);
+                $('#edit-alert-points').val(JSON.stringify(points));
+                updateAlertPoints('edit-alert-points-container', 'edit-alert-points');
+                $('#edit-alert-seconds').val('');
+            }
+        });
+        
+        // Creazione di un nuovo timer
+        $('#create-timer-btn').on('click', function() {
+            const form = $('#create-timer-form');
+            const formData = {};
+            
+            form.serializeArray().forEach(item => {
+                formData[item.name] = item.value;
+            });
+            
+            // Converti la durata in secondi per i countdown
+            if (formData.type === 'countdown' && formData.duration) {
+                formData.duration = durationToSeconds(formData.duration);
+            }
+            
+            // Gestisci i campi checkbox
+            formData.show_milliseconds = $('#show-milliseconds').is(':checked');
+            formData.show_title = $('#show-title').is(':checked');
+            
+            // Gestisci gli alert points
+            try {
+                formData.alert_at = JSON.parse(formData.alert_at || '[]');
+            } catch (e) {
+                formData.alert_at = [];
+            }
+            
+            $.ajax({
+                url: '/api/timer/',
+                method: 'POST',
+                data: JSON.stringify(formData),
+                contentType: 'application/json',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success("Timer creato con successo");
+                        $('#createTimerModal').modal('hide');
+                        loadTimers();
+                        
+                        // Reset del form
+                        form[0].reset();
+                        $('#alert-points').val('[]');
+                        $('#alert-points-container').empty();
+                    } else {
+                        toastr.error(response.error || "Errore durante la creazione del timer");
+                    }
+                },
+                error: function(error) {
+                    console.error("Errore durante la creazione del timer:", error);
+                    toastr.error("Errore durante la creazione del timer");
+                }
+            });
+        });
+        
+        // Gestione dei pulsanti di controllo dei timer
+        $(document).on('click', '.start-timer', function() {
+            const timerId = $(this).data('timer-id');
+            $.ajax({
+                url: `/api/timer/${timerId}/start`,
+                method: 'POST',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success("Timer avviato");
+                        loadTimers();
+                    } else {
+                        toastr.error(response.error || "Errore durante l'avvio del timer");
+                    }
+                },
+                error: function(error) {
+                    console.error("Errore durante l'avvio del timer:", error);
+                    toastr.error("Errore durante l'avvio del timer");
+                }
+            });
+        });
+        
+        $(document).on('click', '.pause-timer', function() {
+            const timerId = $(this).data('timer-id');
+            $.ajax({
+                url: `/api/timer/${timerId}/pause`,
+                method: 'POST',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success("Timer in pausa");
+                        loadTimers();
+                    } else {
+                        toastr.error(response.error || "Errore durante la pausa del timer");
+                    }
+                },
+                error: function(error) {
+                    console.error("Errore durante la pausa del timer:", error);
+                    toastr.error("Errore durante la pausa del timer");
+                }
+            });
+        });
+        
+        $(document).on('click', '.stop-timer', function() {
+            const timerId = $(this).data('timer-id');
+            $.ajax({
+                url: `/api/timer/${timerId}/stop`,
+                method: 'POST',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success("Timer fermato");
+                        loadTimers();
+                    } else {
+                        toastr.error(response.error || "Errore durante l'arresto del timer");
+                    }
+                },
+                error: function(error) {
+                    console.error("Errore durante l'arresto del timer:", error);
+                    toastr.error("Errore durante l'arresto del timer");
+                }
+            });
+        });
+        
+        $(document).on('click', '.reset-timer', function() {
+            const timerId = $(this).data('timer-id');
+            $.ajax({
+                url: `/api/timer/${timerId}/reset`,
+                method: 'POST',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success("Timer resettato");
+                        loadTimers();
+                    } else {
+                        toastr.error(response.error || "Errore durante il reset del timer");
+                    }
+                },
+                error: function(error) {
+                    console.error("Errore durante il reset del timer:", error);
+                    toastr.error("Errore durante il reset del timer");
+                }
+            });
+        });
+        
+        // Copia URL per OBS
+        $(document).on('click', '.copy-obs-url', function() {
+            const timerId = $(this).data('timer-id');
+            const url = `${window.location.origin}/api/timer/obs/${timerId}`;
+            
+            navigator.clipboard.writeText(url).then(function() {
+                toastr.success("URL copiato negli appunti");
+            }, function() {
+                // Fallback per browser che non supportano l'API clipboard
+                const textArea = document.createElement("textarea");
+                textArea.value = url;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                toastr.success("URL copiato negli appunti");
+            });
+        });
+        
+        // Modifica di un timer
+        $(document).on('click', '.edit-timer', function() {
+            const timerId = $(this).data('timer-id');
+            
+            $.ajax({
+                url: `/api/timer/${timerId}`,
+                method: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success && response.timer) {
+                        const timer = response.timer;
+                        
+                        $('#edit-timer-id').val(timer.id);
+                        $('#edit-timer-name').val(timer.name);
+                        $('#edit-timer-type').val(timer.type);
+                        
+                        if (timer.type === 'countdown') {
+                            $('.edit-countdown-field').show();
+                            $('#edit-timer-duration').val(secondsToDuration(timer.duration));
+                        } else {
+                            $('.edit-countdown-field').hide();
+                        }
+                        
+                        $('#edit-timer-background').val(timer.settings.background_color);
+                        $('#edit-timer-text-color').val(timer.settings.text_color);
+                        $('#edit-timer-font-size').val(timer.settings.font_size);
+                        $('#edit-timer-format').val(timer.settings.format);
+                        $('#edit-show-milliseconds').prop('checked', timer.settings.show_milliseconds);
+                        $('#edit-show-title').prop('checked', timer.settings.show_title);
+                        
+                        $('#edit-alert-points').val(JSON.stringify(timer.settings.alert_at || []));
+                        updateAlertPoints('edit-alert-points-container', 'edit-alert-points');
+                        
+                        // Aggiorna i picker di colore
+                        Coloris.setInstance('.coloris', {
+                            theme: 'polaroid'
+                        });
+                        
+                        $('#editTimerModal').modal('show');
+                    } else {
+                        toastr.error(response.error || "Errore durante il recupero del timer");
+                    }
+                },
+                error: function(error) {
+                    console.error("Errore durante il recupero del timer:", error);
+                    toastr.error("Errore durante il recupero del timer");
+                }
+            });
+        });
+        
+        // Aggiornamento di un timer
+        $('#update-timer-btn').on('click', function() {
+            const timerId = $('#edit-timer-id').val();
+            const form = $('#edit-timer-form');
+            const formData = {};
+            
+            form.serializeArray().forEach(item => {
+                formData[item.name] = item.value;
+            });
+            
+            // Rimuovi l'ID dalla formData perché è nel URL
+            delete formData.timer_id;
+            
+            // Converti la durata in secondi per i countdown
+            if ($('#edit-timer-type').val() === 'countdown' && formData.duration) {
+                formData.duration = durationToSeconds(formData.duration);
+            }
+            
+            // Gestisci i campi checkbox
+            formData.show_milliseconds = $('#edit-show-milliseconds').is(':checked');
+            formData.show_title = $('#edit-show-title').is(':checked');
+            
+            // Gestisci gli alert points
+            try {
+                formData.alert_at = JSON.parse(formData.alert_at || '[]');
+            } catch (e) {
+                formData.alert_at = [];
+            }
+            
+            $.ajax({
+                url: `/api/timer/${timerId}`,
+                method: 'PUT',
+                data: JSON.stringify(formData),
+                contentType: 'application/json',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success("Timer aggiornato con successo");
+                        $('#editTimerModal').modal('hide');
+                        loadTimers();
+                    } else {
+                        toastr.error(response.error || "Errore durante l'aggiornamento del timer");
+                    }
+                },
+                error: function(error) {
+                    console.error("Errore durante l'aggiornamento del timer:", error);
+                    toastr.error("Errore durante l'aggiornamento del timer");
+                }
+            });
+        });
+        
+        // Eliminazione di un timer
+        $(document).on('click', '.delete-timer', function() {
+            const timerId = $(this).data('timer-id');
+            const timerName = $(this).closest('.timer-card').find('.card-header span').first().text();
+            
+            $('#delete-timer-id').val(timerId);
+            $('#delete-timer-name').text(timerName);
+            $('#deleteTimerModal').modal('show');
+        });
+        
+        $('#confirm-delete-btn').on('click', function() {
+            const timerId = $('#delete-timer-id').val();
+            
+            $.ajax({
+                url: `/api/timer/${timerId}`,
+                method: 'DELETE',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success("Timer eliminato con successo");
+                        $('#deleteTimerModal').modal('hide');
+                        loadTimers();
+                    } else {
+                        toastr.error(response.error || "Errore durante l'eliminazione del timer");
+                    }
+                },
+                error: function(error) {
+                    console.error("Errore durante l'eliminazione del timer:", error);
+                    toastr.error("Errore durante l'eliminazione del timer");
+                }
+            });
+        });
+        
+        // Intervallo per aggiornare regolarmente i timer
+        setInterval(loadTimers, 5000);
+    });
+</script>
+{% endblock %} 

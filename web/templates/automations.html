@@ -1,0 +1,833 @@
+{% extends "base.html" %}
+
+{% block title %}M4Bot - Automazioni{% endblock %}
+
+{% block head %}
+<style>
+    .automation-builder {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .automation-card {
+        transition: all 0.3s ease;
+        margin-bottom: 1.5rem;
+    }
+    
+    .automation-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .automation-header {
+        padding: 1rem;
+        border-bottom: 1px solid var(--bs-border-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .automation-title {
+        flex-grow: 1;
+        margin: 0;
+        font-weight: 600;
+    }
+    
+    .automation-status {
+        display: flex;
+        align-items: center;
+        min-width: 90px;
+    }
+    
+    .automation-controls {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .automation-controls .btn {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .automation-body {
+        padding: 1rem;
+    }
+    
+    .automation-flow {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .flow-item {
+        padding: 0.5rem 1rem;
+        border-radius: var(--border-radius);
+        background-color: var(--bs-tertiary-bg);
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+    }
+    
+    .flow-item i {
+        margin-right: 0.5rem;
+        opacity: 0.7;
+    }
+    
+    .flow-arrow {
+        margin: 0 0.5rem;
+        color: var(--bs-secondary);
+    }
+    
+    .condition-block {
+        background-color: var(--bs-border-color-translucent);
+        border-radius: var(--border-radius);
+        padding: 0.7rem 1rem;
+        margin: 0.75rem 0;
+    }
+    
+    .condition-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .condition-controls {
+        display: flex;
+        gap: 0.3rem;
+    }
+    
+    .condition-controls .btn {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.75rem;
+    }
+    
+    .condition-content {
+        margin-top: 0.75rem;
+    }
+    
+    .switch-field {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .switch-field input {
+        position: absolute !important;
+        clip: rect(0, 0, 0, 0);
+        height: 1px;
+        width: 1px;
+        border: 0;
+        overflow: hidden;
+    }
+    
+    .switch-field label {
+        flex: 1;
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        font-size: 0.8rem;
+        text-align: center;
+        padding: 0.5rem 0.75rem;
+        border-radius: var(--border-radius);
+        transition: all 0.1s ease-in-out;
+        cursor: pointer;
+    }
+    
+    .switch-field label:hover {
+        background-color: var(--bs-secondary-bg);
+    }
+    
+    .switch-field input:checked + label {
+        background-color: var(--bs-primary);
+        color: white;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .automation-stats {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.85rem;
+        color: var(--bs-secondary-color);
+        margin-top: 0.5rem;
+    }
+    
+    .automation-stat {
+        display: flex;
+        align-items: center;
+    }
+    
+    .automation-stat i {
+        margin-right: 0.3rem;
+    }
+    
+    .demo-triggers {
+        margin-top: 0.5rem;
+    }
+    
+    .demo-triggers .btn {
+        margin: 0 0.2rem;
+    }
+    
+    /* Animazioni */
+    .automation-card.new-automation {
+        animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(var(--bs-primary-rgb), 0.4); }
+        70% { box-shadow: 0 0 0 8px rgba(var(--bs-primary-rgb), 0); }
+        100% { box-shadow: 0 0 0 0 rgba(var(--bs-primary-rgb), 0); }
+    }
+    
+    /* Condizioni e azioni per tipi specifici */
+    .condition-type-template {
+        display: none;
+    }
+    
+    .webhook-preview {
+        overflow: auto;
+        max-height: 200px;
+        background-color: var(--bs-tertiary-bg);
+        padding: 1rem;
+        border-radius: var(--border-radius);
+        font-family: monospace;
+        font-size: 0.85rem;
+    }
+    
+    /* Stile per automazioni multi-step */
+    .workflow-steps {
+        position: relative;
+        padding-left: 30px;
+    }
+    
+    .workflow-step {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .step-number {
+        position: absolute;
+        left: -30px;
+        top: 0;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background-color: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+    
+    .step-connector {
+        position: absolute;
+        left: -18px;
+        top: 24px;
+        bottom: -12px;
+        width: 2px;
+        background-color: var(--primary);
+        opacity: 0.5;
+    }
+    
+    .step-delay {
+        background-color: rgba(var(--warning-rgb), 0.1);
+        color: var(--warning);
+        padding: 0.25rem 0.5rem;
+        border-radius: 3px;
+        display: inline-block;
+        margin-top: 0.5rem;
+    }
+    
+    /* Stile per il form di creazione automazioni */
+    .action-step {
+        position: relative;
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background-color: var(--card-bg);
+    }
+    
+    .action-step.with-delay {
+        border-left: 3px solid var(--warning);
+    }
+    
+    .action-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+    
+    .action-controls {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .delay-control {
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item">Dashboard</li>
+<li class="breadcrumb-item active">Automazioni</li>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="page-title">
+                <i class="fas fa-robot me-2"></i>Automazioni Condizionali
+            </h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#automation-modal">
+                <i class="fas fa-plus me-2"></i>Nuova Automazione
+            </button>
+        </div>
+        <p class="text-secondary">Crea automazioni per eseguire azioni quando si verificano eventi specifici nel tuo canale.</p>
+    </div>
+</div>
+
+<!-- Contenitore automazioni attive -->
+<div class="row mb-4" id="active-automations-container">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Automazioni Attive</h5>
+            </div>
+            <div class="card-body pb-0">
+                {% if automations|length > 0 %}
+                <div class="row" id="automations-list">
+                    {% for automation in automations %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100 automation-card" data-id="{{ automation.id }}">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">{{ automation.name }}</h6>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input automation-toggle" type="checkbox" {% if automation.enabled %}checked{% endif %}>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="automation-triggers mb-3">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="badge bg-primary me-2">Trigger</span>
+                                        <strong>{{ automation.trigger.name }}</strong>
+                                    </div>
+                                    <p class="small text-secondary mb-0">{{ automation.trigger.description }}</p>
+                                </div>
+                                
+                                <!-- Condizioni -->
+                                {% if automation.conditions|length > 0 %}
+                                <div class="automation-conditions mb-3">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="badge bg-warning me-2">Condizioni</span>
+                                        <strong>{{ automation.conditions|length }} condizione/i</strong>
+                                    </div>
+                                    {% for condition in automation.conditions %}
+                                    <div class="condition-item">
+                                        <p class="small mb-1">
+                                            <i class="fas fa-filter me-1 text-warning"></i>
+                                            {{ condition.description }}
+                                        </p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Azioni -->
+                                <div class="automation-actions">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="badge bg-success me-2">Azioni</span>
+                                        <strong>{{ automation.actions|length }} azione/i</strong>
+                                    </div>
+                                    
+                                    {% if automation.multi_step %}
+                                    <!-- Automazioni multi-step -->
+                                    <div class="automation-workflow">
+                                        <div class="workflow-steps">
+                                            {% for step in automation.actions %}
+                                            <div class="workflow-step d-flex align-items-start">
+                                                <div class="step-number">{{ loop.index }}</div>
+                                                <div class="step-content">
+                                                    <p class="small mb-1 fw-bold">{{ step.name }}</p>
+                                                    <p class="small text-secondary mb-1">{{ step.description }}</p>
+                                                    
+                                                    {% if step.delay %}
+                                                    <div class="step-delay small">
+                                                        <i class="fas fa-clock me-1"></i> Attesa: {{ step.delay }}
+                                                    </div>
+                                                    {% endif %}
+                                                    
+                                                    {% if not loop.last %}
+                                                    <div class="step-connector"></div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <!-- Singole azioni -->
+                                    {% for action in automation.actions %}
+                                    <div class="action-item">
+                                        <p class="small mb-1">
+                                            <i class="fas fa-play-circle me-1 text-success"></i>
+                                            {{ action.description }}
+                                        </p>
+                                    </div>
+                                    {% endfor %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="card-footer d-flex justify-content-between">
+                                <div class="small text-secondary">
+                                    {% if automation.last_triggered %}
+                                    <i class="fas fa-history me-1"></i> Ultima esecuzione: {{ automation.last_triggered }}
+                                    {% else %}
+                                    <i class="fas fa-history me-1"></i> Mai eseguita
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary edit-automation" data-id="{{ automation.id }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-automation" data-id="{{ automation.id }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4" id="no-automations-message">
+                    <i class="fas fa-robot fa-3x text-secondary mb-3"></i>
+                    <h5>Nessuna automazione configurata</h5>
+                    <p class="text-secondary">Crea la tua prima automazione per rendere interattivo il tuo canale.</p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#automation-modal">
+                        <i class="fas fa-plus me-2"></i>Crea automazione
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per creare/modificare automazioni -->
+<div class="modal fade" id="automation-modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="automation-modal-title">Crea Nuova Automazione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="automation-name" class="form-label">Nome automazione</label>
+                    <input type="text" class="form-control" id="automation-name" required>
+                </div>
+
+                <!-- Tab navigazione -->
+                <ul class="nav nav-tabs mb-3" id="automationTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="trigger-tab" data-bs-toggle="tab" data-bs-target="#trigger-panel" type="button" role="tab" aria-controls="trigger-panel" aria-selected="true">1. Trigger</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="conditions-tab" data-bs-toggle="tab" data-bs-target="#conditions-panel" type="button" role="tab" aria-controls="conditions-panel" aria-selected="false">2. Condizioni</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="actions-tab" data-bs-toggle="tab" data-bs-target="#actions-panel" type="button" role="tab" aria-controls="actions-panel" aria-selected="false">3. Azioni</button>
+                    </li>
+                </ul>
+
+                <!-- Tab contenuto -->
+                <div class="tab-content" id="automationTabContent">
+                    <!-- Tab Trigger -->
+                    <div class="tab-pane fade show active" id="trigger-panel" role="tabpanel" aria-labelledby="trigger-tab">
+                        <div class="mb-3">
+                            <label for="trigger-select" class="form-label">Seleziona trigger</label>
+                            <select class="form-select" id="trigger-select" required>
+                                <option value="" selected disabled>Scegli un trigger...</option>
+                                <option value="stream_start">Stream avviato</option>
+                                <option value="stream_end">Stream terminato</option>
+                                <option value="new_follower">Nuovo follower</option>
+                                <option value="new_subscriber">Nuovo iscritto</option>
+                                <option value="chat_message">Messaggio in chat</option>
+                                <option value="chat_command">Comando in chat</option>
+                                <option value="donation">Donazione ricevuta</option>
+                                <option value="scheduled">Evento programmato</option>
+                            </select>
+                        </div>
+
+                        <!-- Configurazione specifica per trigger -->
+                        <div class="trigger-config-container">
+                            <!-- Contenuto caricato dinamicamente in base al trigger selezionato -->
+                        </div>
+                    </div>
+
+                    <!-- Tab Condizioni -->
+                    <div class="tab-pane fade" id="conditions-panel" role="tabpanel" aria-labelledby="conditions-tab">
+                        <div class="mb-3">
+                            <label class="form-label d-flex justify-content-between">
+                                <span>Condizioni (opzionali)</span>
+                                <button type="button" class="btn btn-sm btn-primary" id="add-condition-btn">
+                                    <i class="fas fa-plus me-1"></i>Aggiungi condizione
+                                </button>
+                            </label>
+                            
+                            <div class="conditions-container">
+                                <!-- Qui verranno aggiunte le condizioni -->
+                                <div class="no-conditions text-center py-3 text-secondary">
+                                    <p class="mb-0">Nessuna condizione. L'automazione si attiverà sempre quando il trigger viene attivato.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Azioni -->
+                    <div class="tab-pane fade" id="actions-panel" role="tabpanel" aria-labelledby="actions-tab">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label mb-0">Azioni da eseguire</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="multi-step-toggle">
+                                    <label class="form-check-label" for="multi-step-toggle">Modalità multi-step</label>
+                                </div>
+                            </div>
+                            
+                            <div class="actions-container">
+                                <div class="text-center py-3 text-secondary no-actions">
+                                    <p class="mb-0">Aggiungi almeno un'azione da eseguire.</p>
+                                </div>
+                            </div>
+
+                            <div class="text-center mt-3">
+                                <button type="button" class="btn btn-primary" id="add-action-btn">
+                                    <i class="fas fa-plus me-1"></i>Aggiungi azione
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="save-automation">Salva automazione</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Templates per opzioni di trigger dinamici -->
+<div class="condition-type-template" id="template-trigger-follower">
+    <p class="text-muted small">
+        Questa automazione viene attivata quando un nuovo utente segue il canale.
+    </p>
+</div>
+
+<div class="condition-type-template" id="template-trigger-subscription">
+    <div class="mb-3">
+        <label class="form-label">Tipo di iscrizione</label>
+        <div class="switch-field">
+            <input type="radio" id="sub-all" name="sub-type" value="all" checked>
+            <label for="sub-all">Tutte</label>
+            <input type="radio" id="sub-new" name="sub-type" value="new">
+            <label for="sub-new">Nuove</label>
+            <input type="radio" id="sub-resub" name="sub-type" value="resub">
+            <label for="sub-resub">Rinnovi</label>
+            <input type="radio" id="sub-gift" name="sub-type" value="gift">
+            <label for="sub-gift">Regalo</label>
+        </div>
+    </div>
+</div>
+
+<div class="condition-type-template" id="template-trigger-donation">
+    <p class="text-muted small">
+        Questa automazione viene attivata quando un utente fa una donazione.
+    </p>
+</div>
+
+<div class="condition-type-template" id="template-trigger-chat-message">
+    <div class="mb-3">
+        <label class="form-label">Il messaggio:</label>
+        <select class="form-select mb-2" id="message-condition-type">
+            <option value="contains">Contiene</option>
+            <option value="equals">È uguale a</option>
+            <option value="starts">Inizia con</option>
+            <option value="ends">Finisce con</option>
+            <option value="regex">Corrisponde a regex</option>
+            <option value="any">Qualsiasi messaggio</option>
+        </select>
+        <input type="text" class="form-control" id="message-content" placeholder="Testo da cercare">
+    </div>
+    <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" id="case-sensitive">
+        <label class="form-check-label" for="case-sensitive">Considera maiuscole/minuscole</label>
+    </div>
+</div>
+
+<!-- Templates per opzioni di azione dinamiche -->
+<div class="condition-type-template" id="template-action-send-message">
+    <div class="mb-3">
+        <label for="message-text" class="form-label">Messaggio da inviare</label>
+        <textarea class="form-control" id="message-text" rows="3" placeholder="Inserisci il messaggio da inviare in chat"></textarea>
+        <small class="text-muted">Puoi utilizzare variabili come {{username}}, {{amount}}, ecc.</small>
+    </div>
+</div>
+
+<div class="condition-type-template" id="template-action-play-sound">
+    <div class="mb-3">
+        <label for="sound-file" class="form-label">File audio</label>
+        <select class="form-select" id="sound-file">
+            <option value="success.mp3">success.mp3</option>
+            <option value="alert.mp3">alert.mp3</option>
+            <option value="donation.mp3">donation.mp3</option>
+            <option value="follower.mp3">follower.mp3</option>
+            <option value="custom">File personalizzato...</option>
+        </select>
+    </div>
+    <div class="mb-3" id="custom-sound-upload" style="display:none;">
+        <label for="sound-upload" class="form-label">Carica audio personalizzato</label>
+        <input type="file" class="form-control" id="sound-upload" accept="audio/*">
+    </div>
+    <div class="mb-3">
+        <label for="sound-volume" class="form-label">Volume: <span id="volume-value">80%</span></label>
+        <input type="range" class="form-range" id="sound-volume" min="0" max="100" value="80">
+    </div>
+</div>
+
+<div class="condition-type-template" id="template-action-webhook">
+    <div class="mb-3">
+        <label for="webhook-url" class="form-label">URL Webhook</label>
+        <input type="url" class="form-control" id="webhook-url" placeholder="https://esempio.com/webhook">
+    </div>
+    <div class="mb-3">
+        <label for="webhook-method" class="form-label">Metodo</label>
+        <select class="form-select" id="webhook-method">
+            <option value="GET">GET</option>
+            <option value="POST" selected>POST</option>
+            <option value="PUT">PUT</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label for="webhook-body" class="form-label">Corpo della richiesta (JSON)</label>
+        <textarea class="form-control" id="webhook-body" rows="3" placeholder='{"event": "{{event}}", "username": "{{username}}"}}'></textarea>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Anteprima della richiesta</label>
+        <div class="webhook-preview">
+            POST https://esempio.com/webhook<br>
+            Content-Type: application/json<br><br>
+            {<br>
+            &nbsp;&nbsp;"event": "follower",<br>
+            &nbsp;&nbsp;"username": "User123",<br>
+            &nbsp;&nbsp;"timestamp": "2023-04-14T12:34:56Z"<br>
+            }
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Riferimenti agli elementi
+        const modal = document.getElementById('automation-modal');
+        const form = document.getElementById('automation-form');
+        const triggerSelect = document.getElementById('trigger-type');
+        const actionSelect = document.getElementById('action-type');
+        const triggerOptions = document.getElementById('trigger-options');
+        const actionOptions = document.getElementById('action-options');
+        const saveButton = document.getElementById('save-automation');
+        const automationsList = document.getElementById('automations-list');
+        const newTemplate = document.getElementById('new-automation-template');
+        
+        // Gestisci cambiamento del trigger
+        triggerSelect.addEventListener('change', function() {
+            const triggerType = this.value;
+            
+            // Svuota le opzioni
+            triggerOptions.innerHTML = '';
+            
+            if (triggerType) {
+                // Carica il template appropriato
+                const templateId = `template-trigger-${triggerType.replace('_', '-')}`;
+                const template = document.getElementById(templateId);
+                
+                if (template) {
+                    triggerOptions.innerHTML = template.innerHTML;
+                } else {
+                    triggerOptions.innerHTML = `<p class="text-muted small">Questa automazione verrà attivata in risposta all'evento "${triggerType}".</p>`;
+                }
+            }
+        });
+        
+        // Gestisci cambiamento dell'azione
+        actionSelect.addEventListener('change', function() {
+            const actionType = this.value;
+            
+            // Svuota le opzioni
+            actionOptions.innerHTML = '';
+            
+            if (actionType) {
+                // Carica il template appropriato
+                const templateId = `template-action-${actionType.replace('_', '-')}`;
+                const template = document.getElementById(templateId);
+                
+                if (template) {
+                    actionOptions.innerHTML = template.innerHTML;
+                    initActionHandlers(actionType);
+                } else {
+                    actionOptions.innerHTML = `<p class="text-muted small">Questa azione eseguirà "${actionType}".</p>`;
+                }
+            }
+        });
+        
+        // Inizializza gestori eventi specifici per tipo di azione
+        function initActionHandlers(actionType) {
+            if (actionType === 'play_sound') {
+                const soundSelect = document.getElementById('sound-file');
+                const customUpload = document.getElementById('custom-sound-upload');
+                const volumeSlider = document.getElementById('sound-volume');
+                const volumeValue = document.getElementById('volume-value');
+                
+                if (soundSelect) {
+                    soundSelect.addEventListener('change', function() {
+                        if (this.value === 'custom') {
+                            customUpload.style.display = 'block';
+                        } else {
+                            customUpload.style.display = 'none';
+                        }
+                    });
+                }
+                
+                if (volumeSlider && volumeValue) {
+                    volumeSlider.addEventListener('input', function() {
+                        volumeValue.textContent = this.value + '%';
+                    });
+                }
+            }
+            
+            // Altri handler specifici per tipo...
+        }
+        
+        // Gestore pulsante salva
+        saveButton.addEventListener('click', function() {
+            // Verifica campi obbligatori
+            const name = document.getElementById('automation-name').value;
+            const triggerType = triggerSelect.value;
+            const actionType = actionSelect.value;
+            
+            if (!name || !triggerType || !actionType) {
+                alert('Compila tutti i campi obbligatori.');
+                return;
+            }
+            
+            // Simulazione di creazione automazione
+            if (newTemplate) {
+                // Clona il template
+                const newAutomation = newTemplate.cloneNode(true);
+                newAutomation.id = 'automation-' + Date.now();
+                newAutomation.style.display = 'block';
+                
+                // Aggiorna con i dati inseriti
+                const title = newAutomation.querySelector('.automation-title');
+                if (title) title.textContent = name;
+                
+                // Aggiungi all'inizio della lista
+                automationsList.insertBefore(newAutomation, automationsList.firstChild);
+                
+                // Chiudi il modal
+                const modalInstance = bootstrap.Modal.getInstance(modal);
+                modalInstance.hide();
+                
+                // Notifica
+                if (window.showToast) {
+                    window.showToast('Automazione creata con successo!', 'success');
+                } else {
+                    alert('Automazione creata con successo!');
+                }
+                
+                // Reset form
+                form.reset();
+                triggerOptions.innerHTML = '';
+                actionOptions.innerHTML = '';
+            }
+        });
+        
+        // Aggiungi condizione
+        document.getElementById('add-condition').addEventListener('click', function() {
+            const conditionsList = document.getElementById('conditions-list');
+            
+            // Crea nuova condizione
+            const conditionBlock = document.createElement('div');
+            conditionBlock.className = 'condition-block';
+            conditionBlock.innerHTML = `
+                <div class="condition-header">
+                    <div class="condition-type">
+                        <select class="form-select form-select-sm" style="width: auto;">
+                            <option value="donation_amount">Importo donazione</option>
+                            <option value="user_is_subscriber">Utente è iscritto</option>
+                            <option value="user_follow_duration">Durata follow</option>
+                            <option value="custom">Personalizzata</option>
+                        </select>
+                    </div>
+                    <div class="condition-controls">
+                        <button type="button" class="btn btn-sm btn-light remove-condition">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="condition-content mt-2">
+                    <div class="input-group">
+                        <select class="form-select">
+                            <option value="gt">maggiore di</option>
+                            <option value="lt">minore di</option>
+                            <option value="eq">uguale a</option>
+                            <option value="contains">contiene</option>
+                        </select>
+                        <input type="text" class="form-control" placeholder="Valore">
+                    </div>
+                </div>
+            `;
+            
+            // Aggiungi alla lista
+            conditionsList.appendChild(conditionBlock);
+            
+            // Aggiungi gestore evento per rimozione
+            const removeBtn = conditionBlock.querySelector('.remove-condition');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', function() {
+                    conditionBlock.remove();
+                });
+            }
+        });
+        
+        // Gestore test automazioni
+        document.querySelectorAll('.demo-triggers .btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const automationCard = this.closest('.automation-card');
+                const title = automationCard.querySelector('.automation-title').textContent;
+                
+                // Simula esecuzione
+                if (window.showToast) {
+                    window.showToast(`Automazione "${title}" eseguita con successo.`, 'success');
+                } else {
+                    alert(`Automazione "${title}" eseguita con successo.`);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %} 

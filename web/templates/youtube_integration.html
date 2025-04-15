@@ -1,0 +1,920 @@
+{% extends 'base.html' %}
+
+{% block title %}M4Bot - Integrazione YouTube{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .youtube-bg {
+        background-color: #ff0000;
+    }
+    .youtube-text {
+        color: #ff0000;
+    }
+    .setup-step {
+        position: relative;
+        padding-left: 30px;
+        margin-bottom: 15px;
+    }
+    .setup-step-number {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 24px;
+        height: 24px;
+        background-color: #ff0000;
+        color: white;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 24px;
+        font-weight: bold;
+    }
+    .youtube-stat-card {
+        text-align: center;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        background-color: white;
+    }
+    .youtube-stat-card i {
+        font-size: 2rem;
+        margin-bottom: 10px;
+    }
+    .youtube-stat-card .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+    .youtube-stat-card .stat-label {
+        color: #666;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Integrazione YouTube</li>
+    </ol>
+</nav>
+
+<div class="container mb-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <h1 class="h2 mb-3 mb-sm-0">
+                    <i class="fab fa-youtube me-2 youtube-text"></i>Integrazione YouTube
+                </h1>
+                
+                <div>
+                    {% if youtube_connected %}
+                    <span class="badge bg-success me-2"><i class="fas fa-check-circle me-1"></i>Connesso</span>
+                    <button id="disconnect-youtube" class="btn btn-outline-danger">
+                        <i class="fas fa-unlink me-1"></i>Disconnetti
+                    </button>
+                    {% else %}
+                    <span class="badge bg-danger me-2"><i class="fas fa-times-circle me-1"></i>Non connesso</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if youtube_connected %}
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="youtube-stat-card">
+                <i class="fas fa-users youtube-text"></i>
+                <div class="stat-value">{{ youtube_stats.subscribers }}</div>
+                <div class="stat-label">Iscritti</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="youtube-stat-card">
+                <i class="fas fa-eye youtube-text"></i>
+                <div class="stat-value">{{ youtube_stats.views }}</div>
+                <div class="stat-label">Visualizzazioni</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="youtube-stat-card">
+                <i class="fas fa-video youtube-text"></i>
+                <div class="stat-value">{{ youtube_stats.videos }}</div>
+                <div class="stat-label">Video</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="youtube-stat-card">
+                <i class="fas fa-comment youtube-text"></i>
+                <div class="stat-value">{{ youtube_stats.comments }}</div>
+                <div class="stat-label">Commenti</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header youtube-bg text-white">
+                    <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Configurazione</h5>
+                </div>
+                <div class="card-body">
+                    {% if youtube_connected %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>Il tuo canale YouTube è collegato e funzionante.
+                    </div>
+                    
+                    <h6 class="mt-4">Dettagli del canale</h6>
+                    <div class="d-flex align-items-center mb-4">
+                        <img src="{{ youtube_settings.channel_thumbnail }}" alt="Avatar canale" class="rounded-circle me-3" style="width: 60px; height: 60px;">
+                        <div>
+                            <h5 class="mb-0">{{ youtube_settings.channel_name }}</h5>
+                            <a href="https://youtube.com/channel/{{ youtube_settings.channel_id }}" target="_blank" class="text-muted">
+                                <i class="fas fa-external-link-alt me-1"></i>Visita canale
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tr>
+                                <th style="width: 140px;">ID Canale:</th>
+                                <td>{{ youtube_settings.channel_id }}</td>
+                            </tr>
+                            <tr>
+                                <th>Tipo account:</th>
+                                <td>{{ youtube_settings.account_type }}</td>
+                            </tr>
+                            <tr>
+                                <th>Stato:</th>
+                                <td>
+                                    {% if youtube_settings.is_verified %}
+                                    <span class="badge bg-success">Verificato</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Non verificato</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Creato il:</th>
+                                <td>{{ youtube_settings.created_at }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <h6 class="mt-4">Permessi concessi</h6>
+                    <ul class="list-group mb-3">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Lettura dati canale
+                            <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Gestione live streaming
+                            {% if youtube_settings.permissions.livestreaming %}
+                            <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                            {% else %}
+                            <span class="badge bg-danger rounded-pill"><i class="fas fa-times"></i></span>
+                            {% endif %}
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Gestione commenti
+                            {% if youtube_settings.permissions.comments %}
+                            <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                            {% else %}
+                            <span class="badge bg-danger rounded-pill"><i class="fas fa-times"></i></span>
+                            {% endif %}
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Modifica video
+                            {% if youtube_settings.permissions.videos %}
+                            <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                            {% else %}
+                            <span class="badge bg-danger rounded-pill"><i class="fas fa-times"></i></span>
+                            {% endif %}
+                        </li>
+                    </ul>
+                    
+                    <button class="btn btn-primary" id="refresh-token-btn">
+                        <i class="fas fa-sync-alt me-1"></i>Aggiorna autorizzazioni
+                    </button>
+                    
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Il tuo canale YouTube non è ancora connesso.
+                    </div>
+                    
+                    <p>Per integrare il tuo canale YouTube con M4Bot, devi autorizzare l'accesso tramite l'API YouTube Data.</p>
+                    
+                    <h6 class="mb-3">Segui questi passaggi per collegare il tuo canale:</h6>
+                    
+                    <div class="setup-steps">
+                        <div class="setup-step">
+                            <div class="setup-step-number">1</div>
+                            <div class="setup-step-content">
+                                <p>Crea un progetto nella <a href="https://console.developers.google.com/" target="_blank">Google Cloud Console</a></p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="setup-step-number">2</div>
+                            <div class="setup-step-content">
+                                <p>Abilita l'API YouTube Data v3</p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="setup-step-number">3</div>
+                            <div class="setup-step-content">
+                                <p>Configura le credenziali OAuth 2.0</p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="setup-step-number">4</div>
+                            <div class="setup-step-content">
+                                <p>Inserisci le credenziali qui sotto</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form id="youtube-setup-form" class="mt-4">
+                        <div class="mb-3">
+                            <label for="client-id" class="form-label">Client ID</label>
+                            <input type="text" class="form-control" id="client-id" placeholder="123456789-xxx.apps.googleusercontent.com">
+                        </div>
+                        <div class="mb-3">
+                            <label for="client-secret" class="form-label">Client Secret</label>
+                            <input type="text" class="form-control" id="client-secret" placeholder="GOCSPX-xxx">
+                        </div>
+                        <div class="mb-3">
+                            <label for="api-key" class="form-label">API Key (facoltativa)</label>
+                            <input type="text" class="form-control" id="api-key" placeholder="AIzaXXX">
+                            <div class="form-text">L'API Key è opzionale ma consigliata per le operazioni in sola lettura.</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-link me-1"></i>Collega account YouTube
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header youtube-bg text-white">
+                    <h5 class="mb-0"><i class="fas fa-sync-alt me-2"></i>Sincronizzazione</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="enable-sync" {% if youtube_settings.sync_enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="enable-sync">Abilita sincronizzazione chat in diretta</label>
+                    </div>
+                    
+                    <p class="mb-4">
+                        La sincronizzazione ti permette di collegare la chat di YouTube Live con le altre piattaforme di streaming.
+                    </p>
+                    
+                    <h6>Impostazioni sincronizzazione</h6>
+                    <div class="mb-3">
+                        <label for="sync-direction" class="form-label">Direzione sincronizzazione</label>
+                        <select class="form-select" id="sync-direction">
+                            <option value="both" {% if youtube_settings.sync_direction == 'both' %}selected{% endif %}>Bidirezionale (da e verso YouTube)</option>
+                            <option value="to_youtube" {% if youtube_settings.sync_direction == 'to_youtube' %}selected{% endif %}>Solo verso YouTube</option>
+                            <option value="from_youtube" {% if youtube_settings.sync_direction == 'from_youtube' %}selected{% endif %}>Solo da YouTube</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="sync-comments" {% if youtube_settings.sync_comments %}checked{% endif %}>
+                        <label class="form-check-label" for="sync-comments">Sincronizza anche commenti fuori dalle dirette</label>
+                    </div>
+                    
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="moderation" {% if youtube_settings.moderation_enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="moderation">Abilita moderazione cross-platform</label>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6 class="mt-4">Auto-risposta commenti</h6>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="auto-reply" {% if youtube_settings.auto_reply %}checked{% endif %}>
+                        <label class="form-check-label" for="auto-reply">Rispondi automaticamente ai commenti</label>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="auto-reply-template" class="form-label">Template risposta automatica</label>
+                        <textarea class="form-control" id="auto-reply-template" rows="3">{{ youtube_settings.auto_reply_template or 'Grazie per il tuo commento! Non dimenticare di iscriverti al canale e attivare le notifiche per non perderti i prossimi video.' }}</textarea>
+                        <div class="form-text">Puoi usare {user} per inserire il nome dell'utente.</div>
+                    </div>
+                    
+                    <button id="save-sync-settings" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Salva Impostazioni
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if youtube_connected %}
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header youtube-bg text-white">
+                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Programmazione Live</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Tab di navigazione -->
+                    <ul class="nav nav-tabs mb-4" id="youtubeTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming" type="button" role="tab" aria-controls="upcoming" aria-selected="true">Prossime dirette</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="past-tab" data-bs-toggle="tab" data-bs-target="#past" type="button" role="tab" aria-controls="past" aria-selected="false">Dirette passate</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="create-tab" data-bs-toggle="tab" data-bs-target="#create" type="button" role="tab" aria-controls="create" aria-selected="false">Crea diretta</button>
+                        </li>
+                    </ul>
+                    
+                    <!-- Contenuto tab -->
+                    <div class="tab-content" id="youtubeTabContent">
+                        <!-- Prossime dirette -->
+                        <div class="tab-pane fade show active" id="upcoming" role="tabpanel" aria-labelledby="upcoming-tab">
+                            {% if youtube_settings.upcoming_streams %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Titolo</th>
+                                            <th>Data</th>
+                                            <th>Stato</th>
+                                            <th>Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for stream in youtube_settings.upcoming_streams %}
+                                        <tr>
+                                            <td>
+                                                <img src="{{ stream.thumbnail }}" class="me-2" width="60" height="40" alt="Thumbnail">
+                                                {{ stream.title }}
+                                            </td>
+                                            <td>{{ stream.scheduled_time }}</td>
+                                            <td>
+                                                <span class="badge bg-primary">{{ stream.status }}</span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <a href="{{ stream.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-external-link-alt"></i>
+                                                    </a>
+                                                    <button class="btn btn-sm btn-outline-secondary edit-stream" data-stream-id="{{ stream.id }}">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger delete-stream" data-stream-id="{{ stream.id }}">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>Nessuna diretta programmata.
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Dirette passate -->
+                        <div class="tab-pane fade" id="past" role="tabpanel" aria-labelledby="past-tab">
+                            {% if youtube_settings.past_streams %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Titolo</th>
+                                            <th>Data</th>
+                                            <th>Visualizzazioni</th>
+                                            <th>Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for stream in youtube_settings.past_streams %}
+                                        <tr>
+                                            <td>
+                                                <img src="{{ stream.thumbnail }}" class="me-2" width="60" height="40" alt="Thumbnail">
+                                                {{ stream.title }}
+                                            </td>
+                                            <td>{{ stream.start_time }}</td>
+                                            <td>{{ stream.views }}</td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <a href="{{ stream.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-external-link-alt"></i>
+                                                    </a>
+                                                    <button class="btn btn-sm btn-outline-info analytics-stream" data-stream-id="{{ stream.id }}">
+                                                        <i class="fas fa-chart-bar"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>Nessuna diretta passata.
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Crea diretta -->
+                        <div class="tab-pane fade" id="create" role="tabpanel" aria-labelledby="create-tab">
+                            <form id="create-stream-form">
+                                <div class="mb-3">
+                                    <label for="stream-title" class="form-label">Titolo</label>
+                                    <input type="text" class="form-control" id="stream-title" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="stream-description" class="form-label">Descrizione</label>
+                                    <textarea class="form-control" id="stream-description" rows="4"></textarea>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="stream-date" class="form-label">Data</label>
+                                        <input type="date" class="form-control" id="stream-date" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="stream-time" class="form-label">Ora</label>
+                                        <input type="time" class="form-control" id="stream-time" required>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="stream-privacy" class="form-label">Privacy</label>
+                                    <select class="form-select" id="stream-privacy">
+                                        <option value="public">Pubblico</option>
+                                        <option value="unlisted">Non in elenco</option>
+                                        <option value="private">Privato</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus me-1"></i>Crea Diretta
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modali -->
+<div class="modal fade" id="disconnectModal" tabindex="-1" aria-labelledby="disconnectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="disconnectModalLabel">Conferma disconnessione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Attenzione!
+                </div>
+                <p>Sei sicuro di voler disconnettere il tuo canale YouTube?</p>
+                <p>Questa azione rimuoverà tutte le impostazioni di integrazione con YouTube.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-danger" id="confirm-disconnect">Disconnetti</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editStreamModal" tabindex="-1" aria-labelledby="editStreamModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editStreamModalLabel">Modifica diretta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-stream-form">
+                    <input type="hidden" id="edit-stream-id">
+                    <div class="mb-3">
+                        <label for="edit-stream-title" class="form-label">Titolo</label>
+                        <input type="text" class="form-control" id="edit-stream-title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-stream-description" class="form-label">Descrizione</label>
+                        <textarea class="form-control" id="edit-stream-description" rows="4"></textarea>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="edit-stream-date" class="form-label">Data</label>
+                            <input type="date" class="form-control" id="edit-stream-date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit-stream-time" class="form-label">Ora</label>
+                            <input type="time" class="form-control" id="edit-stream-time" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-stream-privacy" class="form-label">Privacy</label>
+                        <select class="form-select" id="edit-stream-privacy">
+                            <option value="public">Pubblico</option>
+                            <option value="unlisted">Non in elenco</option>
+                            <option value="private">Privato</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="save-stream-edit">Salva modifiche</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Setup form per YouTube
+        const youtubeSetupForm = document.getElementById('youtube-setup-form');
+        if (youtubeSetupForm) {
+            youtubeSetupForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const clientId = document.getElementById('client-id').value.trim();
+                const clientSecret = document.getElementById('client-secret').value.trim();
+                const apiKey = document.getElementById('api-key').value.trim();
+                
+                if (!clientId || !clientSecret) {
+                    showToast('error', 'Errore', 'Client ID e Client Secret sono obbligatori');
+                    return;
+                }
+                
+                // Invia la configurazione al server
+                fetch('/api/youtube/setup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ clientId, clientSecret, apiKey })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.authUrl) {
+                            // Reindirizza all'URL di autorizzazione
+                            window.location.href = data.authUrl;
+                        } else {
+                            showToast('success', 'Successo', 'Integrazione YouTube configurata con successo');
+                            setTimeout(() => window.location.reload(), 1500);
+                        }
+                    } else {
+                        showToast('error', 'Errore', data.message || 'Errore nella configurazione');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Errore', 'Si è verificato un errore nella configurazione');
+                });
+            });
+        }
+        
+        // Aggiornamento impostazioni sincronizzazione
+        const saveSyncSettingsBtn = document.getElementById('save-sync-settings');
+        if (saveSyncSettingsBtn) {
+            saveSyncSettingsBtn.addEventListener('click', function() {
+                const syncEnabled = document.getElementById('enable-sync').checked;
+                const syncDirection = document.getElementById('sync-direction').value;
+                const syncComments = document.getElementById('sync-comments').checked;
+                const moderationEnabled = document.getElementById('moderation').checked;
+                const autoReply = document.getElementById('auto-reply').checked;
+                const autoReplyTemplate = document.getElementById('auto-reply-template').value;
+                
+                // Invia le impostazioni al server
+                fetch('/api/youtube/update-sync-settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        syncEnabled,
+                        syncDirection,
+                        syncComments,
+                        moderationEnabled,
+                        autoReply,
+                        autoReplyTemplate
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', 'Successo', 'Impostazioni di sincronizzazione aggiornate');
+                    } else {
+                        showToast('error', 'Errore', data.message || 'Errore nell\'aggiornamento delle impostazioni');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Errore', 'Si è verificato un errore');
+                });
+            });
+        }
+        
+        // Disconnessione
+        const disconnectBtn = document.getElementById('disconnect-youtube');
+        if (disconnectBtn) {
+            disconnectBtn.addEventListener('click', function() {
+                const modal = new bootstrap.Modal(document.getElementById('disconnectModal'));
+                modal.show();
+            });
+        }
+        
+        // Conferma disconnessione
+        const confirmDisconnectBtn = document.getElementById('confirm-disconnect');
+        if (confirmDisconnectBtn) {
+            confirmDisconnectBtn.addEventListener('click', function() {
+                fetch('/api/youtube/disconnect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', 'Successo', 'Canale YouTube disconnesso con successo');
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showToast('error', 'Errore', data.message || 'Errore nella disconnessione');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Errore', 'Si è verificato un errore');
+                });
+            });
+        }
+        
+        // Aggiornamento token
+        const refreshTokenBtn = document.getElementById('refresh-token-btn');
+        if (refreshTokenBtn) {
+            refreshTokenBtn.addEventListener('click', function() {
+                fetch('/api/youtube/refresh-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.authUrl) {
+                            // Reindirizza all'URL di autorizzazione
+                            window.location.href = data.authUrl;
+                        } else {
+                            showToast('success', 'Successo', 'Autorizzazioni aggiornate con successo');
+                            setTimeout(() => window.location.reload(), 1500);
+                        }
+                    } else {
+                        showToast('error', 'Errore', data.message || 'Errore nell\'aggiornamento delle autorizzazioni');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Errore', 'Si è verificato un errore');
+                });
+            });
+        }
+        
+        // Creazione stream
+        const createStreamForm = document.getElementById('create-stream-form');
+        if (createStreamForm) {
+            createStreamForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const title = document.getElementById('stream-title').value.trim();
+                const description = document.getElementById('stream-description').value.trim();
+                const date = document.getElementById('stream-date').value;
+                const time = document.getElementById('stream-time').value;
+                const privacy = document.getElementById('stream-privacy').value;
+                
+                if (!title || !date || !time) {
+                    showToast('error', 'Errore', 'Compila tutti i campi obbligatori');
+                    return;
+                }
+                
+                // Combina data e ora
+                const scheduledStartTime = `${date}T${time}:00`;
+                
+                // Invia i dati al server
+                fetch('/api/youtube/create-stream', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title,
+                        description,
+                        scheduledStartTime,
+                        privacy
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', 'Successo', 'Diretta creata con successo');
+                        // Pulisci il form
+                        createStreamForm.reset();
+                        // Torna al tab delle dirette programmate
+                        document.getElementById('upcoming-tab').click();
+                        // Ricarica la pagina dopo un breve ritardo
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showToast('error', 'Errore', data.message || 'Errore nella creazione della diretta');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Errore', 'Si è verificato un errore');
+                });
+            });
+        }
+        
+        // Azioni per le dirette
+        // Edit stream
+        const editStreamBtns = document.querySelectorAll('.edit-stream');
+        if (editStreamBtns.length > 0) {
+            editStreamBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const streamId = this.getAttribute('data-stream-id');
+                    
+                    // Carica i dettagli della diretta
+                    fetch(`/api/youtube/stream/${streamId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const stream = data.stream;
+                            
+                            // Popola il form
+                            document.getElementById('edit-stream-id').value = streamId;
+                            document.getElementById('edit-stream-title').value = stream.title;
+                            document.getElementById('edit-stream-description').value = stream.description;
+                            
+                            // Suddividi data e ora
+                            const dateTime = new Date(stream.scheduledStartTime);
+                            const date = dateTime.toISOString().split('T')[0];
+                            const time = dateTime.toTimeString().split(' ')[0].substring(0, 5);
+                            
+                            document.getElementById('edit-stream-date').value = date;
+                            document.getElementById('edit-stream-time').value = time;
+                            document.getElementById('edit-stream-privacy').value = stream.privacy;
+                            
+                            // Mostra la modale
+                            const modal = new bootstrap.Modal(document.getElementById('editStreamModal'));
+                            modal.show();
+                        } else {
+                            showToast('error', 'Errore', data.message || 'Errore nel caricamento dei dettagli della diretta');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('error', 'Errore', 'Si è verificato un errore');
+                    });
+                });
+            });
+        }
+        
+        // Salva modifiche stream
+        const saveStreamEditBtn = document.getElementById('save-stream-edit');
+        if (saveStreamEditBtn) {
+            saveStreamEditBtn.addEventListener('click', function() {
+                const streamId = document.getElementById('edit-stream-id').value;
+                const title = document.getElementById('edit-stream-title').value.trim();
+                const description = document.getElementById('edit-stream-description').value.trim();
+                const date = document.getElementById('edit-stream-date').value;
+                const time = document.getElementById('edit-stream-time').value;
+                const privacy = document.getElementById('edit-stream-privacy').value;
+                
+                if (!title || !date || !time) {
+                    showToast('error', 'Errore', 'Compila tutti i campi obbligatori');
+                    return;
+                }
+                
+                // Combina data e ora
+                const scheduledStartTime = `${date}T${time}:00`;
+                
+                // Invia i dati al server
+                fetch(`/api/youtube/update-stream/${streamId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title,
+                        description,
+                        scheduledStartTime,
+                        privacy
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', 'Successo', 'Diretta aggiornata con successo');
+                        // Chiudi la modale
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('editStreamModal'));
+                        modal.hide();
+                        // Ricarica la pagina dopo un breve ritardo
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showToast('error', 'Errore', data.message || 'Errore nell\'aggiornamento della diretta');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Errore', 'Si è verificato un errore');
+                });
+            });
+        }
+        
+        // Delete stream
+        const deleteStreamBtns = document.querySelectorAll('.delete-stream');
+        if (deleteStreamBtns.length > 0) {
+            deleteStreamBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (confirm('Sei sicuro di voler eliminare questa diretta?')) {
+                        const streamId = this.getAttribute('data-stream-id');
+                        
+                        // Invia la richiesta al server
+                        fetch(`/api/youtube/delete-stream/${streamId}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                showToast('success', 'Successo', 'Diretta eliminata con successo');
+                                // Ricarica la pagina dopo un breve ritardo
+                                setTimeout(() => window.location.reload(), 1500);
+                            } else {
+                                showToast('error', 'Errore', data.message || 'Errore nell\'eliminazione della diretta');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showToast('error', 'Errore', 'Si è verificato un errore');
+                        });
+                    }
+                });
+            });
+        }
+        
+        // Helper per mostrare toast
+        function showToast(type, title, message) {
+            const toastContainer = document.querySelector('.toast-container');
+            if (!toastContainer) return;
+            
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            
+            const iconClass = type === 'success' ? 'fas fa-check-circle text-success' : 
+                             type === 'error' ? 'fas fa-exclamation-circle text-danger' : 
+                             'fas fa-info-circle text-info';
+            
+            toast.innerHTML = `
+                <div class="toast-header">
+                    <i class="${iconClass} me-2"></i>
+                    <strong class="me-auto">${title}</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">${message}</div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            toast.addEventListener('hidden.bs.toast', function() {
+                toastContainer.removeChild(toast);
+            });
+        }
+    });
+</script>
+{% endblock %} 

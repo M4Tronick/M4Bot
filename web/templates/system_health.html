@@ -312,6 +312,159 @@
             0% { background-position: 1200px 0; }
             100% { background-position: 0 0; }
         }
+        
+        /* Stili per la sezione Speed Test */
+        .speed-test-container {
+            margin-top: 20px;
+            background-color: var(--surface-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .speed-gauge {
+            margin: 20px auto;
+            width: 220px;
+            height: 220px;
+            position: relative;
+        }
+        
+        .speed-gauge-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+        
+        .speed-gauge-label {
+            position: absolute;
+            bottom: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-color-muted);
+        }
+        
+        .test-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .test-size-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .test-size-option {
+            padding: 5px 12px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+        
+        .test-size-option.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        
+        .latency-indicator {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-right: 10px;
+        }
+        
+        .latency-indicator.excellent {
+            background-color: rgba(var(--success-color-rgb), 0.1);
+            color: var(--success-color);
+        }
+        
+        .latency-indicator.good {
+            background-color: rgba(46, 204, 113, 0.1);
+            color: #2ecc71;
+        }
+        
+        .latency-indicator.fair {
+            background-color: rgba(241, 196, 15, 0.1);
+            color: #f1c40f;
+        }
+        
+        .latency-indicator.poor {
+            background-color: rgba(230, 126, 34, 0.1);
+            color: #e67e22;
+        }
+        
+        .latency-indicator.critical {
+            background-color: rgba(var(--danger-color-rgb), 0.1);
+            color: var(--danger-color);
+        }
+        
+        .latency-details {
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+        
+        .test-progress {
+            height: 4px;
+            margin: 15px 0;
+            background-color: var(--background-color-alt);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .test-progress-bar {
+            height: 100%;
+            width: 0;
+            background-color: var(--accent-color);
+            transition: width 0.3s ease;
+        }
+        
+        .test-result {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .result-item {
+            flex: 1;
+            min-width: 200px;
+            background-color: var(--background-color-alt);
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .result-title {
+            font-size: 0.9rem;
+            color: var(--text-color-muted);
+            margin-bottom: 10px;
+        }
+        
+        .result-value {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .result-unit {
+            font-size: 0.8rem;
+            color: var(--text-color-muted);
+        }
     </style>
 {% endblock %}
 
@@ -325,121 +478,302 @@
     </div>
     {% endif %}
     
-    <div class="row">
-        <!-- Stato del sistema -->
-        <div class="col-md-6">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">{{ _("Stato del Sistema") }}</h5>
-                    <span class="badge {% if health_data.status == 'ok' %}bg-success{% elif health_data.status == 'warning' %}bg-warning{% else %}bg-danger{% endif %}">
-                        {% if health_data.status == 'ok' %}
-                            {{ _("Operativo") }}
-                        {% elif health_data.status == 'warning' %}
-                            {{ _("Avviso") }}
-                        {% elif health_data.status == 'error' %}
-                            {{ _("Errore") }}
-                        {% else %}
-                            {{ _("Sconosciuto") }}
-                        {% endif %}
-                    </span>
-                </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-between mb-3">
-                        <div>{{ _("Uptime") }}:</div>
-                        <div>
-                            {% if health_data.uptime > 86400 %}
-                                {{ (health_data.uptime / 86400)|int }} {{ _("giorni") }}
-                                {{ ((health_data.uptime % 86400) / 3600)|int }} {{ _("ore") }}
-                            {% elif health_data.uptime > 3600 %}
-                                {{ (health_data.uptime / 3600)|int }} {{ _("ore") }}
-                                {{ ((health_data.uptime % 3600) / 60)|int }} {{ _("minuti") }}
-                            {% else %}
-                                {{ (health_data.uptime / 60)|int }} {{ _("minuti") }}
-                            {% endif %}
+    <!-- Tab di navigazione -->
+    <ul class="nav nav-tabs mb-4" id="healthTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">
+                <i class="fas fa-tachometer-alt me-1"></i> {{ _("Panoramica") }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="network-tab" data-bs-toggle="tab" data-bs-target="#network" type="button" role="tab" aria-controls="network" aria-selected="false">
+                <i class="fas fa-network-wired me-1"></i> {{ _("Rete") }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="services-tab" data-bs-toggle="tab" data-bs-target="#services" type="button" role="tab" aria-controls="services" aria-selected="false">
+                <i class="fas fa-server me-1"></i> {{ _("Servizi") }}
+            </button>
+        </li>
+    </ul>
+    
+    <!-- Contenuto dei tab -->
+    <div class="tab-content" id="healthTabsContent">
+        <!-- Tab Panoramica -->
+        <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+            <div class="row">
+                <!-- Stato del sistema -->
+                <div class="col-md-6">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">{{ _("Stato del Sistema") }}</h5>
+                            <span class="badge {% if health_data.status == 'ok' %}bg-success{% elif health_data.status == 'warning' %}bg-warning{% else %}bg-danger{% endif %}">
+                                {% if health_data.status == 'ok' %}
+                                    {{ _("Operativo") }}
+                                {% elif health_data.status == 'warning' %}
+                                    {{ _("Avviso") }}
+                                {% elif health_data.status == 'error' %}
+                                    {{ _("Errore") }}
+                                {% else %}
+                                    {{ _("Sconosciuto") }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-3">
+                                <div>{{ _("Uptime") }}:</div>
+                                <div>
+                                    {% if health_data.uptime > 86400 %}
+                                        {{ (health_data.uptime / 86400)|int }} {{ _("giorni") }}
+                                        {{ ((health_data.uptime % 86400) / 3600)|int }} {{ _("ore") }}
+                                    {% elif health_data.uptime > 3600 %}
+                                        {{ (health_data.uptime / 3600)|int }} {{ _("ore") }}
+                                        {{ ((health_data.uptime % 3600) / 60)|int }} {{ _("minuti") }}
+                                    {% else %}
+                                        {{ (health_data.uptime / 60)|int }} {{ _("minuti") }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <div>{{ _("Ultimo controllo") }}:</div>
+                                <div>{{ health_data.last_check|replace("T", " ")|replace("Z", "")|replace(".000", "") }}</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="d-flex justify-content-between">
-                        <div>{{ _("Ultimo controllo") }}:</div>
-                        <div>{{ health_data.last_check|replace("T", " ")|replace("Z", "")|replace(".000", "") }}</div>
+                </div>
+                
+                <!-- Utilizzo risorse -->
+                <div class="col-md-6">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">{{ _("Utilizzo Risorse") }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label>{{ _("CPU") }}</label>
+                                <div class="progress">
+                                    <div class="progress-bar {% if health_data.cpu_usage > 80 %}bg-danger{% elif health_data.cpu_usage > 60 %}bg-warning{% else %}bg-success{% endif %}"
+                                        role="progressbar" style="width: {{ health_data.cpu_usage }}%"
+                                        aria-valuenow="{{ health_data.cpu_usage }}" aria-valuemin="0" aria-valuemax="100">
+                                        {{ health_data.cpu_usage|round(1) }}%
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label>{{ _("Memoria") }}</label>
+                                <div class="progress">
+                                    <div class="progress-bar {% if health_data.memory_usage > 80 %}bg-danger{% elif health_data.memory_usage > 60 %}bg-warning{% else %}bg-success{% endif %}"
+                                        role="progressbar" style="width: {{ health_data.memory_usage }}%"
+                                        aria-valuenow="{{ health_data.memory_usage }}" aria-valuemin="0" aria-valuemax="100">
+                                        {{ health_data.memory_usage|round(1) }}%
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <label>{{ _("Disco") }}</label>
+                                <div class="progress">
+                                    <div class="progress-bar {% if health_data.disk_usage > 80 %}bg-danger{% elif health_data.disk_usage > 60 %}bg-warning{% else %}bg-success{% endif %}"
+                                        role="progressbar" style="width: {{ health_data.disk_usage }}%"
+                                        aria-valuenow="{{ health_data.disk_usage }}" aria-valuemin="0" aria-valuemax="100">
+                                        {{ health_data.disk_usage|round(1) }}%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Utilizzo risorse -->
-        <div class="col-md-6">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">{{ _("Utilizzo Risorse") }}</h5>
+        <!-- Tab Rete -->
+        <div class="tab-pane fade" id="network" role="tabpanel" aria-labelledby="network-tab">
+            <div class="row">
+                <!-- Test di Latenza -->
+                <div class="col-md-6">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">{{ _("Test di Latenza") }}</h5>
+                            <button id="startLatencyTest" class="btn btn-sm btn-primary">
+                                <i class="fas fa-sync-alt"></i> {{ _("Esegui Test") }}
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="latencyTestResults" class="d-none">
+                                <div class="d-flex justify-content-between mb-3 align-items-center">
+                                    <div>{{ _("Totale") }}:</div>
+                                    <div id="totalLatency" class="health-metric-value">--</div>
+                                </div>
+                                <div class="d-flex justify-content-between mb-3 align-items-center">
+                                    <div>{{ _("Database") }}:</div>
+                                    <div id="dbLatency" class="health-metric-value">--</div>
+                                </div>
+                                <div class="d-flex justify-content-between mb-3 align-items-center">
+                                    <div>{{ _("Redis") }}:</div>
+                                    <div id="redisLatency" class="health-metric-value">--</div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>{{ _("DNS") }}:</div>
+                                    <div id="dnsLatency" class="health-metric-value">--</div>
+                                </div>
+                                
+                                <hr>
+                                
+                                <div class="mt-3">
+                                    <h6>{{ _("Dettagli Sistema") }}</h6>
+                                    <div id="systemInfo" class="latency-details"></div>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <h6>{{ _("Diagnostica Ping") }}</h6>
+                                    <pre id="pingOutput" class="bg-dark text-light p-3 rounded" style="max-height: 200px; overflow-y: auto; font-size: 0.8rem;">{{ _("Esegui il test per visualizzare i risultati") }}</pre>
+                                </div>
+                            </div>
+                            
+                            <div id="latencyTestLoader" class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">{{ _("Caricamento...") }}</span>
+                                </div>
+                                <p class="mt-3">{{ _("Esecuzione del test di latenza in corso...") }}</p>
+                            </div>
+                            
+                            <div id="latencyTestPlaceholder" class="text-center py-5">
+                                <i class="fas fa-tachometer-alt fa-4x text-muted mb-3"></i>
+                                <p>{{ _("Clicca su 'Esegui Test' per misurare la latenza del sistema") }}</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label>{{ _("CPU") }}</label>
-                        <div class="progress">
-                            <div class="progress-bar {% if health_data.cpu_usage > 80 %}bg-danger{% elif health_data.cpu_usage > 60 %}bg-warning{% else %}bg-success{% endif %}"
-                                role="progressbar" style="width: {{ health_data.cpu_usage }}%"
-                                aria-valuenow="{{ health_data.cpu_usage }}" aria-valuemin="0" aria-valuemax="100">
-                                {{ health_data.cpu_usage|round(1) }}%
+                
+                <!-- Speed Test -->
+                <div class="col-md-6">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">{{ _("Speed Test") }}</h5>
+                            <div>
+                                <button id="startSpeedTest" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-gauge-high"></i> {{ _("Esegui Test") }}
+                                </button>
                             </div>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label>{{ _("Memoria") }}</label>
-                        <div class="progress">
-                            <div class="progress-bar {% if health_data.memory_usage > 80 %}bg-danger{% elif health_data.memory_usage > 60 %}bg-warning{% else %}bg-success{% endif %}"
-                                role="progressbar" style="width: {{ health_data.memory_usage }}%"
-                                aria-valuenow="{{ health_data.memory_usage }}" aria-valuemin="0" aria-valuemax="100">
-                                {{ health_data.memory_usage|round(1) }}%
+                        <div class="card-body">
+                            <div class="test-size-selector mb-3">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="testSize" id="sizeSmall" value="small">
+                                    <label class="form-check-label" for="sizeSmall">{{ _("Piccolo") }}</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="testSize" id="sizeMedium" value="medium" checked>
+                                    <label class="form-check-label" for="sizeMedium">{{ _("Medio") }}</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="testSize" id="sizeLarge" value="large">
+                                    <label class="form-check-label" for="sizeLarge">{{ _("Grande") }}</label>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                    <div>
-                        <label>{{ _("Disco") }}</label>
-                        <div class="progress">
-                            <div class="progress-bar {% if health_data.disk_usage > 80 %}bg-danger{% elif health_data.disk_usage > 60 %}bg-warning{% else %}bg-success{% endif %}"
-                                role="progressbar" style="width: {{ health_data.disk_usage }}%"
-                                aria-valuenow="{{ health_data.disk_usage }}" aria-valuemin="0" aria-valuemax="100">
-                                {{ health_data.disk_usage|round(1) }}%
+                            
+                            <div id="speedTestProgress" class="d-none">
+                                <p id="speedTestStatus" class="text-center mb-2">{{ _("Preparazione test...") }}</p>
+                                <div class="test-progress">
+                                    <div id="speedTestProgressBar" class="test-progress-bar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            
+                            <div id="speedTestResults" class="d-none">
+                                <div class="test-result">
+                                    <div class="result-item">
+                                        <div class="result-title">{{ _("Download") }}</div>
+                                        <div id="downloadSpeed" class="result-value">--</div>
+                                        <div class="result-unit">Mbps</div>
+                                    </div>
+                                    <div class="result-item">
+                                        <div class="result-title">{{ _("Upload") }}</div>
+                                        <div id="uploadSpeed" class="result-value">--</div>
+                                        <div class="result-unit">Mbps</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-center mt-4">
+                                    <button id="speedTestDetails" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-info-circle"></i> {{ _("Mostra Dettagli") }}
+                                    </button>
+                                </div>
+                                
+                                <div id="speedTestDetailsContent" class="mt-3 d-none">
+                                    <table class="table table-sm">
+                                        <tbody>
+                                            <tr>
+                                                <td>{{ _("Dimensione pacchetto") }}</td>
+                                                <td id="packetSize">--</td>
+                                            </tr>
+                                            <tr>
+                                                <td>{{ _("Tempo di download") }}</td>
+                                                <td id="downloadTime">--</td>
+                                            </tr>
+                                            <tr>
+                                                <td>{{ _("Tempo di upload") }}</td>
+                                                <td id="uploadTime">--</td>
+                                            </tr>
+                                            <tr>
+                                                <td>{{ _("Data test") }}</td>
+                                                <td id="testTimestamp">--</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div id="speedTestLoader" class="text-center py-5 d-none">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">{{ _("Caricamento...") }}</span>
+                                </div>
+                                <p class="mt-3">{{ _("Esecuzione dello speed test in corso...") }}</p>
+                            </div>
+                            
+                            <div id="speedTestPlaceholder" class="text-center py-5">
+                                <i class="fas fa-gauge-high fa-4x text-muted mb-3"></i>
+                                <p>{{ _("Clicca su 'Esegui Test' per misurare la velocità della connessione") }}</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <!-- Stato dei servizi -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">{{ _("Stato dei Servizi") }}</h5>
-        </div>
-        <div class="card-body">
-            <ul class="list-group">
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    {{ _("Database") }}
-                    {% if health_data.services.database %}
-                        <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
-                    {% else %}
-                        <span class="badge bg-danger rounded-pill"><i class="fas fa-times"></i></span>
-                    {% endif %}
-                </li>
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    {{ _("API") }}
-                    {% if health_data.services.api %}
-                        <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
-                    {% else %}
-                        <span class="badge bg-danger rounded-pill"><i class="fas fa-times"></i></span>
-                    {% endif %}
-                </li>
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    {{ _("WebSocket") }}
-                    {% if health_data.services.websocket %}
-                        <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
-                    {% else %}
-                        <span class="badge bg-danger rounded-pill"><i class="fas fa-times"></i></span>
-                    {% endif %}
-                </li>
-            </ul>
+        
+        <!-- Tab Servizi -->
+        <div class="tab-pane fade" id="services" role="tabpanel" aria-labelledby="services-tab">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ _("Stato dei Servizi") }}</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ _("Database") }}
+                            {% if health_data.services.database %}
+                                <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                            {% else %}
+                                <span class="badge bg-danger rounded-pill"><i class="fas fa-times"></i></span>
+                            {% endif %}
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ _("API") }}
+                            {% if health_data.services.api %}
+                                <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                            {% else %}
+                                <span class="badge bg-danger rounded-pill"><i class="fas fa-times"></i></span>
+                            {% endif %}
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ _("WebSocket") }}
+                            {% if health_data.services.websocket %}
+                                <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                            {% else %}
+                                <span class="badge bg-danger rounded-pill"><i class="fas fa-times"></i></span>
+                            {% endif %}
+                        </li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -461,9 +795,209 @@
 {% block scripts %}
 <script>
     $(document).ready(function() {
+        // Pulsante di aggiornamento pagina
         $("#refreshHealth").click(function() {
             location.reload();
         });
+        
+        // Test di latenza
+        $("#startLatencyTest").click(function() {
+            const button = $(this);
+            button.prop('disabled', true);
+            
+            // Mostra loader e nascondi altri contenuti
+            $("#latencyTestPlaceholder").hide();
+            $("#latencyTestResults").addClass('d-none');
+            $("#latencyTestLoader").removeClass('d-none');
+            
+            // Chiama API per il test di latenza
+            fetch('/api/v1/network/ping')
+                .then(response => response.json())
+                .then(data => {
+                    // Nascondi loader
+                    $("#latencyTestLoader").addClass('d-none');
+                    
+                    // Popola i risultati
+                    $("#totalLatency").text(data.total_latency + ' ms').removeClass().addClass('health-metric-value ' + getLatencyClass(data.total_latency));
+                    $("#dbLatency").text(data.db_latency + ' ms').removeClass().addClass('health-metric-value ' + getLatencyClass(data.db_latency));
+                    $("#redisLatency").text(data.redis_latency + ' ms').removeClass().addClass('health-metric-value ' + getLatencyClass(data.redis_latency));
+                    $("#dnsLatency").text(data.dns_latency + ' ms').removeClass().addClass('health-metric-value ' + getLatencyClass(data.dns_latency));
+                    
+                    // Popola i dettagli di sistema
+                    if (data.details && data.details.system_info) {
+                        const sysInfo = data.details.system_info;
+                        let sysHtml = `
+                            <div class="mb-1"><strong>Hostname:</strong> ${sysInfo.hostname}</div>
+                            <div class="mb-1"><strong>Piattaforma:</strong> ${sysInfo.platform}</div>
+                            <div class="mb-1"><strong>Python:</strong> ${sysInfo.python_version}</div>
+                            <div class="mb-1"><strong>CPU Cores:</strong> ${sysInfo.cpu_cores}</div>
+                            <div><strong>Memoria Totale:</strong> ${sysInfo.total_memory} GB</div>
+                        `;
+                        $("#systemInfo").html(sysHtml);
+                    }
+                    
+                    // Popola output ping
+                    if (data.details && data.details.ping_output) {
+                        $("#pingOutput").text(data.details.ping_output);
+                    } else if (data.details && data.details.ping_error) {
+                        $("#pingOutput").text("Errore durante il ping: " + data.details.ping_error);
+                    } else {
+                        $("#pingOutput").text("Nessun dato di ping disponibile");
+                    }
+                    
+                    // Mostra risultati
+                    $("#latencyTestResults").removeClass('d-none');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    $("#latencyTestLoader").addClass('d-none');
+                    showToast('Errore', 'Si è verificato un errore durante il test di latenza', 'danger');
+                    $("#latencyTestPlaceholder").show();
+                })
+                .finally(() => {
+                    button.prop('disabled', false);
+                });
+        });
+        
+        // Speed test
+        $("#startSpeedTest").click(function() {
+            const button = $(this);
+            button.prop('disabled', true);
+            
+            // Ottieni la dimensione del test selezionata
+            const testSize = $('input[name="testSize"]:checked').val();
+            
+            // Mostra loader e nascondi altri contenuti
+            $("#speedTestPlaceholder").hide();
+            $("#speedTestResults").addClass('d-none');
+            $("#speedTestProgress").removeClass('d-none');
+            $("#speedTestLoader").removeClass('d-none');
+            
+            // Reset della barra di progresso
+            $("#speedTestProgressBar").css('width', '0%');
+            $("#speedTestStatus").text("Preparazione test...");
+            
+            // Dati per la richiesta
+            const requestData = {
+                size: testSize
+            };
+            
+            // Esegui prima fase: test download
+            fetch('/api/v1/network/speedtest', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Aggiorna progresso
+                $("#speedTestStatus").text("Download completato, avvio test upload...");
+                $("#speedTestProgressBar").css('width', '50%');
+                
+                // Salva i dati di download
+                const downloadSpeed = data.download_speed_mbps;
+                const packetSize = data.packet_size_bytes;
+                const timestamp = data.timestamp;
+                
+                // Prepara i dati per la fase di upload
+                const uploadData = {
+                    data: data.data // Questi sono i dati che abbiamo ricevuto, li inviamo di nuovo per testare l'upload
+                };
+                
+                // Avvia il timer per misurare il tempo di upload
+                const uploadStartTime = new Date().getTime();
+                
+                // Esegui seconda fase: test upload
+                return fetch('/api/v1/network/speedtest/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(uploadData)
+                })
+                .then(response => response.json())
+                .then(uploadData => {
+                    // Aggiorna progresso
+                    $("#speedTestStatus").text("Test completato");
+                    $("#speedTestProgressBar").css('width', '100%');
+                    
+                    // Nascondi loader e progresso
+                    $("#speedTestLoader").addClass('d-none');
+                    
+                    // Popola i risultati
+                    $("#downloadSpeed").text(downloadSpeed);
+                    $("#uploadSpeed").text(uploadData.upload_speed_mbps);
+                    
+                    // Popola i dettagli
+                    $("#packetSize").text(formatBytes(packetSize));
+                    $("#downloadTime").text(formatTime(data.generation_time_ms));
+                    $("#uploadTime").text(formatTime(uploadData.upload_time_ms));
+                    $("#testTimestamp").text(new Date(timestamp).toLocaleString());
+                    
+                    // Mostra risultati
+                    $("#speedTestResults").removeClass('d-none');
+                    
+                    // Nascondi la barra di progresso dopo 1 secondo
+                    setTimeout(() => {
+                        $("#speedTestProgress").addClass('d-none');
+                    }, 1000);
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                $("#speedTestLoader").addClass('d-none');
+                $("#speedTestProgress").addClass('d-none');
+                showToast('Errore', 'Si è verificato un errore durante lo speed test', 'danger');
+                $("#speedTestPlaceholder").show();
+            })
+            .finally(() => {
+                button.prop('disabled', false);
+            });
+        });
+        
+        // Toggle dettagli speed test
+        $("#speedTestDetails").click(function() {
+            const detailsContent = $("#speedTestDetailsContent");
+            if (detailsContent.hasClass('d-none')) {
+                detailsContent.removeClass('d-none');
+                $(this).html('<i class="fas fa-minus-circle"></i> Nascondi Dettagli');
+            } else {
+                detailsContent.addClass('d-none');
+                $(this).html('<i class="fas fa-info-circle"></i> Mostra Dettagli');
+            }
+        });
+        
+        // Funzione per determinare la classe CSS in base alla latenza
+        function getLatencyClass(latency) {
+            if (latency < 10) return 'good';
+            if (latency < 50) return 'good';
+            if (latency < 100) return 'warning';
+            return 'critical';
+        }
+        
+        // Funzione per formattare i bytes in un formato leggibile
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+            
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+        
+        // Funzione per formattare il tempo in millisecondi
+        function formatTime(ms) {
+            if (ms < 1000) {
+                return ms.toFixed(2) + ' ms';
+            } else {
+                return (ms / 1000).toFixed(2) + ' s';
+            }
+        }
     });
 </script>
 {% endblock %}

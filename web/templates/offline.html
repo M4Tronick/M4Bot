@@ -1,0 +1,150 @@
+{% extends 'base_offline.html' %}
+
+{% block title %}M4Bot - Offline{% endblock %}
+
+{% block content %}
+<div class="offline-container text-center">
+    <div class="offline-icon mb-4">
+        <i class="fas fa-wifi-slash fa-4x text-muted"></i>
+    </div>
+    
+    <h1 class="display-4">Sei offline</h1>
+    <p class="lead">Non è stato possibile connettersi al server M4Bot.</p>
+    
+    <div class="offline-info mt-5">
+        <p>Ecco cosa puoi fare:</p>
+        
+        <div class="row g-4 mt-3">
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-sync-alt fa-2x text-primary mb-3"></i>
+                        <h5 class="card-title">Riprova</h5>
+                        <p class="card-text">Controlla la tua connessione internet e ricarica la pagina.</p>
+                        <button class="btn btn-primary" id="retry-connection">Ricarica pagina</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-book fa-2x text-primary mb-3"></i>
+                        <h5 class="card-title">Funzionalità offline</h5>
+                        <p class="card-text">Alcune funzionalità sono disponibili anche offline.</p>
+                        <button class="btn btn-outline-primary" id="show-offline-features">Mostra funzionalità</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-exclamation-triangle fa-2x text-primary mb-3"></i>
+                        <h5 class="card-title">Stato sistema</h5>
+                        <p class="card-text">Verifica se ci sono problemi noti con il servizio.</p>
+                        <div id="last-known-status" class="text-start mt-3 small">
+                            <div class="d-flex justify-content-between">
+                                <span>Bot:</span>
+                                <span class="badge bg-secondary" id="bot-status">Sconosciuto</span>
+                            </div>
+                            <div class="d-flex justify-content-between mt-1">
+                                <span>API:</span>
+                                <span class="badge bg-secondary" id="api-status">Sconosciuto</span>
+                            </div>
+                            <div class="d-flex justify-content-between mt-1">
+                                <span>Database:</span>
+                                <span class="badge bg-secondary" id="db-status">Sconosciuto</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="offline-features mt-5 d-none" id="offline-features-section">
+        <h3>Funzionalità disponibili offline</h3>
+        <div class="list-group mt-3 text-start" id="offline-features-list">
+            <a href="/dashboard" class="list-group-item list-group-item-action">
+                <i class="fas fa-tachometer-alt me-2"></i> Dashboard (dati limitati)
+            </a>
+            <a href="/commands/saved" class="list-group-item list-group-item-action">
+                <i class="fas fa-terminal me-2"></i> Comandi salvati
+            </a>
+            <a href="/docs/offline" class="list-group-item list-group-item-action">
+                <i class="fas fa-book me-2"></i> Documentazione offline
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gestione pulsante ricarica
+        document.getElementById('retry-connection').addEventListener('click', function() {
+            window.location.reload();
+        });
+        
+        // Mostra/nascondi funzionalità offline
+        document.getElementById('show-offline-features').addEventListener('click', function() {
+            const section = document.getElementById('offline-features-section');
+            section.classList.toggle('d-none');
+            this.textContent = section.classList.contains('d-none') ? 
+                'Mostra funzionalità' : 'Nascondi funzionalità';
+        });
+        
+        // Carica ultimi stati noti dal localStorage
+        try {
+            const lastStatus = JSON.parse(localStorage.getItem('m4bot_system_status') || '{}');
+            
+            if (lastStatus.bot) {
+                document.getElementById('bot-status').textContent = lastStatus.bot;
+                document.getElementById('bot-status').className = 
+                    'badge bg-' + (lastStatus.bot === 'online' ? 'success' : 'danger');
+            }
+            
+            if (lastStatus.api) {
+                document.getElementById('api-status').textContent = lastStatus.api;
+                document.getElementById('api-status').className = 
+                    'badge bg-' + (lastStatus.api === 'online' ? 'success' : 'danger');
+            }
+            
+            if (lastStatus.database) {
+                document.getElementById('db-status').textContent = lastStatus.database;
+                document.getElementById('db-status').className = 
+                    'badge bg-' + (lastStatus.database === 'online' ? 'success' : 'danger');
+            }
+            
+            // Aggiungi ultimo aggiornamento
+            if (lastStatus.timestamp) {
+                const date = new Date(lastStatus.timestamp);
+                const timeStr = date.toLocaleString();
+                
+                const statusDiv = document.getElementById('last-known-status');
+                const timeInfo = document.createElement('div');
+                timeInfo.className = 'text-muted mt-2 small';
+                timeInfo.textContent = 'Ultimo aggiornamento: ' + timeStr;
+                statusDiv.appendChild(timeInfo);
+            }
+        } catch (e) {
+            console.error('Errore nel caricamento degli stati dal localStorage', e);
+        }
+        
+        // Tentativo periodico di riconnessione
+        setInterval(function() {
+            // Controlla connessione inviando una richiesta leggera
+            fetch('/api/ping', { method: 'GET', cache: 'no-store' })
+                .then(response => {
+                    if (response.ok) {
+                        // Se la connessione è ripristinata, ricarica
+                        window.location.reload();
+                    }
+                })
+                .catch(() => {
+                    // Ancora offline, non fare nulla
+                });
+        }, 30000); // Controlla ogni 30 secondi
+    });
+</script>
+{% endblock %} 

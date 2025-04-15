@@ -1,0 +1,1140 @@
+{% extends 'base.html' %}
+
+{% block title %}M4Bot - Analytics Avanzate{% endblock %}
+
+{% block head %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@2.5.0/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.0/dist/chartjs-plugin-zoom.min.js"></script>
+
+<style>
+    .analytics-card {
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+    
+    .analytics-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-medium);
+    }
+    
+    .chart-container {
+        position: relative;
+        min-height: 300px;
+        margin-bottom: 1rem;
+    }
+    
+    .insight-card {
+        border-left: 4px solid var(--primary);
+        margin-bottom: 1rem;
+    }
+    
+    .insight-card.positive {
+        border-left-color: var(--success);
+    }
+    
+    .insight-card.negative {
+        border-left-color: var(--danger);
+    }
+    
+    .insight-card.warning {
+        border-left-color: var(--warning);
+    }
+    
+    .kpi-value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+    
+    .kpi-label {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        margin-bottom: 0;
+    }
+    
+    .kpi-trend {
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .kpi-trend.up {
+        color: var(--success);
+    }
+    
+    .kpi-trend.down {
+        color: var(--danger);
+    }
+    
+    .kpi-trend.neutral {
+        color: var(--secondary);
+    }
+    
+    .chart-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        font-size: 0.85rem;
+    }
+    
+    .legend-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        margin-right: 5px;
+    }
+    
+    .chart-filters {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .date-range-picker {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .metric-selector .btn-check:checked + .btn-outline-primary {
+        background-color: var(--primary);
+        color: white;
+    }
+    
+    @media (max-width: 768px) {
+        .chart-filters {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .date-range-picker {
+            flex-wrap: wrap;
+        }
+    }
+    
+    /* Animazioni per il caricamento dei grafici */
+    @keyframes chartFadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .chart-animation {
+        animation: chartFadeIn 0.6s ease-out forwards;
+    }
+    
+    /* Loader per i grafici */
+    .chart-loader {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 5;
+    }
+    
+    .chart-loader-spinner {
+        width: 48px;
+        height: 48px;
+        border: 5px solid var(--light);
+        border-bottom-color: var(--primary);
+        border-radius: 50%;
+        animation: rotate 1s linear infinite;
+    }
+    
+    @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Data insights panel */
+    .insights-panel {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    .insight-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+    }
+    
+    .insight-icon.positive {
+        background-color: rgba(var(--success-rgb), 0.1);
+        color: var(--success);
+    }
+    
+    .insight-icon.negative {
+        background-color: rgba(var(--danger-rgb), 0.1);
+        color: var(--danger);
+    }
+    
+    .insight-icon.warning {
+        background-color: rgba(var(--warning-rgb), 0.1);
+        color: var(--warning);
+    }
+    
+    .insight-icon.info {
+        background-color: rgba(var(--primary-rgb), 0.1);
+        color: var(--primary);
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+<li class="breadcrumb-item active">Analytics Avanzate</li>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <h1 class="h2 mb-3 mb-sm-0">
+                <i class="fas fa-chart-line me-2"></i>Analytics Avanzate
+            </h1>
+            
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-primary" id="export-data">
+                    <i class="fas fa-download me-2"></i>Esporta Dati
+                </button>
+                <button class="btn btn-primary" id="refresh-data">
+                    <i class="fas fa-sync-alt me-2"></i>Aggiorna
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtri e controlli -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="chart-filters">
+                    <!-- Selettore canale -->
+                    <div class="channel-selector">
+                        <label class="form-label">Canale</label>
+                        <select class="form-select" id="channel-selector">
+                            {% for channel in channels %}
+                            <option value="{{ channel.id }}" {% if loop.first %}selected{% endif %}>{{ channel.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Selezione intervallo date -->
+                    <div class="date-selector">
+                        <label class="form-label">Periodo</label>
+                        <div class="date-range-picker">
+                            <select class="form-select" id="date-range">
+                                <option value="7">Ultimi 7 giorni</option>
+                                <option value="30" selected>Ultimi 30 giorni</option>
+                                <option value="90">Ultimi 3 mesi</option>
+                                <option value="180">Ultimi 6 mesi</option>
+                                <option value="custom">Personalizzato</option>
+                            </select>
+                            
+                            <div class="custom-date-range" style="display: none;">
+                                <input type="date" class="form-control" id="date-start" aria-label="Data inizio">
+                                <input type="date" class="form-control" id="date-end" aria-label="Data fine">
+                                <button class="btn btn-primary" id="apply-date-range">Applica</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Selettore metrica principale -->
+                    <div class="metric-selector">
+                        <label class="form-label">Metrica principale</label>
+                        <div class="btn-group" role="group">
+                            <input type="radio" class="btn-check" name="primary-metric" id="metric-views" value="views" checked>
+                            <label class="btn btn-outline-primary" for="metric-views">Visualizzazioni</label>
+                            
+                            <input type="radio" class="btn-check" name="primary-metric" id="metric-followers" value="followers">
+                            <label class="btn btn-outline-primary" for="metric-followers">Follower</label>
+                            
+                            <input type="radio" class="btn-check" name="primary-metric" id="metric-engagement" value="engagement">
+                            <label class="btn btn-outline-primary" for="metric-engagement">Engagement</label>
+                            
+                            <input type="radio" class="btn-check" name="primary-metric" id="metric-revenue" value="revenue">
+                            <label class="btn btn-outline-primary" for="metric-revenue">Guadagni</label>
+                        </div>
+                    </div>
+                    
+                    <!-- Granularità dati -->
+                    <div class="granularity-selector">
+                        <label class="form-label">Granularità</label>
+                        <select class="form-select" id="granularity">
+                            <option value="day">Giornaliera</option>
+                            <option value="week">Settimanale</option>
+                            <option value="month">Mensile</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- KPI principali -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card analytics-card">
+            <div class="card-body">
+                <p class="kpi-label">Ore di streaming</p>
+                <p class="kpi-value">{{ stats.streaming_hours|default('--') }}</p>
+                <div class="kpi-trend up">
+                    <i class="fas fa-arrow-up me-1"></i> +12.5% rispetto a periodo precedente
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card analytics-card">
+            <div class="card-body">
+                <p class="kpi-label">Nuovi follower</p>
+                <p class="kpi-value">{{ stats.new_followers|default('--') }}</p>
+                <div class="kpi-trend up">
+                    <i class="fas fa-arrow-up me-1"></i> +8.3% rispetto a periodo precedente
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card analytics-card">
+            <div class="card-body">
+                <p class="kpi-label">Messaggi in chat</p>
+                <p class="kpi-value">{{ stats.chat_messages|default('--') }}</p>
+                <div class="kpi-trend down">
+                    <i class="fas fa-arrow-down me-1"></i> -3.2% rispetto a periodo precedente
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card analytics-card">
+            <div class="card-body">
+                <p class="kpi-label">Nuovi iscritti</p>
+                <p class="kpi-value">{{ stats.new_subscribers|default('--') }}</p>
+                <div class="kpi-trend neutral">
+                    <i class="fas fa-equals me-1"></i> Invariato rispetto a periodo precedente
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grafici principali -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card analytics-card">
+            <div class="card-header">
+                <h5 class="mb-0">Andamento nel tempo</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <div class="chart-loader" id="main-chart-loader">
+                        <div class="chart-loader-spinner"></div>
+                    </div>
+                    <canvas id="main-chart" height="300"></canvas>
+                </div>
+                
+                <!-- Legenda grafico principale -->
+                <div class="chart-legend" id="main-chart-legend"></div>
+                
+                <!-- Controlli zoom grafico -->
+                <div class="d-flex justify-content-end mt-3">
+                    <button class="btn btn-sm btn-outline-secondary" id="reset-zoom">
+                        <i class="fas fa-undo me-1"></i>Reset Zoom
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card analytics-card">
+            <div class="card-header">
+                <h5 class="mb-0">Insights</h5>
+            </div>
+            <div class="card-body">
+                <div class="insights-panel">
+                    <div class="insight-card positive p-3 mb-3">
+                        <div class="d-flex">
+                            <div class="insight-icon positive">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div>
+                                <h6>Crescita follower superiore alla media</h6>
+                                <p class="mb-0 small">Il tasso di crescita dei follower è del 8.3% superiore rispetto alla media del periodo precedente.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="insight-card negative p-3 mb-3">
+                        <div class="d-flex">
+                            <div class="insight-icon negative">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <div>
+                                <h6>Diminuzione interazioni in chat</h6>
+                                <p class="mb-0 small">Il numero di messaggi in chat è diminuito del 3.2%. Considera strategie per aumentare l'engagement.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="insight-card warning p-3 mb-3">
+                        <div class="d-flex">
+                            <div class="insight-icon warning">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div>
+                                <h6>Orari di picco cambiati</h6>
+                                <p class="mb-0 small">Gli orari di maggiore affluenza sono cambiati. Il nuovo orario di picco è alle 20:00 CET.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="insight-card info p-3 mb-3">
+                        <div class="d-flex">
+                            <div class="insight-icon info">
+                                <i class="fas fa-lightbulb"></i>
+                            </div>
+                            <div>
+                                <h6>Suggerimento contenuti</h6>
+                                <p class="mb-0 small">I contenuti di tipo "Just Chatting" hanno generato più engagement questa settimana.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="insight-card positive p-3">
+                        <div class="d-flex">
+                            <div class="insight-icon positive">
+                                <i class="fas fa-trophy"></i>
+                            </div>
+                            <div>
+                                <h6>Record di concurrent viewers</h6>
+                                <p class="mb-0 small">Hai raggiunto un nuovo record di 1,283 spettatori contemporanei il 15 Luglio.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grafici secondari -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card analytics-card">
+            <div class="card-header">
+                <h5 class="mb-0">Distribuzione per categoria</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <div class="chart-loader" id="categories-chart-loader">
+                        <div class="chart-loader-spinner"></div>
+                    </div>
+                    <canvas id="categories-chart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card analytics-card">
+            <div class="card-header">
+                <h5 class="mb-0">Distribuzione oraria</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <div class="chart-loader" id="hourly-chart-loader">
+                        <div class="chart-loader-spinner"></div>
+                    </div>
+                    <canvas id="hourly-chart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analisi dettagliate -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card analytics-card">
+            <div class="card-header">
+                <h5 class="mb-0">Metriche dettagliate</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Streaming</th>
+                                <th>Durata</th>
+                                <th>Spettatori medi</th>
+                                <th>Picco spettatori</th>
+                                <th>Nuovi follower</th>
+                                <th>Nuovi iscritti</th>
+                                <th>Messaggi chat</th>
+                                <th>Comandi eseguiti</th>
+                            </tr>
+                        </thead>
+                        <tbody id="metrics-table-body">
+                            <!-- Dati caricati dinamicamente con JavaScript -->
+                            <tr>
+                                <td colspan="9" class="text-center">Caricamento dati in corso...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurazione Chart.js
+    Chart.defaults.font.family = getComputedStyle(document.body).getPropertyValue('--font-family-sans-serif');
+    Chart.defaults.font.size = 12;
+    Chart.defaults.plugins.tooltip.padding = 10;
+    Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    Chart.defaults.plugins.tooltip.titleFont.weight = 'bold';
+    Chart.defaults.plugins.tooltip.titleAlign = 'center';
+    Chart.defaults.plugins.legend.display = false; // Gestiamo la legenda manualmente
+    
+    // --- Variabili globali ---
+    let mainChart, categoriesChart, hourlyChart;
+    let currentData = {};
+    
+    // Colori per i grafici
+    const chartColors = {
+        primary: 'rgba(126, 63, 242, 1)',
+        primaryLight: 'rgba(126, 63, 242, 0.1)',
+        secondary: 'rgba(45, 156, 219, 1)',
+        secondaryLight: 'rgba(45, 156, 219, 0.1)',
+        tertiary: 'rgba(255, 99, 132, 1)',
+        tertiaryLight: 'rgba(255, 99, 132, 0.1)',
+        quaternary: 'rgba(75, 192, 192, 1)',
+        quaternaryLight: 'rgba(75, 192, 192, 0.1)',
+        success: 'rgba(66, 211, 146, 1)',
+        danger: 'rgba(255, 78, 110, 1)',
+        warning: 'rgba(255, 200, 55, 1)',
+        info: 'rgba(77, 196, 255, 1)'
+    };
+    
+    // --- Event Listeners ---
+    
+    // Gestione del selettore di date
+    document.getElementById('date-range').addEventListener('change', function() {
+        const customDateSection = document.querySelector('.custom-date-range');
+        if (this.value === 'custom') {
+            customDateSection.style.display = 'flex';
+        } else {
+            customDateSection.style.display = 'none';
+            fetchAndUpdateData();
+        }
+    });
+    
+    // Gestione date personalizzate
+    document.getElementById('apply-date-range').addEventListener('click', function() {
+        fetchAndUpdateData();
+    });
+    
+    // Gestione cambio canale
+    document.getElementById('channel-selector').addEventListener('change', fetchAndUpdateData);
+    
+    // Gestione cambio metrica
+    document.querySelectorAll('input[name="primary-metric"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            updateMainChart();
+        });
+    });
+    
+    // Gestione cambio granularità
+    document.getElementById('granularity').addEventListener('change', fetchAndUpdateData);
+    
+    // Aggiornamento dati
+    document.getElementById('refresh-data').addEventListener('click', function() {
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-sync-alt fa-spin me-2"></i>Aggiornamento...';
+        
+        fetchAndUpdateData().finally(() => {
+            setTimeout(() => {
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Aggiorna';
+            }, 1000);
+        });
+    });
+    
+    // Esportazione dati
+    document.getElementById('export-data').addEventListener('click', exportData);
+    
+    // Reset zoom grafico
+    document.getElementById('reset-zoom').addEventListener('click', function() {
+        if (mainChart) {
+            mainChart.resetZoom();
+        }
+    });
+    
+    // --- Funzioni principali ---
+    
+    // Inizializza i grafici
+    function initCharts() {
+        // Inizializza grafico principale
+        initMainChart();
+        
+        // Inizializza grafico categorie
+        initCategoriesChart();
+        
+        // Inizializza grafico distribuzione oraria
+        initHourlyChart();
+        
+        // Carica i dati iniziali
+        fetchAndUpdateData();
+    }
+    
+    // Inizializza il grafico principale
+    function initMainChart() {
+        const ctx = document.getElementById('main-chart').getContext('2d');
+        
+        mainChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: []
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'day',
+                            tooltipFormat: 'dd MMM yyyy',
+                            displayFormats: {
+                                day: 'dd MMM'
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Data'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Visualizzazioni'
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    tooltip: {
+                        enabled: true
+                    },
+                    zoom: {
+                        zoom: {
+                            wheel: {
+                                enabled: true
+                            },
+                            pinch: {
+                                enabled: true
+                            },
+                            mode: 'xy'
+                        },
+                        pan: {
+                            enabled: true,
+                            mode: 'xy'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Nascondi il loader
+        document.getElementById('main-chart-loader').style.display = 'none';
+    }
+    
+    // Inizializza il grafico delle categorie
+    function initCategoriesChart() {
+        const ctx = document.getElementById('categories-chart').getContext('2d');
+        
+        categoriesChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: [
+                        chartColors.primary,
+                        chartColors.secondary,
+                        chartColors.tertiary,
+                        chartColors.quaternary,
+                        chartColors.success,
+                        chartColors.warning,
+                        chartColors.info,
+                        chartColors.danger
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'right'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.formattedValue;
+                                const dataset = context.dataset;
+                                const total = dataset.data.reduce((acc, data) => acc + data, 0);
+                                const percentage = Math.round((context.raw / total) * 100);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Nascondi il loader
+        document.getElementById('categories-chart-loader').style.display = 'none';
+    }
+    
+    // Inizializza il grafico della distribuzione oraria
+    function initHourlyChart() {
+        const ctx = document.getElementById('hourly-chart').getContext('2d');
+        
+        const labels = Array.from({length: 24}, (_, i) => `${i}:00`);
+        
+        hourlyChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Spettatori medi',
+                    data: Array(24).fill(0),
+                    backgroundColor: chartColors.primaryLight,
+                    borderColor: chartColors.primary,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Ora del giorno (CET)'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Spettatori medi'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Nascondi il loader
+        document.getElementById('hourly-chart-loader').style.display = 'none';
+    }
+    
+    // Aggiorna il grafico principale con i nuovi dati
+    function updateMainChart() {
+        if (!mainChart || !currentData.timeSeriesData) return;
+        
+        // Determina quale metrica mostrare
+        const metricType = document.querySelector('input[name="primary-metric"]:checked').value;
+        
+        // Configura le etichette degli assi in base alla metrica
+        let yAxisLabel = 'Visualizzazioni';
+        switch (metricType) {
+            case 'followers':
+                yAxisLabel = 'Nuovi follower';
+                break;
+            case 'engagement':
+                yAxisLabel = 'Tasso di engagement (%)';
+                break;
+            case 'revenue':
+                yAxisLabel = 'Guadagni (€)';
+                break;
+        }
+        
+        // Aggiorna l'etichetta dell'asse Y
+        mainChart.options.scales.y.title.text = yAxisLabel;
+        
+        // Prepara i dati per il grafico principale
+        const timeSeriesData = currentData.timeSeriesData;
+        
+        // Dataset primario (quello selezionato)
+        const primaryData = timeSeriesData.map(item => ({
+            x: new Date(item.date),
+            y: item[metricType] || 0
+        }));
+        
+        // Dataset secondario (sempre visualizzazioni come confronto se non è già selezionato)
+        const secondaryMetric = metricType !== 'views' ? 'views' : 'engagement';
+        const secondaryLabel = secondaryMetric === 'views' ? 'Visualizzazioni' : 'Engagement';
+        
+        const secondaryData = timeSeriesData.map(item => ({
+            x: new Date(item.date),
+            y: item[secondaryMetric] || 0
+        }));
+        
+        // Aggiorna i dataset
+        mainChart.data.datasets = [
+            {
+                label: yAxisLabel,
+                data: primaryData,
+                borderColor: chartColors.primary,
+                backgroundColor: chartColors.primaryLight,
+                borderWidth: 2,
+                tension: 0.3,
+                fill: 'origin'
+            },
+            {
+                label: secondaryLabel,
+                data: secondaryData,
+                borderColor: chartColors.secondary,
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                borderDash: [5, 5],
+                tension: 0.3,
+                fill: false
+            }
+        ];
+        
+        // Aggiorna il grafico
+        mainChart.update();
+        
+        // Aggiorna la legenda manuale
+        updateChartLegend();
+    }
+    
+    // Aggiorna il grafico delle categorie
+    function updateCategoriesChart() {
+        if (!categoriesChart || !currentData.categoryData) return;
+        
+        const categoryData = currentData.categoryData;
+        
+        categoriesChart.data.labels = categoryData.map(item => item.category);
+        categoriesChart.data.datasets[0].data = categoryData.map(item => item.hours);
+        
+        categoriesChart.update();
+    }
+    
+    // Aggiorna il grafico della distribuzione oraria
+    function updateHourlyChart() {
+        if (!hourlyChart || !currentData.hourlyData) return;
+        
+        const hourlyData = currentData.hourlyData;
+        
+        hourlyChart.data.datasets[0].data = hourlyData.map(item => item.viewers);
+        
+        hourlyChart.update();
+    }
+    
+    // Aggiorna la tabella delle metriche
+    function updateMetricsTable() {
+        if (!currentData.timeSeriesData) return;
+        
+        const tableBody = document.getElementById('metrics-table-body');
+        const timeSeriesData = currentData.timeSeriesData;
+        
+        // Svuota la tabella
+        tableBody.innerHTML = '';
+        
+        // Riempi la tabella con i nuovi dati
+        timeSeriesData.forEach(item => {
+            const row = document.createElement('tr');
+            
+            // Formatta la data
+            const date = new Date(item.date);
+            const formattedDate = date.toLocaleDateString('it-IT', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+            
+            row.innerHTML = `
+                <td>${formattedDate}</td>
+                <td>${item.streamCount || 0}</td>
+                <td>${formatDuration(item.duration || 0)}</td>
+                <td>${item.avgViewers || 0}</td>
+                <td>${item.peakViewers || 0}</td>
+                <td>${item.followers || 0}</td>
+                <td>${item.subscribers || 0}</td>
+                <td>${item.messages || 0}</td>
+                <td>${item.commands || 0}</td>
+            `;
+            
+            tableBody.appendChild(row);
+        });
+    }
+    
+    // Aggiorna la legenda manuale del grafico principale
+    function updateChartLegend() {
+        if (!mainChart) return;
+        
+        const legendContainer = document.getElementById('main-chart-legend');
+        legendContainer.innerHTML = '';
+        
+        mainChart.data.datasets.forEach((dataset, index) => {
+            const legendItem = document.createElement('div');
+            legendItem.className = 'legend-item';
+            
+            const color = document.createElement('div');
+            color.className = 'legend-color';
+            color.style.backgroundColor = dataset.borderColor;
+            
+            const label = document.createElement('span');
+            label.textContent = dataset.label;
+            
+            legendItem.appendChild(color);
+            legendItem.appendChild(label);
+            
+            // Aggiungi interattività: cliccando si nasconde/mostra il dataset
+            legendItem.addEventListener('click', () => {
+                const meta = mainChart.getDatasetMeta(index);
+                meta.hidden = meta.hidden === null ? !mainChart.data.datasets[index].hidden : null;
+                
+                // Aggiorna lo stile dell'elemento legenda
+                if (meta.hidden) {
+                    legendItem.style.opacity = 0.5;
+                } else {
+                    legendItem.style.opacity = 1;
+                }
+                
+                mainChart.update();
+            });
+            
+            legendContainer.appendChild(legendItem);
+        });
+    }
+    
+    // Fetcha i dati e aggiorna i grafici
+    async function fetchAndUpdateData() {
+        try {
+            // Mostra i loader
+            document.getElementById('main-chart-loader').style.display = 'flex';
+            document.getElementById('categories-chart-loader').style.display = 'flex';
+            document.getElementById('hourly-chart-loader').style.display = 'flex';
+            
+            // Ottieni i parametri per la richiesta
+            const channelId = document.getElementById('channel-selector').value;
+            const dateRange = document.getElementById('date-range').value;
+            const granularity = document.getElementById('granularity').value;
+            
+            let startDate, endDate;
+            
+            if (dateRange === 'custom') {
+                startDate = document.getElementById('date-start').value;
+                endDate = document.getElementById('date-end').value;
+                
+                if (!startDate || !endDate) {
+                    throw new Error('Seleziona un intervallo di date valido');
+                }
+            } else {
+                // Calcola l'intervallo di date in base al valore selezionato
+                endDate = new Date();
+                startDate = new Date();
+                startDate.setDate(startDate.getDate() - parseInt(dateRange));
+                
+                // Formatta le date in formato ISO
+                endDate = endDate.toISOString().split('T')[0];
+                startDate = startDate.toISOString().split('T')[0];
+            }
+            
+            // Simula la richiesta API (sostituire con una vera richiesta in produzione)
+            // const response = await fetch(`/api/analytics/data?channelId=${channelId}&startDate=${startDate}&endDate=${endDate}&granularity=${granularity}`);
+            // currentData = await response.json();
+            
+            // Dati mockup per demo
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Ritardo simulato
+            
+            currentData = generateMockData(startDate, endDate, granularity);
+            
+            // Aggiorna i grafici con i nuovi dati
+            updateMainChart();
+            updateCategoriesChart();
+            updateHourlyChart();
+            updateMetricsTable();
+            
+            return currentData;
+        } catch (error) {
+            console.error('Errore nel caricamento dei dati:', error);
+            alert('Si è verificato un errore nel caricamento dei dati. Riprova più tardi.');
+        } finally {
+            // Nascondi i loader
+            document.getElementById('main-chart-loader').style.display = 'none';
+            document.getElementById('categories-chart-loader').style.display = 'none';
+            document.getElementById('hourly-chart-loader').style.display = 'none';
+        }
+    }
+    
+    // Funzione per esportare i dati
+    function exportData() {
+        if (!currentData.timeSeriesData) {
+            alert('Nessun dato disponibile per l\'esportazione');
+            return;
+        }
+        
+        // Prepara i dati per l'esportazione
+        const data = currentData.timeSeriesData;
+        const channelName = document.getElementById('channel-selector').options[document.getElementById('channel-selector').selectedIndex].text;
+        const dateRange = document.getElementById('date-range').value;
+        
+        // Crea un array con le intestazioni
+        const headers = [
+            'Data', 'Streaming', 'Durata (min)', 'Spettatori medi', 'Picco spettatori',
+            'Nuovi follower', 'Nuovi iscritti', 'Messaggi chat', 'Comandi eseguiti'
+        ];
+        
+        // Crea le righe con i dati
+        const rows = data.map(item => [
+            new Date(item.date).toLocaleDateString('it-IT'),
+            item.streamCount || 0,
+            item.duration || 0,
+            item.avgViewers || 0,
+            item.peakViewers || 0,
+            item.followers || 0,
+            item.subscribers || 0,
+            item.messages || 0,
+            item.commands || 0
+        ]);
+        
+        // Unisci intestazioni e righe
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.join(','))
+        ].join('\n');
+        
+        // Crea il blob e il link per il download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        
+        // Crea il nome del file
+        const fileName = `analytics_${channelName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+        
+        // Imposta gli attributi del link e simula il click
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+    
+    // --- Funzioni di utilità ---
+    
+    // Formatta una durata in minuti in un formato leggibile (ore:minuti)
+    function formatDuration(minutes) {
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return `${hours}h ${mins}m`;
+    }
+    
+    // Genera dati casuali per demo
+    function generateMockData(startDate, endDate, granularity) {
+        // Converte le date in oggetti Date
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        // Calcola il numero di giorni nell'intervallo
+        const diffTime = Math.abs(end - start);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        // Genera dati per serie temporale
+        const timeSeriesData = [];
+        
+        let currentDate = new Date(start);
+        
+        for (let i = 0; i < diffDays; i++) {
+            // Aumenta la data di un giorno
+            currentDate.setDate(currentDate.getDate() + 1);
+            
+            // Crea dati casuali ma verosimili
+            const isStreamDay = Math.random() > 0.3; // 70% probabilità che sia un giorno di streaming
+            
+            timeSeriesData.push({
+                date: new Date(currentDate).toISOString().split('T')[0],
+                views: isStreamDay ? Math.floor(Math.random() * 1000) + 200 : 0,
+                followers: isStreamDay ? Math.floor(Math.random() * 20) + 1 : Math.floor(Math.random() * 3),
+                engagement: isStreamDay ? (Math.random() * 15) + 5 : 0,
+                revenue: isStreamDay ? Math.floor(Math.random() * 100) + 10 : 0,
+                streamCount: isStreamDay ? 1 : 0,
+                duration: isStreamDay ? Math.floor(Math.random() * 180) + 60 : 0,
+                avgViewers: isStreamDay ? Math.floor(Math.random() * 300) + 50 : 0,
+                peakViewers: isStreamDay ? Math.floor(Math.random() * 600) + 100 : 0,
+                subscribers: isStreamDay ? Math.floor(Math.random() * 5) : 0,
+                messages: isStreamDay ? Math.floor(Math.random() * 1000) + 200 : 0,
+                commands: isStreamDay ? Math.floor(Math.random() * 100) + 20 : 0
+            });
+        }
+        
+        // Genera dati per categorie
+        const categoryData = [
+            { category: 'Just Chatting', hours: Math.floor(Math.random() * 50) + 20 },
+            { category: 'Fortnite', hours: Math.floor(Math.random() * 30) + 10 },
+            { category: 'Minecraft', hours: Math.floor(Math.random() * 25) + 5 },
+            { category: 'League of Legends', hours: Math.floor(Math.random() * 20) + 5 },
+            { category: 'VALORANT', hours: Math.floor(Math.random() * 15) + 5 },
+            { category: 'Call of Duty', hours: Math.floor(Math.random() * 10) + 5 }
+        ];
+        
+        // Genera dati per distribuzione oraria
+        const hourlyData = Array.from({length: 24}, (_, i) => ({
+            hour: i,
+            viewers: Math.floor(Math.random() * 300) * (i >= 19 && i <= 22 ? 2 : 1) // Prime time serale
+        }));
+        
+        return {
+            timeSeriesData,
+            categoryData,
+            hourlyData
+        };
+    }
+    
+    // Inizializza tutto
+    initCharts();
+});
+</script>
+{% endblock %} 

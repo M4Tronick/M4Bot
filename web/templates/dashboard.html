@@ -1,262 +1,287 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ _('Dashboard - M4Bot') }}{% endblock %}
+{% block title %}M4Bot - Dashboard{% endblock %}
 
 {% block head %}
 {{ super() }}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard-customizer.css') }}">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gridster/0.5.6/jquery.gridster.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/gridster/0.5.6/jquery.gridster.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css">
 {% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-12">
-        <h1 class="mb-4">{{ _('Dashboard') }}</h1>
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <h1 class="h2 mb-3 mb-sm-0">
+                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+            </h1>
+            
+            <div class="dashboard-controls">
+                <!-- Controlli per la modalità modifica -->
+                <button id="edit-dashboard" class="btn btn-outline-primary">
+                    <i class="fas fa-edit me-2"></i>Personalizza
+                </button>
+                <button id="save-dashboard" class="btn btn-success d-none">
+                    <i class="fas fa-save me-2"></i>Salva Layout
+                </button>
+                <button id="cancel-dashboard-edit" class="btn btn-outline-secondary d-none">
+                    <i class="fas fa-times me-2"></i>Annulla
+                </button>
+                <button id="add-widget" class="btn btn-primary d-none">
+                    <i class="fas fa-plus me-2"></i>Aggiungi Widget
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Dashboard Controls -->
-<div class="dashboard-controls">
-    <div class="d-flex justify-content-between align-items-center">
-        <h2>{{ _('Benvenuto,') }} {{ user.username }}!</h2>
-        <div class="dashboard-actions">
-            <button id="toggle-edit-mode" class="btn btn-outline-primary">
-                <i class="fas fa-edit me-1"></i>{{ _('Personalizza') }}
-            </button>
-            <button id="save-layout" class="btn btn-primary d-none">
-                <i class="fas fa-save me-1"></i>{{ _('Salva Layout') }}
-            </button>
+<!-- Panoramica rapida canale -->
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-2x text-primary mb-3"></i>
+                <h5 class="card-title">Follower</h5>
+                <p class="display-5 fw-bold mb-0">{{ channel_stats.followers|default('0') }}</p>
+                <p class="text-success small mt-2">
+                    <i class="fas fa-arrow-up me-1"></i>
+                    +{{ channel_stats.new_followers|default('0') }} negli ultimi 7 giorni
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-eye fa-2x text-primary mb-3"></i>
+                <h5 class="card-title">Visualizzazioni</h5>
+                <p class="display-5 fw-bold mb-0">{{ channel_stats.views|default('0') }}</p>
+                <p class="text-success small mt-2">
+                    <i class="fas fa-arrow-up me-1"></i>
+                    +{{ channel_stats.new_views|default('0') }} negli ultimi 7 giorni
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-clock fa-2x text-primary mb-3"></i>
+                <h5 class="card-title">Ore Stremate</h5>
+                <p class="display-5 fw-bold mb-0">{{ channel_stats.streaming_hours|default('0') }}</p>
+                <p class="text-success small mt-2">
+                    <i class="fas fa-arrow-up me-1"></i>
+                    +{{ channel_stats.recent_hours|default('0') }} negli ultimi 7 giorni
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-comment-alt fa-2x text-primary mb-3"></i>
+                <h5 class="card-title">Messaggi Chat</h5>
+                <p class="display-5 fw-bold mb-0">{{ channel_stats.chat_messages|default('0') }}</p>
+                <p class="text-success small mt-2">
+                    <i class="fas fa-arrow-up me-1"></i>
+                    +{{ channel_stats.recent_messages|default('0') }} negli ultimi 7 giorni
+                </p>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Customizable Dashboard -->
-<div id="customizable-dashboard">
-    <!-- Canali Attivi -->
-    <div class="dashboard-slot col-md-4">
-        <div id="card-channels" class="card dashboard-card" data-size="normal">
-            <div class="card-header">
-                <h4 class="mb-0">{{ _('I Tuoi Canali') }}</h4>
+<!-- Container personalizzabile per i widget -->
+<div id="dashboard-container" class="mb-4">
+    <!-- I widget verranno iniettati qui dal JS -->
+</div>
+
+<!-- Modal per l'aggiunta di widget -->
+<div class="modal fade" id="widget-modal" tabindex="-1" aria-labelledby="widget-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="widget-modal-label">Aggiungi Widget</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
             </div>
-            <div class="card-body">
-                {% if channels %}
-                <div class="channel-list">
-                    {% for channel in channels[:3] %}
-                    <div class="channel-item d-flex align-items-center mb-3">
-                        <div class="channel-icon me-3">
-                            <i class="fas fa-broadcast-tower fa-2x text-primary"></i>
-                        </div>
-                        <div class="channel-info flex-grow-1">
-                            <h5 class="mb-0">{{ channel.name }}</h5>
-                            <div class="d-flex justify-content-between align-items-center mt-1">
-                                <span class="badge bg-{{ 'success' if channel.bot_enabled else 'danger' }}">
-                                    {{ _('Bot Attivo') if channel.bot_enabled else _('Bot Inattivo') }}
-                                </span>
-                                <a href="{{ url_for('channel_detail', channel_id=channel.id) }}" class="btn btn-sm btn-outline-primary">
-                                    {{ _('Gestisci') }}
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
+            <div class="modal-body">
+                <div class="widget-search-container mb-4">
+                    <input type="text" class="form-control" id="widget-search" placeholder="Cerca widget...">
                 </div>
-                {% if channels|length > 3 %}
-                <div class="text-center mt-3">
-                    <a href="#" class="btn btn-sm btn-outline-secondary">{{ _('Mostra tutti') }} ({{ channels|length }})</a>
-                </div>
-                {% endif %}
-                {% else %}
-                <div class="alert alert-info mb-0">
-                    <p class="mb-2">{{ _('Non hai ancora configurato nessun canale.') }}</p>
-                    <a href="{{ url_for('add_channel') }}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-plus me-1"></i>{{ _('Aggiungi Canale') }}
-                    </a>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    
-    <!-- Statistiche -->
-    <div class="dashboard-slot col-md-4">
-        <div id="card-stats" class="card dashboard-card" data-size="normal">
-            <div class="card-header">
-                <h4 class="mb-0">{{ _('Statistiche Globali') }}</h4>
-            </div>
-            <div class="card-body">
-                <div class="row text-center">
-                    <div class="col-6 mb-3">
-                        <div class="stat-item">
-                            <div class="stat-value">{{ global_stats.total_messages or 0 }}</div>
-                            <div class="stat-label">{{ _('Messaggi') }}</div>
-                        </div>
-                    </div>
-                    <div class="col-6 mb-3">
-                        <div class="stat-item">
-                            <div class="stat-value">{{ global_stats.unique_chatters or 0 }}</div>
-                            <div class="stat-label">{{ _('Utenti') }}</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="stat-item">
-                            <div class="stat-value">{{ global_stats.total_commands or 0 }}</div>
-                            <div class="stat-label">{{ _('Comandi') }}</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="stat-item">
-                            <div class="stat-value">{{ global_stats.streaming_hours or 0 }}</div>
-                            <div class="stat-label">{{ _('Ore Stream') }}</div>
-                        </div>
-                    </div>
+                <div class="row" id="widgets-list">
+                    <!-- Lista widget disponibili generata dal JS -->
                 </div>
             </div>
-        </div>
-    </div>
-    
-    <!-- Attività Recente -->
-    <div class="dashboard-slot col-md-4">
-        <div id="card-activity" class="card dashboard-card" data-size="normal">
-            <div class="card-header">
-                <h4 class="mb-0">{{ _('Attività Recente') }}</h4>
-            </div>
-            <div class="card-body">
-                {% if recent_activity %}
-                <div class="timeline">
-                    {% for activity in recent_activity %}
-                    <div class="timeline-item">
-                        <div class="timeline-icon">
-                            <i class="fas {{ activity.icon }} text-{{ activity.color }}"></i>
-                        </div>
-                        <div class="timeline-content">
-                            <p class="mb-0">{{ activity.message }}</p>
-                            <small class="text-muted">{{ activity.time }}</small>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="text-center py-3">
-                    <i class="fas fa-history fa-3x text-muted mb-3"></i>
-                    <p>{{ _('Nessuna attività recente da mostrare') }}</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    
-    <!-- Comandi Popolari -->
-    <div class="dashboard-slot col-md-8">
-        <div id="card-commands" class="card dashboard-card" data-size="wide">
-            <div class="card-header">
-                <h4 class="mb-0">{{ _('I Comandi Più Usati') }}</h4>
-            </div>
-            <div class="card-body">
-                {% if popular_commands %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>{{ _('Comando') }}</th>
-                                <th>{{ _('Canale') }}</th>
-                                <th>{{ _('Utilizzi') }}</th>
-                                <th>{{ _('Ultima esecuzione') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for cmd in popular_commands %}
-                            <tr>
-                                <td><code>{{ cmd.name }}</code></td>
-                                <td>{{ cmd.channel_name }}</td>
-                                <td>{{ cmd.usage_count }}</td>
-                                <td>{{ cmd.last_used }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="text-center py-3">
-                    <i class="fas fa-terminal fa-3x text-muted mb-3"></i>
-                    <p>{{ _('Non hai ancora eseguito comandi') }}</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    
-    <!-- Amministrazione Sistema -->
-    <div class="dashboard-slot col-md-4">
-        <div id="card-system" class="card dashboard-card" data-size="normal">
-            <div class="card-header">
-                <h4 class="mb-0">{{ _('Amministrazione Sistema') }}</h4>
-            </div>
-            <div class="card-body">
-                <div class="list-group">
-                    <a href="{{ url_for('system_health') }}" class="list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">{{ _('Monitoraggio Sistema') }}</h5>
-                            <small><i class="fas fa-heartbeat text-danger"></i></small>
-                        </div>
-                        <p class="mb-1">{{ _('Verifica lo stato del sistema e delle risorse') }}</p>
-                    </a>
-                    <a href="{{ url_for('backup_management') }}" class="list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">{{ _('Gestione Backup') }}</h5>
-                            <small><i class="fas fa-database text-primary"></i></small>
-                        </div>
-                        <p class="mb-1">{{ _('Crea e ripristina backup del database') }}</p>
-                    </a>
-                    {% if user.is_admin %}
-                    <a href="{{ url_for('webhook_management') }}" class="list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">{{ _('Gestione Webhook') }}</h5>
-                            <small><i class="fas fa-link text-info"></i></small>
-                        </div>
-                        <p class="mb-1">{{ _('Configura webhook per integrazioni esterne') }}</p>
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Guide Rapide -->
-    <div class="dashboard-slot col-md-4">
-        <div id="card-guides" class="card dashboard-card" data-size="normal">
-            <div class="card-header">
-                <h4 class="mb-0">{{ _('Guide Rapide') }}</h4>
-            </div>
-            <div class="card-body">
-                <div class="list-group">
-                    <a href="#" class="list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">{{ _('Iniziare con M4Bot') }}</h5>
-                            <small><i class="fas fa-arrow-right"></i></small>
-                        </div>
-                        <p class="mb-1">{{ _('Guida introduttiva per i nuovi utenti') }}</p>
-                    </a>
-                    <a href="#" class="list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">{{ _('Creare Comandi') }}</h5>
-                            <small><i class="fas fa-arrow-right"></i></small>
-                        </div>
-                        <p class="mb-1">{{ _('Come configurare comandi personalizzati') }}</p>
-                    </a>
-                    <a href="#" class="list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">{{ _('Giochi in Chat') }}</h5>
-                            <small><i class="fas fa-arrow-right"></i></small>
-                        </div>
-                        <p class="mb-1">{{ _('Configurare giochi interattivi') }}</p>
-                    </a>
-                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Template per i widget -->
+<template id="widget-templates">
+    <!-- Widget Statistiche -->
+    <template id="template-stats">
+        <div class="row">
+            <div class="col-6 col-md-4 mb-3">
+                <div class="widget-stats-item">
+                    <div class="widget-stats-value counter-value" data-value="{{ stats.followers }}">0</div>
+                    <div class="widget-stats-label">Follower</div>
+                    <div class="widget-stats-trend up">
+                        <i class="fas fa-arrow-up"></i>{{ stats.followers_growth }}%
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 mb-3">
+                <div class="widget-stats-item">
+                    <div class="widget-stats-value counter-value" data-value="{{ stats.views }}">0</div>
+                    <div class="widget-stats-label">Visualizzazioni</div>
+                    <div class="widget-stats-trend up">
+                        <i class="fas fa-arrow-up"></i>{{ stats.views_growth }}%
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 mb-3">
+                <div class="widget-stats-item">
+                    <div class="widget-stats-value counter-value" data-value="{{ stats.hours }}">0</div>
+                    <div class="widget-stats-label">Ore Stremate</div>
+                    <div class="widget-stats-trend up">
+                        <i class="fas fa-arrow-up"></i>{{ stats.hours_growth }}%
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 mb-3">
+                <div class="widget-stats-item">
+                    <div class="widget-stats-value counter-value" data-value="{{ stats.messages }}">0</div>
+                    <div class="widget-stats-label">Messaggi</div>
+                    <div class="widget-stats-trend up">
+                        <i class="fas fa-arrow-up"></i>{{ stats.messages_growth }}%
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 mb-3">
+                <div class="widget-stats-item">
+                    <div class="widget-stats-value counter-value" data-value="{{ stats.commands }}">0</div>
+                    <div class="widget-stats-label">Comandi</div>
+                    <div class="widget-stats-trend down">
+                        <i class="fas fa-arrow-down"></i>{{ stats.commands_growth }}%
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 mb-3">
+                <div class="widget-stats-item">
+                    <div class="widget-stats-value counter-value" data-value="{{ stats.subscribers }}">0</div>
+                    <div class="widget-stats-label">Iscritti</div>
+                    <div class="widget-stats-trend up">
+                        <i class="fas fa-arrow-up"></i>{{ stats.subscribers_growth }}%
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+    
+    <!-- Widget Grafico -->
+    <template id="template-chart">
+        <div class="widget-chart">
+            <canvas data-chart='{"type":"line","data":{"labels":["Lun","Mar","Mer","Gio","Ven","Sab","Dom"],"datasets":[{"label":"Spettatori","data":[42,56,78,63,85,120,95],"borderColor":"#3a66c5","tension":0.3,"fill":false}]}}'></canvas>
+        </div>
+    </template>
+    
+    <!-- Widget Calendario -->
+    <template id="template-calendar">
+        <div class="widget-calendar">
+            <div class="calendar" data-events='[{"title":"Stream","start":"2023-12-01T20:00:00"},{"title":"Stream","start":"2023-12-05T19:00:00"}]'></div>
+        </div>
+    </template>
+    
+    <!-- Widget Followers -->
+    <template id="template-followers">
+        <div class="widget-followers">
+            <ul class="widget-followers-list">
+                <li class="widget-follower-item">
+                    <img src="{{ url_for('static', filename='img/avatar-placeholder.png') }}" alt="Avatar" class="widget-follower-avatar">
+                    <div class="widget-follower-info">
+                        <h6 class="widget-follower-name">Utente123</h6>
+                        <div class="widget-follower-date">10 minuti fa</div>
+                    </div>
+                </li>
+                <li class="widget-follower-item">
+                    <img src="{{ url_for('static', filename='img/avatar-placeholder.png') }}" alt="Avatar" class="widget-follower-avatar">
+                    <div class="widget-follower-info">
+                        <h6 class="widget-follower-name">StreamFan42</h6>
+                        <div class="widget-follower-date">1 ora fa</div>
+                    </div>
+                </li>
+                <li class="widget-follower-item">
+                    <img src="{{ url_for('static', filename='img/avatar-placeholder.png') }}" alt="Avatar" class="widget-follower-avatar">
+                    <div class="widget-follower-info">
+                        <h6 class="widget-follower-name">GamerPro99</h6>
+                        <div class="widget-follower-date">2 ore fa</div>
+                    </div>
+                </li>
+                <li class="widget-follower-item">
+                    <img src="{{ url_for('static', filename='img/avatar-placeholder.png') }}" alt="Avatar" class="widget-follower-avatar">
+                    <div class="widget-follower-info">
+                        <h6 class="widget-follower-name">SuperViewer</h6>
+                        <div class="widget-follower-date">5 ore fa</div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </template>
+    
+    <!-- Widget Todo -->
+    <template id="template-todo">
+        <div class="widget-todo">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <input type="text" class="form-control me-2" placeholder="Aggiungi elemento...">
+                <button class="btn btn-sm btn-primary">Aggiungi</button>
+            </div>
+            <ul class="widget-todo-list">
+                <li class="widget-todo-item">
+                    <input type="checkbox" class="widget-todo-checkbox form-check-input">
+                    <span class="widget-todo-text">Aggiorna titolo stream</span>
+                    <div class="widget-todo-actions">
+                        <button class="btn btn-sm btn-link text-danger p-0">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </li>
+                <li class="widget-todo-item completed">
+                    <input type="checkbox" class="widget-todo-checkbox form-check-input" checked>
+                    <span class="widget-todo-text">Configurare overlay</span>
+                    <div class="widget-todo-actions">
+                        <button class="btn btn-sm btn-link text-danger p-0">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </li>
+                <li class="widget-todo-item">
+                    <input type="checkbox" class="widget-todo-checkbox form-check-input">
+                    <span class="widget-todo-text">Testare audio</span>
+                    <div class="widget-todo-actions">
+                        <button class="btn btn-sm btn-link text-danger p-0">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </template>
+</template>
+
 {% endblock %}
 
 {% block scripts %}
-{{ super() }}
 <script src="{{ url_for('static', filename='js/dashboard-customizer.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Le funzionalità di personalizzazione sono gestite dal dashboard-customizer.js
+    });
+</script>
 {% endblock %}

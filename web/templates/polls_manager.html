@@ -1,0 +1,964 @@
+{% extends "base.html" %}
+
+{% block title %}M4Bot - Gestione Sondaggi{% endblock %}
+
+{% block styles %}
+<style>
+    .poll-card {
+        border: 1px solid rgba(0, 0, 0, 0.125);
+        border-radius: 0.25rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    
+    .poll-card:hover {
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transform: translateY(-3px);
+    }
+    
+    .poll-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+    
+    .poll-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        flex: 1;
+    }
+    
+    .poll-status {
+        padding: 0.35rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+    
+    .status-draft {
+        background-color: #e2e3e5;
+        color: #383d41;
+    }
+    
+    .status-active {
+        background-color: #cfe2ff;
+        color: #084298;
+    }
+    
+    .status-completed {
+        background-color: #d1e7dd;
+        color: #0f5132;
+    }
+    
+    .poll-options {
+        margin-top: 1rem;
+    }
+    
+    .poll-option {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+    
+    .option-bar {
+        height: 24px;
+        background-color: #0d6efd;
+        border-radius: 4px;
+        transition: width 0.5s ease-in-out;
+        min-width: 20px;
+        margin-right: 10px;
+    }
+    
+    .option-text {
+        font-weight: 500;
+        flex: 1;
+    }
+    
+    .option-votes {
+        font-weight: 600;
+        margin-left: 10px;
+    }
+    
+    .poll-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .poll-meta {
+        color: #6c757d;
+    }
+    
+    .poll-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .poll-timer {
+        font-size: 0.875rem;
+        color: #0d6efd;
+        font-weight: 500;
+        margin-top: 0.5rem;
+    }
+    
+    .platform-badge {
+        display: inline-block;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .platform-youtube {
+        background-color: #ff0000;
+        color: white;
+    }
+    
+    .platform-telegram {
+        background-color: #0088cc;
+        color: white;
+    }
+    
+    .platform-whatsapp {
+        background-color: #25d366;
+        color: white;
+    }
+    
+    .platform-kick {
+        background-color: #53fc18;
+        color: black;
+    }
+    
+    #pollOptionsContainer .form-group {
+        display: flex;
+        align-items: center;
+    }
+    
+    #pollOptionsContainer .form-group button {
+        margin-left: 10px;
+    }
+    
+    .tab-pane {
+        padding-top: 1.5rem;
+    }
+    
+    .option-input-group {
+        display: flex;
+        margin-bottom: 10px;
+    }
+    
+    .option-input-group .form-control {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+    
+    .option-input-group .btn-remove-option {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Gestione Sondaggi</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">Gestione Sondaggi</h1>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createPollModal">
+            <i class="fas fa-plus me-2"></i>Nuovo Sondaggio
+        </button>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" id="pollsTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="active-tab" data-bs-toggle="tab" data-bs-target="#active" type="button" role="tab" aria-controls="active" aria-selected="true">Attivi</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="draft-tab" data-bs-toggle="tab" data-bs-target="#draft" type="button" role="tab" aria-controls="draft" aria-selected="false">Bozze</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="completed-tab" data-bs-toggle="tab" data-bs-target="#completed" type="button" role="tab" aria-controls="completed" aria-selected="false">Completati</button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body">
+            <div class="tab-content" id="pollsTabContent">
+                <div class="tab-pane fade show active" id="active" role="tabpanel" aria-labelledby="active-tab">
+                    <div id="activePolls" class="polls-container">
+                        <div class="text-center py-5 d-none" id="activePollsEmpty">
+                            <i class="fas fa-poll fa-3x mb-3 text-muted"></i>
+                            <p>Nessun sondaggio attivo al momento.</p>
+                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createPollModal">
+                                Crea il tuo primo sondaggio
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="draft" role="tabpanel" aria-labelledby="draft-tab">
+                    <div id="draftPolls" class="polls-container">
+                        <div class="text-center py-5 d-none" id="draftPollsEmpty">
+                            <i class="fas fa-edit fa-3x mb-3 text-muted"></i>
+                            <p>Nessuna bozza di sondaggio.</p>
+                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createPollModal">
+                                Crea un nuovo sondaggio
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="completed" role="tabpanel" aria-labelledby="completed-tab">
+                    <div id="completedPolls" class="polls-container">
+                        <div class="text-center py-5 d-none" id="completedPollsEmpty">
+                            <i class="fas fa-check-circle fa-3x mb-3 text-muted"></i>
+                            <p>Nessun sondaggio completato.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per creare nuovo sondaggio -->
+<div class="modal fade" id="createPollModal" tabindex="-1" aria-labelledby="createPollModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createPollModalLabel">Crea Nuovo Sondaggio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createPollForm">
+                    <div class="mb-3">
+                        <label for="pollQuestion" class="form-label">Domanda</label>
+                        <input type="text" class="form-control" id="pollQuestion" placeholder="Inserisci la domanda del sondaggio" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Opzioni</label>
+                        <div id="pollOptionsContainer">
+                            <div class="option-input-group">
+                                <input type="text" class="form-control poll-option-input" placeholder="Opzione 1" required>
+                                <button type="button" class="btn btn-outline-danger btn-remove-option" disabled><i class="fas fa-times"></i></button>
+                            </div>
+                            <div class="option-input-group">
+                                <input type="text" class="form-control poll-option-input" placeholder="Opzione 2" required>
+                                <button type="button" class="btn btn-outline-danger btn-remove-option" disabled><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="addOptionBtn">
+                            <i class="fas fa-plus me-1"></i>Aggiungi opzione
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="pollDuration" class="form-label">Durata (minuti)</label>
+                        <input type="number" class="form-control" id="pollDuration" min="1" value="5" placeholder="Durata in minuti">
+                        <div class="form-text">Lascia vuoto per un sondaggio senza scadenza automatica</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Piattaforme</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="youtube" id="platformYoutube">
+                            <label class="form-check-label" for="platformYoutube">
+                                YouTube
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="telegram" id="platformTelegram">
+                            <label class="form-check-label" for="platformTelegram">
+                                Telegram
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="whatsapp" id="platformWhatsapp">
+                            <label class="form-check-label" for="platformWhatsapp">
+                                WhatsApp
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="kick" id="platformKick">
+                            <label class="form-check-label" for="platformKick">
+                                Kick
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Opzioni di voto</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="1" id="allowMultipleVotes">
+                            <label class="form-check-label" for="allowMultipleVotes">
+                                Consenti voti multipli per utente
+                            </label>
+                        </div>
+                        <div class="mt-2" id="maxVotesPerUserContainer" style="display: none;">
+                            <label for="maxVotesPerUser" class="form-label">Numero massimo di voti per utente</label>
+                            <input type="number" class="form-control" id="maxVotesPerUser" min="1" value="1">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="saveNewPollBtn">Crea Sondaggio</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per visualizzare/modificare un sondaggio -->
+<div class="modal fade" id="viewPollModal" tabindex="-1" aria-labelledby="viewPollModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewPollModalLabel">Dettagli Sondaggio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="pollDetails">
+                    <h4 id="modalPollQuestion"></h4>
+                    <div class="d-flex flex-wrap mb-3" id="modalPollPlatforms"></div>
+                    <div id="modalPollStatusBadge" class="mb-3"></div>
+                    <div id="modalPollTimer" class="mb-3"></div>
+                    
+                    <h5>Risultati</h5>
+                    <div id="modalPollResults"></div>
+                    
+                    <div class="mt-4">
+                        <h6>Informazioni</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Creato:</strong> <span id="modalPollCreated"></span></p>
+                                <p id="modalPollStartedContainer"><strong>Iniziato:</strong> <span id="modalPollStarted"></span></p>
+                                <p id="modalPollEndedContainer"><strong>Terminato:</strong> <span id="modalPollEnded"></span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Voti totali:</strong> <span id="modalPollTotalVotes"></span></p>
+                                <p><strong>Voti multipli:</strong> <span id="modalPollMultipleVotes"></span></p>
+                                <p id="modalPollMaxVotesContainer"><strong>Max voti per utente:</strong> <span id="modalPollMaxVotes"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3" id="modalPollOBSSection">
+                        <h6>Visualizzazione OBS</h6>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="modalPollOBSUrl" readonly>
+                            <button class="btn btn-outline-secondary" type="button" id="copyOBSUrlBtn">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <a href="#" class="btn btn-outline-primary" id="openOBSUrlBtn" target="_blank">
+                                <i class="fas fa-external-link-alt"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" id="pollModalFooter">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                <button type="button" class="btn btn-danger" id="deletePollBtn">Elimina</button>
+                <button type="button" class="btn btn-success" id="startPollBtn">Avvia</button>
+                <button type="button" class="btn btn-info" id="endPollBtn">Termina</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal di conferma eliminazione -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmDeleteModalLabel">Conferma Eliminazione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Sei sicuro di voler eliminare questo sondaggio?</p>
+                <p class="text-danger">Questa azione non può essere annullata.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Elimina</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let allPolls = [];
+    let currentPollId = null;
+    let pollUpdateIntervals = {};
+    
+    // Carica i sondaggi all'avvio
+    $(document).ready(function() {
+        loadPolls();
+        setupEventListeners();
+    });
+    
+    // Carica tutti i sondaggi
+    function loadPolls() {
+        $.ajax({
+            url: '/api/polls',
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    allPolls = response.polls;
+                    renderPolls();
+                } else {
+                    toastr.error('Errore nel caricamento dei sondaggi');
+                }
+            },
+            error: function() {
+                toastr.error('Errore nella comunicazione con il server');
+            }
+        });
+    }
+    
+    // Renderizza i sondaggi nelle rispettive schede
+    function renderPolls() {
+        const activePolls = allPolls.filter(poll => poll.status === 'active');
+        const draftPolls = allPolls.filter(poll => poll.status === 'draft');
+        const completedPolls = allPolls.filter(poll => poll.status === 'completed');
+        
+        renderPollsToContainer('#activePolls', activePolls, '#activePollsEmpty');
+        renderPollsToContainer('#draftPolls', draftPolls, '#draftPollsEmpty');
+        renderPollsToContainer('#completedPolls', completedPolls, '#completedPollsEmpty');
+        
+        // Aggiorna i timer per i sondaggi attivi
+        activePolls.forEach(poll => {
+            if (poll.end_at) {
+                clearInterval(pollUpdateIntervals[poll.id]);
+                pollUpdateIntervals[poll.id] = setInterval(() => {
+                    updatePollTimer(poll.id);
+                }, 1000);
+            }
+        });
+    }
+    
+    // Renderizza un insieme di sondaggi in un container
+    function renderPollsToContainer(containerId, polls, emptyMsgId) {
+        const container = $(containerId);
+        container.empty();
+        
+        if (polls.length === 0) {
+            $(emptyMsgId).removeClass('d-none');
+            return;
+        }
+        
+        $(emptyMsgId).addClass('d-none');
+        
+        polls.forEach(poll => {
+            const totalVotes = poll.total_votes || 0;
+            const platforms = renderPlatformBadges(poll.platforms || []);
+            
+            let statusClass = '';
+            let statusText = '';
+            
+            switch (poll.status) {
+                case 'draft':
+                    statusClass = 'status-draft';
+                    statusText = 'Bozza';
+                    break;
+                case 'active':
+                    statusClass = 'status-active';
+                    statusText = 'Attivo';
+                    break;
+                case 'completed':
+                    statusClass = 'status-completed';
+                    statusText = 'Completato';
+                    break;
+            }
+            
+            let timerHtml = '';
+            if (poll.status === 'active' && poll.end_at) {
+                timerHtml = `
+                    <div class="poll-timer" id="timer-${poll.id}">
+                        <i class="far fa-clock me-1"></i>
+                        <span id="timer-value-${poll.id}">Calcolo...</span>
+                    </div>
+                `;
+            }
+            
+            const pollHtml = `
+                <div class="poll-card" data-poll-id="${poll.id}">
+                    <div class="poll-header">
+                        <h3 class="poll-title">${poll.question}</h3>
+                        <span class="poll-status ${statusClass}">${statusText}</span>
+                    </div>
+                    
+                    ${platforms.length > 0 ? `<div class="poll-platforms mb-3">${platforms}</div>` : ''}
+                    ${timerHtml}
+                    
+                    <div class="poll-options">
+                        ${renderPollOptions(poll)}
+                    </div>
+                    
+                    <div class="poll-footer">
+                        <div class="poll-meta">
+                            <span><i class="fas fa-vote-yea me-1"></i>${totalVotes} voti</span>
+                            <span class="ms-3"><i class="far fa-calendar-alt me-1"></i>${formatDate(poll.created_at)}</span>
+                        </div>
+                        <div class="poll-actions">
+                            <button type="button" class="btn btn-sm btn-outline-primary view-poll-btn" data-poll-id="${poll.id}">
+                                <i class="fas fa-eye me-1"></i>Dettagli
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.append(pollHtml);
+            
+            // Aggiorna immediatamente il timer se necessario
+            if (poll.status === 'active' && poll.end_at) {
+                updatePollTimer(poll.id);
+            }
+        });
+        
+        // Aggiungi event listener per i pulsanti di dettaglio
+        $('.view-poll-btn').click(function() {
+            const pollId = $(this).data('poll-id');
+            openPollDetails(pollId);
+        });
+    }
+    
+    // Renderizza le opzioni di un sondaggio con le barre di progresso
+    function renderPollOptions(poll) {
+        const options = poll.options || [];
+        const totalVotes = poll.total_votes || 0;
+        
+        let html = '';
+        
+        options.forEach(option => {
+            const votes = option.votes || 0;
+            const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+            
+            html += `
+                <div class="poll-option">
+                    <div class="option-bar" style="width: ${percentage}%"></div>
+                    <span class="option-text">${option.text}</span>
+                    <span class="option-votes">${votes} (${percentage}%)</span>
+                </div>
+            `;
+        });
+        
+        return html;
+    }
+    
+    // Renderizza badge per le piattaforme
+    function renderPlatformBadges(platforms) {
+        if (!platforms || platforms.length === 0) return '';
+        
+        let html = '';
+        
+        platforms.forEach(platform => {
+            html += `<span class="platform-badge platform-${platform}">${capitalizeFirstLetter(platform)}</span>`;
+        });
+        
+        return html;
+    }
+    
+    // Aggiorna il timer di un sondaggio
+    function updatePollTimer(pollId) {
+        $.ajax({
+            url: `/api/polls/${pollId}/live`,
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    const poll = response.poll;
+                    
+                    if (poll.status === 'active' && poll.time_remaining !== undefined) {
+                        const timerElement = $(`#timer-value-${pollId}`);
+                        
+                        if (poll.time_remaining <= 0) {
+                            timerElement.html('Terminato');
+                            clearInterval(pollUpdateIntervals[pollId]);
+                            loadPolls(); // Ricarica tutti i sondaggi per aggiornare lo stato
+                        } else {
+                            const minutes = Math.floor(poll.time_remaining / 60);
+                            const seconds = Math.floor(poll.time_remaining % 60);
+                            timerElement.html(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+                        }
+                    }
+                    
+                    // Se il sondaggio è nel modale dei dettagli, aggiorna anche quello
+                    if (currentPollId === pollId && $('#viewPollModal').is(':visible')) {
+                        updateModalPollTimer(poll);
+                    }
+                }
+            }
+        });
+    }
+    
+    // Aggiorna il timer nel modale dei dettagli
+    function updateModalPollTimer(poll) {
+        if (poll.status === 'active' && poll.time_remaining !== undefined) {
+            const minutes = Math.floor(poll.time_remaining / 60);
+            const seconds = Math.floor(poll.time_remaining % 60);
+            $('#modalPollTimer').html(`
+                <div class="alert alert-info">
+                    <i class="far fa-clock me-2"></i>Tempo rimanente: ${minutes}:${seconds.toString().padStart(2, '0')}
+                </div>
+            `).show();
+        } else {
+            $('#modalPollTimer').hide();
+        }
+    }
+    
+    // Apri il modale dei dettagli di un sondaggio
+    function openPollDetails(pollId) {
+        currentPollId = pollId;
+        const poll = allPolls.find(p => p.id === pollId);
+        
+        if (!poll) return;
+        
+        $('#modalPollQuestion').text(poll.question);
+        
+        // Piattaforme
+        $('#modalPollPlatforms').empty();
+        if (poll.platforms && poll.platforms.length > 0) {
+            $('#modalPollPlatforms').html(renderPlatformBadges(poll.platforms));
+        } else {
+            $('#modalPollPlatforms').html('<span class="text-muted">Nessuna piattaforma specificata</span>');
+        }
+        
+        // Stato
+        let statusClass = '';
+        let statusText = '';
+        
+        switch (poll.status) {
+            case 'draft':
+                statusClass = 'alert-secondary';
+                statusText = 'Bozza';
+                break;
+            case 'active':
+                statusClass = 'alert-primary';
+                statusText = 'Attivo';
+                break;
+            case 'completed':
+                statusClass = 'alert-success';
+                statusText = 'Completato';
+                break;
+        }
+        
+        $('#modalPollStatusBadge').html(`<div class="alert ${statusClass} mb-0">${statusText}</div>`);
+        
+        // Timer
+        if (poll.status === 'active' && poll.end_at) {
+            updatePollTimer(pollId);
+        } else {
+            $('#modalPollTimer').hide();
+        }
+        
+        // Risultati
+        $('#modalPollResults').html(renderPollOptions(poll));
+        
+        // Informazioni
+        $('#modalPollCreated').text(formatDateTime(poll.created_at));
+        $('#modalPollTotalVotes').text(poll.total_votes || 0);
+        $('#modalPollMultipleVotes').text(poll.allow_multiple_votes ? 'Sì' : 'No');
+        
+        if (poll.max_votes_per_user) {
+            $('#modalPollMaxVotesContainer').show();
+            $('#modalPollMaxVotes').text(poll.max_votes_per_user);
+        } else {
+            $('#modalPollMaxVotesContainer').hide();
+        }
+        
+        if (poll.started_at) {
+            $('#modalPollStartedContainer').show();
+            $('#modalPollStarted').text(formatDateTime(poll.started_at));
+        } else {
+            $('#modalPollStartedContainer').hide();
+        }
+        
+        if (poll.ended_at) {
+            $('#modalPollEndedContainer').show();
+            $('#modalPollEnded').text(formatDateTime(poll.ended_at));
+        } else {
+            $('#modalPollEndedContainer').hide();
+        }
+        
+        // Link OBS
+        const obsUrl = `${window.location.origin}/obs/poll/${poll.id}`;
+        $('#modalPollOBSUrl').val(obsUrl);
+        $('#openOBSUrlBtn').attr('href', obsUrl);
+        
+        // Bottoni azioni
+        $('#deletePollBtn').show();
+        
+        if (poll.status === 'draft') {
+            $('#startPollBtn').show();
+            $('#endPollBtn').hide();
+        } else if (poll.status === 'active') {
+            $('#startPollBtn').hide();
+            $('#endPollBtn').show();
+        } else {
+            $('#startPollBtn').hide();
+            $('#endPollBtn').hide();
+        }
+        
+        $('#viewPollModal').modal('show');
+    }
+    
+    // Configura gli event listener
+    function setupEventListeners() {
+        // Aggiunta opzione
+        $('#addOptionBtn').click(function() {
+            const optionCount = $('#pollOptionsContainer .option-input-group').length;
+            const newOption = `
+                <div class="option-input-group">
+                    <input type="text" class="form-control poll-option-input" placeholder="Opzione ${optionCount + 1}" required>
+                    <button type="button" class="btn btn-outline-danger btn-remove-option"><i class="fas fa-times"></i></button>
+                </div>
+            `;
+            $('#pollOptionsContainer').append(newOption);
+            updateRemoveOptionButtons();
+        });
+        
+        // Rimozione opzione
+        $(document).on('click', '.btn-remove-option', function() {
+            $(this).closest('.option-input-group').remove();
+            updateRemoveOptionButtons();
+        });
+        
+        // Verifica voti multipli
+        $('#allowMultipleVotes').change(function() {
+            if ($(this).is(':checked')) {
+                $('#maxVotesPerUserContainer').show();
+            } else {
+                $('#maxVotesPerUserContainer').hide();
+            }
+        });
+        
+        // Salvataggio nuovo sondaggio
+        $('#saveNewPollBtn').click(function() {
+            if (!validatePollForm()) return;
+            
+            const question = $('#pollQuestion').val();
+            const options = [];
+            
+            $('.poll-option-input').each(function() {
+                const optionText = $(this).val().trim();
+                if (optionText) {
+                    options.push(optionText);
+                }
+            });
+            
+            const platforms = [];
+            $('input[type=checkbox][id^=platform]:checked').each(function() {
+                platforms.push($(this).val());
+            });
+            
+            const duration = $('#pollDuration').val() ? parseInt($('#pollDuration').val()) : null;
+            const allowMultipleVotes = $('#allowMultipleVotes').is(':checked');
+            const maxVotesPerUser = allowMultipleVotes ? parseInt($('#maxVotesPerUser').val()) : 1;
+            
+            const pollData = {
+                question: question,
+                options: options,
+                platforms: platforms,
+                duration: duration,
+                allow_multiple_votes: allowMultipleVotes,
+                max_votes_per_user: maxVotesPerUser
+            };
+            
+            $.ajax({
+                url: '/api/polls/create',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(pollData),
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success('Sondaggio creato con successo');
+                        $('#createPollModal').modal('hide');
+                        resetPollForm();
+                        loadPolls();
+                    } else {
+                        toastr.error(response.error || 'Errore nella creazione del sondaggio');
+                    }
+                },
+                error: function(xhr) {
+                    toastr.error(xhr.responseJSON?.error || 'Errore nella comunicazione con il server');
+                }
+            });
+        });
+        
+        // Copia URL OBS
+        $('#copyOBSUrlBtn').click(function() {
+            const copyText = document.getElementById('modalPollOBSUrl');
+            copyText.select();
+            document.execCommand('copy');
+            toastr.success('URL copiato negli appunti');
+        });
+        
+        // Avvia sondaggio
+        $('#startPollBtn').click(function() {
+            if (!currentPollId) return;
+            
+            $.ajax({
+                url: `/api/polls/${currentPollId}/start`,
+                method: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success('Sondaggio avviato con successo');
+                        $('#viewPollModal').modal('hide');
+                        loadPolls();
+                    } else {
+                        toastr.error(response.error || 'Errore nell\'avvio del sondaggio');
+                    }
+                },
+                error: function(xhr) {
+                    toastr.error(xhr.responseJSON?.error || 'Errore nella comunicazione con il server');
+                }
+            });
+        });
+        
+        // Termina sondaggio
+        $('#endPollBtn').click(function() {
+            if (!currentPollId) return;
+            
+            $.ajax({
+                url: `/api/polls/${currentPollId}/end`,
+                method: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success('Sondaggio terminato con successo');
+                        $('#viewPollModal').modal('hide');
+                        loadPolls();
+                    } else {
+                        toastr.error(response.error || 'Errore nel terminare il sondaggio');
+                    }
+                },
+                error: function(xhr) {
+                    toastr.error(xhr.responseJSON?.error || 'Errore nella comunicazione con il server');
+                }
+            });
+        });
+        
+        // Elimina sondaggio (mostra conferma)
+        $('#deletePollBtn').click(function() {
+            if (!currentPollId) return;
+            $('#viewPollModal').modal('hide');
+            $('#confirmDeleteModal').modal('show');
+        });
+        
+        // Conferma eliminazione
+        $('#confirmDeleteBtn').click(function() {
+            if (!currentPollId) return;
+            
+            $.ajax({
+                url: `/api/polls/${currentPollId}`,
+                method: 'DELETE',
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success('Sondaggio eliminato con successo');
+                        $('#confirmDeleteModal').modal('hide');
+                        loadPolls();
+                    } else {
+                        toastr.error(response.error || 'Errore nell\'eliminazione del sondaggio');
+                    }
+                },
+                error: function(xhr) {
+                    toastr.error(xhr.responseJSON?.error || 'Errore nella comunicazione con il server');
+                }
+            });
+        });
+    }
+    
+    // Validazione form sondaggio
+    function validatePollForm() {
+        if (!$('#pollQuestion').val().trim()) {
+            toastr.warning('Inserisci una domanda per il sondaggio');
+            return false;
+        }
+        
+        let validOptions = 0;
+        $('.poll-option-input').each(function() {
+            if ($(this).val().trim()) {
+                validOptions++;
+            }
+        });
+        
+        if (validOptions < 2) {
+            toastr.warning('Inserisci almeno due opzioni valide');
+            return false;
+        }
+        
+        return true;
+    }
+    
+    // Reset form sondaggio
+    function resetPollForm() {
+        $('#createPollForm')[0].reset();
+        $('#pollOptionsContainer').empty();
+        
+        // Aggiungi le due opzioni iniziali
+        $('#pollOptionsContainer').append(`
+            <div class="option-input-group">
+                <input type="text" class="form-control poll-option-input" placeholder="Opzione 1" required>
+                <button type="button" class="btn btn-outline-danger btn-remove-option" disabled><i class="fas fa-times"></i></button>
+            </div>
+            <div class="option-input-group">
+                <input type="text" class="form-control poll-option-input" placeholder="Opzione 2" required>
+                <button type="button" class="btn btn-outline-danger btn-remove-option" disabled><i class="fas fa-times"></i></button>
+            </div>
+        `);
+        
+        $('#maxVotesPerUserContainer').hide();
+    }
+    
+    // Aggiorna i pulsanti di rimozione opzione
+    function updateRemoveOptionButtons() {
+        const options = $('#pollOptionsContainer .option-input-group');
+        
+        if (options.length <= 2) {
+            options.find('.btn-remove-option').prop('disabled', true);
+        } else {
+            options.find('.btn-remove-option').prop('disabled', false);
+        }
+    }
+    
+    // Utility per formattare la data
+    function formatDate(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString();
+    }
+    
+    // Utility per formattare data e ora
+    function formatDateTime(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    }
+    
+    // Utility per capitalizzare la prima lettera
+    function capitalizeFirstLetter(string) {
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+</script>
+{% endblock %} 

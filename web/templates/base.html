@@ -1,167 +1,610 @@
 <!DOCTYPE html>
-<html lang="it" data-bs-theme="light">
+<html lang="it" data-bs-theme="light" class="hardware-accelerated">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="M4Bot - Una soluzione completa per la gestione dei bot per la tua community">
+    <meta name="theme-color" content="#5e45e2">
+    <meta name="color-scheme" content="light dark">
     <title>{% block title %}M4Bot{% endblock %}</title>
     <!-- Favicon -->
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" crossorigin="anonymous">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <!-- Custom CSS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Animate.css per animazioni aggiuntive -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" crossorigin="anonymous">
+    <!-- Modern Theme -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern-theme.css') }}">
+    <!-- Animations CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
+    <!-- Stili personalizzati -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <!-- Stili personalizzati per le icone -->
+    <!-- Stili per le icone -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/icons.css') }}">
-    <!-- Stili personalizzati dell'app -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
     {% block head %}{% endblock %}
     {% block extra_css %}{% endblock %}
+    
+    <!-- Precaricamento dei componenti principali -->
+    <link rel="preload" href="{{ url_for('static', filename='js/theme.js') }}" as="script">
+    <link rel="preload" href="{{ url_for('static', filename='js/notifications.js') }}" as="script">
+    <link rel="preload" href="{{ url_for('static', filename='js/main.js') }}" as="script">
+    <link rel="preload" href="{{ url_for('static', filename='js/push-notifications.js') }}" as="script">
+    
+    <!-- Precaricamento risorse critiche -->
+    <link rel="preload" href="{{ url_for('static', filename='img/logo.png') }}" as="image">
+    
+    <!-- Progressive Web App -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="M4Bot">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192x192.png') }}">
+    <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='icons/splash-640x1136.png') }}" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)">
+    <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='icons/splash-750x1334.png') }}" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)">
+    <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='icons/splash-1242x2208.png') }}" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)">
+    <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='icons/splash-1125x2436.png') }}" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)">
+    <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='icons/splash-1536x2048.png') }}" media="(min-device-width: 768px) and (max-device-width: 1024px) and (-webkit-device-pixel-ratio: 2)">
+    <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='icons/splash-1668x2224.png') }}" media="(min-device-width: 834px) and (max-device-width: 834px) and (-webkit-device-pixel-ratio: 2)">
+    <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='icons/splash-2048x2732.png') }}" media="(min-device-width: 1024px) and (max-device-width: 1024px) and (-webkit-device-pixel-ratio: 2)">
 </head>
-<body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
-                <i class="fas fa-robot me-2"></i>M4Bot
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('index') }}">
-                            <i class="fas fa-home me-1"></i>Home
+<body class="hardware-accelerated">
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loader-overlay" role="status" aria-live="polite">
+        <div class="loader-content">
+            <div class="spinner" aria-hidden="true"></div>
+            <p>Caricamento...</p>
+        </div>
+    </div>
+
+    <!-- Elementi decorativi per sfondo dinamico -->
+    <div class="decoration-circle hardware-accelerated parallax-element" data-parallax-speed="0.05" style="width: 300px; height: 300px; top: 20%; right: -100px;" aria-hidden="true"></div>
+    <div class="decoration-blob hardware-accelerated parallax-element" data-parallax-speed="0.03" style="width: 400px; height: 400px; bottom: 10%; left: -200px;" aria-hidden="true"></div>
+
+    <!-- Barra superiore di stato -->
+    <div class="app-status-bar transition-colors gpu-accelerated">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center py-2">
+                <div class="d-flex align-items-center">
+                    <div class="connection-status">
+                        <span class="status-indicator connected" aria-label="Stato connessione"></span>
+                        <span class="status-text">Online</span>
+                    </div>
+                    <div class="server-status ms-3">
+                        <span class="server-ping" title="Latenza del server">
+                            <i class="fas fa-signal-stream me-1" aria-hidden="true"></i><span id="server-ping-value">--</span> ms
+                        </span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-md">
+                    <!-- Barra di ricerca globale -->
+                    <div class="global-search">
+                        <form id="global-search-form" class="position-relative">
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent border-end-0">
+                                    <i class="fas fa-search" aria-hidden="true"></i>
+                                </span>
+                                <input type="search" id="global-search-input" class="form-control form-control-sm border-start-0" 
+                                       placeholder="Cerca..." aria-label="Ricerca globale" 
+                                       data-bs-toggle="dropdown" aria-expanded="false"
+                                       autocomplete="off">
+                                <button type="button" class="btn btn-sm btn-primary search-shortcut" aria-hidden="true" tabindex="-1">
+                                    <kbd>/</kbd>
+                                </button>
+                            </div>
+                            <div class="dropdown-menu dropdown-menu-end w-100 p-0 hardware-accelerated global-search-results" id="search-results-dropdown">
+                                <div class="p-3" id="search-results-content">
+                                    <div class="text-center text-muted">
+                                        <small>Inizia a digitare per cercare</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="dropdown">
+                        <a class="dropdown-toggle text-decoration-none" href="#" id="langDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-globe me-1" aria-hidden="true"></i><span>{{ current_language_name }}</span>
                         </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('features') }}">
-                            <i class="fas fa-star me-1"></i>Funzionalità
-                        </a>
-                    </li>
-                    {% if session.get('user_id') %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('dashboard') }}">
-                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-                
-                <ul class="navbar-nav">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="langDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-globe me-1"></i>{{ current_language_name }}
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end">
+                        <div class="dropdown-menu dropdown-menu-end hardware-accelerated">
                             {% for code, name in available_languages.items() %}
-                            <a class="dropdown-item {% if current_language == code %}active{% endif %}" href="?lang={{ code }}">
-                                <i class="fas fa-check me-1 {% if current_language != code %}invisible{% endif %}"></i>{{ name }}
+                            <a class="dropdown-item {% if current_language == code %}active{% endif %}" href="{{ url_for(request.endpoint, lang=code, **request.view_args) }}" data-language="{{ code }}">
+                                <i class="fas fa-check me-1 {% if current_language != code %}invisible{% endif %}" aria-hidden="true"></i>{{ name }}
                             </a>
                             {% endfor %}
                         </div>
-                    </li>
-                    
-                    {% if session.get('user_id') %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user-circle me-1"></i>Account
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end">
-                            <a class="dropdown-item" href="#">
-                                <i class="fas fa-user-cog me-1"></i>Profilo
-                            </a>
-                            {% if session.get('is_admin') %}
-                            <a class="dropdown-item" href="https://control.m4bot.it">
-                                <i class="fas fa-server me-1"></i>Controllo Server
-                            </a>
-                            {% endif %}
-                            <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="{{ url_for('logout') }}">
-                                <i class="fas fa-sign-out-alt me-1"></i>Logout
-                            </a>
-                        </div>
-                    </li>
-                    {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('login') }}">
-                            <i class="fas fa-sign-in-alt me-1"></i>Accedi
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('register') }}">
-                            <i class="fas fa-user-plus me-1"></i>Registrati
-                        </a>
-                    </li>
-                    {% endif %}
-                    
-                    <li class="nav-item ms-2">
-                        <div class="form-check form-switch pt-2">
-                            <input class="form-check-input" type="checkbox" id="darkModeToggle">
-                            <label class="form-check-label text-light" for="darkModeToggle"><i class="fas fa-moon"></i></label>
-                        </div>
-                    </li>
-                </ul>
+                    </div>
+                    <div class="theme-toggle hardware-accelerated">
+                        <label class="switch has-tooltip" aria-label="Cambia tema">
+                            <input type="checkbox" id="darkModeToggle" aria-label="Attiva/disattiva tema scuro">
+                            <span class="slider transition-all"></span>
+                            <span class="tooltip-text">Cambia tema</span>
+                        </label>
+                    </div>
+                </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar hardware-accelerated" role="navigation" aria-label="Menu di navigazione principale">
+        <div class="sidebar-header">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                <i class="fas fa-robot me-2 brand-icon" aria-hidden="true"></i>
+                <span class="brand-text">M4Bot</span>
+            </a>
+            <button class="btn btn-icon sidebar-toggler d-lg-none" aria-label="Chiudi menu">
+                <i class="fas fa-times" aria-hidden="true"></i>
+            </button>
+        </div>
+        
+        <ul class="sidebar-menu stagger-items">
+            <li class="sidebar-item">
+                <a class="sidebar-link hardware-accelerated {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
+                    <i class="fas fa-home" aria-hidden="true"></i>
+                    <span>{{ _('Home') }}</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link hardware-accelerated {% if request.endpoint == 'features' %}active{% endif %}" href="{{ url_for('features') }}">
+                    <i class="fas fa-star" aria-hidden="true"></i>
+                    <span>{{ _('Funzionalità') }}</span>
+                </a>
+            </li>
+            
+            {% if session.get('user_id') %}
+            <div class="sidebar-label">
+                <span>Dashboard</span>
+            </div>
+            <li class="sidebar-item">
+                <a class="sidebar-link hardware-accelerated {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+                    <i class="fas fa-tachometer-alt" aria-hidden="true"></i>
+                    <span>{{ _('Panoramica') }}</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link hardware-accelerated {% if request.endpoint == 'channel_stats' or request.endpoint == 'advanced_analytics' %}active{% endif %}" href="{{ url_for('channel_stats') }}">
+                    <i class="fas fa-chart-bar" aria-hidden="true"></i>
+                    <span>{{ _('Statistiche') }}</span>
+                    {% if session.get('new_stats', false) %}
+                    <span class="badge bg-primary pulse" aria-label="Nuove statistiche disponibili">Nuovo</span>
+                    {% endif %}
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link hardware-accelerated {% if request.endpoint == 'automations' %}active{% endif %}" href="{{ url_for('automations') }}">
+                    <i class="fas fa-robot" aria-hidden="true"></i>
+                    <span>{{ _('Automazioni') }}</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link hardware-accelerated {% if request.endpoint == 'manage_commands' %}active{% endif %}" href="{{ url_for('manage_commands') }}">
+                    <i class="fas fa-terminal" aria-hidden="true"></i>
+                    <span>{{ _('Comandi') }}</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link hardware-accelerated {% if request.endpoint == 'channel_settings' %}active{% endif %}" href="{{ url_for('channel_settings') }}">
+                    <i class="fas fa-cog" aria-hidden="true"></i>
+                    <span>{{ _('Impostazioni') }}</span>
+                </a>
+            </li>
+            
+            <div class="sidebar-label">
+                <span>{{ _('Integrazioni') }}</span>
+            </div>
+            <li class="sidebar-item">
+                <a class="sidebar-link hardware-accelerated {% if request.endpoint == 'discord_integration' %}active{% endif %}" href="{{ url_for('discord_integration') }}">
+                    <i class="fab fa-discord" aria-hidden="true"></i>
+                    <span>{{ _('Discord') }}</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link hardware-accelerated {% if request.endpoint == 'obs_integration' %}active{% endif %}" href="{{ url_for('obs_integration') }}">
+                    <i class="fas fa-video" aria-hidden="true"></i>
+                    <span>{{ _('OBS') }}</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link hardware-accelerated {% if request.endpoint == 'webhook_management' %}active{% endif %}" href="{{ url_for('webhook_management') }}">
+                    <i class="fas fa-plug" aria-hidden="true"></i>
+                    <span>{{ _('Webhook') }}</span>
+                    <span class="badge bg-primary pulse" aria-label="Nuova funzionalità">New</span>
+                </a>
+            </li>
+            {% endif %}
+            
+            {% if not session.get('user_id') %}
+            <div class="sidebar-label">
+                <span>Account</span>
+            </div>
+            <li class="sidebar-item">
+                <a class="sidebar-link hardware-accelerated {% if request.endpoint == 'login' %}active{% endif %}" href="{{ url_for('login') }}">
+                    <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
+                    <span>Accedi</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link hardware-accelerated {% if request.endpoint == 'register' %}active{% endif %}" href="{{ url_for('register') }}">
+                    <i class="fas fa-user-plus" aria-hidden="true"></i>
+                    <span>Registrati</span>
+                </a>
+            </li>
+            {% endif %}
+            
+            {% if session.get('user_id') %}
+            <div class="sidebar-label">
+                <span>Account</span>
+            </div>
+            <li class="sidebar-item">
+                <a class="sidebar-link hardware-accelerated {% if request.endpoint == 'user_profile' %}active{% endif %}" href="{{ url_for('user_profile') }}">
+                    <i class="fas fa-user-cog" aria-hidden="true"></i>
+                    <span>Profilo</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link hardware-accelerated {% if request.endpoint == 'privacy_center' %}active{% endif %}" href="{{ url_for('privacy_center') }}">
+                    <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                    <span>Privacy</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link hardware-accelerated" href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                    <span>Logout</span>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+        
+        {% if session.get('user_id') %}
+        <div class="sidebar-footer transition-colors">
+            <div class="user-info d-flex align-items-center gap-md">
+                <div class="avatar hardware-accelerated">
+                    {{ session.get('username', 'Utente')[0] | upper }}
+                </div>
+                <div class="user-details">
+                    <h6 class="mb-0">{{ session.get('username', 'Utente') }}</h6>
+                    <small class="text-secondary">{{ session.get('email', '') }}</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </aside>
+
+    <!-- Navbar Mobile -->
+    <nav class="navbar navbar-expand-lg d-lg-none transition-colors">
+        <div class="container-fluid">
+            <a class="navbar-brand hardware-accelerated" href="{{ url_for('index') }}">
+                <i class="fas fa-robot me-2 brand-icon" aria-hidden="true"></i>
+                <span class="brand-text">M4Bot</span>
+            </a>
+            <button class="navbar-toggler sidebar-toggle" type="button" aria-label="Menu">
+                <i class="fas fa-bars" aria-hidden="true"></i>
+            </button>
         </div>
     </nav>
 
+    <!-- Breadcrumbs Navigation -->
+    <div class="breadcrumbs-container">
+        <div class="container-fluid">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb m-0 py-2">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+                    {% block breadcrumbs %}{% endblock %}
+                </ol>
+            </nav>
+        </div>
+    </div>
+
     <!-- Main Content -->
-    <div class="container py-4">
-        {% block content %}{% endblock %}
+    <main class="main-content page-transition hardware-accelerated" role="main">
+        <div class="container-fluid py-4">
+            <!-- Alerts globali -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert" aria-live="assertive">
+                            <div class="d-flex align-items-center">
+                                {% if category == 'success' %}
+                                    <i class="fas fa-check-circle me-2" aria-hidden="true"></i>
+                                {% elif category == 'danger' %}
+                                    <i class="fas fa-exclamation-circle me-2" aria-hidden="true"></i>
+                                {% elif category == 'warning' %}
+                                    <i class="fas fa-exclamation-triangle me-2" aria-hidden="true"></i>
+                                {% elif category == 'info' %}
+                                    <i class="fas fa-info-circle me-2" aria-hidden="true"></i>
+                                {% endif %}
+                                <div>{{ message }}</div>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Feedback animato per azioni -->
+    <div id="action-feedback" class="action-feedback" aria-hidden="true"></div>
+
+    <!-- To Top Button -->
+    <button id="to-top-button" class="to-top-button hardware-accelerated" aria-label="Torna in cima">
+        <i class="fas fa-arrow-up" aria-hidden="true"></i>
+    </button>
+
+    <!-- PWA Install Prompt -->
+    <div class="pwa-install-prompt d-none" id="pwa-install-prompt">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center">
+                        <img src="{{ url_for('static', filename='icons/icon-192x192.png') }}" alt="M4Bot Logo" width="48" height="48" class="me-3">
+                        <div>
+                            <h5 class="mb-1">Installa M4Bot</h5>
+                            <p class="mb-0 text-secondary">Aggiungi M4Bot alla schermata home per un accesso più rapido</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end mt-3 mt-md-0">
+                    <button class="btn btn-light me-2" id="pwa-cancel">Non ora</button>
+                    <button class="btn btn-primary" id="pwa-install">Installa</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Footer -->
-    <footer class="bg-dark text-light py-4 mt-5">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5><i class="fas fa-robot me-2"></i>M4Bot</h5>
-                    <p>Una soluzione completa per la gestione dei bot per la tua community.</p>
+    <footer class="footer transition-colors">
+        <div class="container-fluid">
+            <div class="row gy-4">
+                <div class="col-md-4">
+                    <h5 class="mb-3 hardware-accelerated"><i class="fas fa-robot me-2" aria-hidden="true"></i>M4Bot</h5>
+                    <p class="mb-3">Una soluzione completa per la gestione dei bot per la tua community.</p>
+                    <div class="social-links">
+                        <a href="#" class="me-2 social-link hardware-accelerated" aria-label="Twitter">
+                            <i class="fab fa-twitter" aria-hidden="true"></i>
+                        </a>
+                        <a href="#" class="me-2 social-link hardware-accelerated" aria-label="Discord">
+                            <i class="fab fa-discord" aria-hidden="true"></i>
+                        </a>
+                        <a href="#" class="me-2 social-link hardware-accelerated" aria-label="GitHub">
+                            <i class="fab fa-github" aria-hidden="true"></i>
+                        </a>
+                    </div>
                 </div>
-                <div class="col-md-3">
-                    <h5><i class="fas fa-link me-2"></i>Link utili</h5>
+                <div class="col-md-4">
+                    <h5 class="mb-3">Link Utili</h5>
                     <ul class="list-unstyled">
-                        <li><a href="#" class="text-light"><i class="fas fa-book me-1"></i>Documentazione</a></li>
-                        <li><a href="#" class="text-light"><i class="fas fa-question-circle me-1"></i>FAQ</a></li>
-                        <li><a href="#" class="text-light"><i class="fas fa-headset me-1"></i>Supporto</a></li>
+                        <li><a href="{{ url_for('index') }}" class="footer-link hardware-accelerated">Home</a></li>
+                        <li><a href="{{ url_for('features') }}" class="footer-link hardware-accelerated">Funzionalità</a></li>
+                        {% if not session.get('user_id') %}
+                        <li><a href="{{ url_for('login') }}" class="footer-link hardware-accelerated">Accedi</a></li>
+                        <li><a href="{{ url_for('register') }}" class="footer-link hardware-accelerated">Registrati</a></li>
+                        {% endif %}
                     </ul>
                 </div>
-                <div class="col-md-3">
-                    <h5><i class="fas fa-users me-2"></i>Community</h5>
+                <div class="col-md-4">
+                    <h5 class="mb-3">Supporto</h5>
                     <ul class="list-unstyled">
-                        <li><a href="#" class="text-light"><i class="fab fa-discord me-1"></i>Discord</a></li>
-                        <li><a href="#" class="text-light"><i class="fab fa-twitch me-1"></i>Twitch</a></li>
-                        <li><a href="#" class="text-light"><i class="fab fa-github me-1"></i>GitHub</a></li>
+                        <li><a href="#" class="footer-link hardware-accelerated">FAQ</a></li>
+                        <li><a href="#" class="footer-link hardware-accelerated">Documentazione</a></li>
+                        <li><a href="#" class="footer-link hardware-accelerated">Contattaci</a></li>
+                        <li><a href="{{ url_for('privacy_center') }}" class="footer-link hardware-accelerated">Centro Privacy</a></li>
                     </ul>
                 </div>
-            </div>
-            <hr class="mt-4">
-            <div class="text-center">
-                <p><i class="far fa-copyright me-1"></i>2023 M4Bot. Tutti i diritti riservati.</p>
+                <div class="col-md-12 text-center mt-4">
+                    <p class="mb-0"><i class="far fa-copyright me-1" aria-hidden="true"></i>2023 M4Bot. Tutti i diritti riservati.</p>
+                </div>
             </div>
         </div>
     </footer>
 
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
     <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.3.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.3.min.js" crossorigin="anonymous"></script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Intersection Observer Polyfill per supporto animazioni basate sullo scroll -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=IntersectionObserver"></script>
+    
     <!-- Custom JS -->
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <!-- Font Awesome JS (locale) -->
-    <script src="{{ url_for('static', filename='js/all.min.js') }}"></script>
-    <!-- Chart.js (locale) -->
-    <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
-    <!-- Script personalizzati dell'app -->
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/theme.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/notifications.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/push-notifications.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/global-search.js') }}" defer></script>
     {% block scripts %}{% endblock %}
     {% block extra_js %}{% endblock %}
+    
+    <script>
+        // Attivazione animazioni per elementi con scroll
+        document.addEventListener('DOMContentLoaded', function() {
+            const animateElements = document.querySelectorAll('.reveal-on-scroll');
+            
+            if ('IntersectionObserver' in window) {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                            observer.unobserve(entry.target);
+                        }
+                    });
+                }, { threshold: 0.1 });
+                
+                animateElements.forEach(el => observer.observe(el));
+            } else {
+                // Fallback per browser che non supportano IntersectionObserver
+                animateElements.forEach(el => el.classList.add('visible'));
+            }
+            
+            // Attiva animazioni staggered per sidebar
+            setTimeout(() => {
+                document.querySelector('.sidebar-menu').classList.add('animate');
+            }, 100);
+            
+            // Parallax effect per elementi decorativi
+            const parallaxElements = document.querySelectorAll('.parallax-element');
+            
+            if (parallaxElements.length > 0) {
+                window.addEventListener('mousemove', function(e) {
+                    const mouseX = e.clientX / window.innerWidth;
+                    const mouseY = e.clientY / window.innerHeight;
+                    
+                    parallaxElements.forEach(el => {
+                        const speed = parseFloat(el.getAttribute('data-parallax-speed')) || 0.05;
+                        const moveX = (mouseX - 0.5) * speed * 100;
+                        const moveY = (mouseY - 0.5) * speed * 100;
+                        
+                        el.style.transform = `translate(${moveX}px, ${moveY}px)`;
+                    });
+                });
+            }
+            
+            // To top button
+            const toTopButton = document.getElementById('to-top-button');
+            if (toTopButton) {
+                window.addEventListener('scroll', function() {
+                    if (window.scrollY > 300) {
+                        toTopButton.classList.add('visible');
+                    } else {
+                        toTopButton.classList.remove('visible');
+                    }
+                });
+                
+                toTopButton.addEventListener('click', function() {
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+                });
+            }
+            
+            // Registra il service worker per PWA
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('/static/js/service-worker.js')
+                        .then(function(registration) {
+                            console.log('Service Worker registrato con successo:', registration.scope);
+                        })
+                        .catch(function(error) {
+                            console.log('Registrazione Service Worker fallita:', error);
+                        });
+                });
+            }
+            
+            // Variabile per memorizzare l'evento di installazione
+            let deferredPrompt;
+            
+            // Ascoltatore evento beforeinstallprompt
+            window.addEventListener('beforeinstallprompt', (e) => {
+                // Previeni il prompt automatico
+                e.preventDefault();
+                // Salva l'evento per usarlo dopo
+                deferredPrompt = e;
+                // Mostra l'interfaccia personalizzata
+                const pwaInstallPrompt = document.getElementById('pwa-install-prompt');
+                if (pwaInstallPrompt) {
+                    // Verifica se è già stato mostrato recentemente
+                    const lastPrompt = localStorage.getItem('pwaPromptLastShown');
+                    const now = Date.now();
+                    
+                    // Mostra solo se non è stato mostrato nelle ultime 24 ore
+                    if (!lastPrompt || (now - parseInt(lastPrompt, 10) > 86400000)) {
+                        setTimeout(() => {
+                            pwaInstallPrompt.classList.remove('d-none');
+                        }, 5000); // Mostra dopo 5 secondi per non disturbare subito
+                    }
+                }
+            });
+            
+            // Gestione pulsanti
+            const pwaInstallPrompt = document.getElementById('pwa-install-prompt');
+            const pwaInstallButton = document.getElementById('pwa-install');
+            const pwaCancelButton = document.getElementById('pwa-cancel');
+            
+            if (pwaInstallButton) {
+                pwaInstallButton.addEventListener('click', (e) => {
+                    // Nascondi il nostro prompt
+                    pwaInstallPrompt.classList.add('d-none');
+                    // Mostra il prompt nativo di installazione
+                    deferredPrompt.prompt();
+                    // Attendi che l'utente risponda al prompt
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            console.log('Utente ha accettato l\'installazione di PWA');
+                            // Mostra feedback
+                            showActionFeedback('success', 'Installazione avviata');
+                        } else {
+                            console.log('Utente ha rifiutato l\'installazione di PWA');
+                        }
+                        deferredPrompt = null;
+                    });
+                });
+            }
+            
+            if (pwaCancelButton) {
+                pwaCancelButton.addEventListener('click', (e) => {
+                    // Nascondi il nostro prompt
+                    pwaInstallPrompt.classList.add('d-none');
+                    // Memorizza quando è stato nascosto
+                    localStorage.setItem('pwaPromptLastShown', Date.now().toString());
+                });
+            }
+            
+            // Apre la ricerca globale con scorciatoia da tastiera
+            document.addEventListener('keydown', function(e) {
+                if (e.key === '/' && !e.ctrlKey && !e.metaKey && 
+                    !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+                    e.preventDefault();
+                    document.getElementById('global-search-input').focus();
+                }
+            });
+            
+            // Feedback animato per azioni
+            window.showActionFeedback = function(type, message) {
+                const feedbackElement = document.getElementById('action-feedback');
+                if (!feedbackElement) return;
+                
+                feedbackElement.className = 'action-feedback';
+                feedbackElement.classList.add(type);
+                
+                let icon = '';
+                switch (type) {
+                    case 'success':
+                        icon = '<i class="fas fa-check-circle me-2"></i>';
+                        break;
+                    case 'error':
+                        icon = '<i class="fas fa-times-circle me-2"></i>';
+                        break;
+                    case 'warning':
+                        icon = '<i class="fas fa-exclamation-triangle me-2"></i>';
+                        break;
+                    case 'info':
+                        icon = '<i class="fas fa-info-circle me-2"></i>';
+                        break;
+                }
+                
+                feedbackElement.innerHTML = icon + message;
+                feedbackElement.classList.add('show');
+                
+                setTimeout(() => {
+                    feedbackElement.classList.remove('show');
+                }, 3000);
+            };
+        });
+    </script>
 </body>
 </html>

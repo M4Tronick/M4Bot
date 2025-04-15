@@ -1,0 +1,810 @@
+{% extends 'base.html' %}
+
+{% block title %}M4Bot - Centro Privacy{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .privacy-card {
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+    
+    .privacy-card:hover {
+        box-shadow: var(--shadow-medium);
+    }
+    
+    .privacy-section {
+        margin-bottom: 3rem;
+    }
+    
+    .privacy-header {
+        position: relative;
+        padding-bottom: 1.5rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .privacy-header h1 {
+        margin-bottom: 0.5rem;
+    }
+    
+    .header-action {
+        position: absolute;
+        right: 0;
+        bottom: 1.5rem;
+    }
+    
+    .toggle-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border-color-light);
+    }
+    
+    .toggle-container:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+    
+    .toggle-description {
+        flex: 1;
+    }
+    
+    .toggle-description h5 {
+        margin-bottom: 0.5rem;
+    }
+    
+    .toggle-control {
+        margin-left: 2rem;
+    }
+    
+    .form-switch .form-check-input {
+        width: 3em;
+        height: 1.5em;
+    }
+    
+    .data-preview {
+        background-color: var(--bs-tertiary-bg);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        margin-top: 1rem;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .collapse-header {
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        border-radius: var(--border-radius);
+        background-color: var(--bs-tertiary-bg);
+        margin-bottom: 1rem;
+    }
+    
+    .collapse-header:hover {
+        background-color: var(--bs-secondary-bg);
+    }
+    
+    .collapse-icon {
+        transition: transform 0.3s ease;
+    }
+    
+    .collapse-header[aria-expanded="true"] .collapse-icon {
+        transform: rotate(180deg);
+    }
+    
+    .audit-entry {
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: var(--border-radius);
+        background-color: var(--bs-tertiary-bg);
+    }
+    
+    .audit-entry:last-child {
+        margin-bottom: 0;
+    }
+    
+    .audit-entry .audit-date {
+        font-size: 0.85rem;
+        color: var(--bs-secondary-color);
+    }
+    
+    .audit-entry-header {
+        margin-bottom: 0.5rem;
+    }
+    
+    .audit-entry-content {
+        font-size: 0.9rem;
+    }
+    
+    /* Animazione per il pulsante di download dati */
+    @keyframes pulse-border {
+        0% { box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(var(--primary-rgb), 0); }
+        100% { box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0); }
+    }
+    
+    .btn-download-data {
+        animation: pulse-border 2s infinite;
+    }
+    
+    /* Stili per la timeline delle attività */
+    .activity-timeline {
+        position: relative;
+        margin-left: 1.5rem;
+    }
+    
+    .activity-timeline::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 2px;
+        background-color: var(--border-color);
+        transform: translateX(-50%);
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding-bottom: 1.5rem;
+        padding-left: 1.5rem;
+    }
+    
+    .timeline-item:last-child {
+        padding-bottom: 0;
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: var(--primary);
+        transform: translateX(-50%);
+    }
+    
+    .timeline-date {
+        font-size: 0.85rem;
+        color: var(--bs-secondary-color);
+        margin-bottom: 0.25rem;
+    }
+    
+    .timeline-content {
+        background-color: var(--bs-tertiary-bg);
+        padding: 0.75rem 1rem;
+        border-radius: var(--border-radius);
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+<li class="breadcrumb-item active">Centro Privacy</li>
+{% endblock %}
+
+{% block content %}
+<div class="privacy-header">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h1><i class="fas fa-shield-alt me-2"></i>Centro Privacy</h1>
+            <p class="text-secondary">Gestisci le tue impostazioni di privacy e controlla come vengono utilizzati i tuoi dati.</p>
+        </div>
+        <div class="col-md-4 text-md-end header-action">
+            <a href="#" class="btn btn-primary btn-download-data" id="download-all-data">
+                <i class="fas fa-download me-2"></i>Scarica tutti i tuoi dati
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row privacy-section">
+    <div class="col-lg-4 mb-4">
+        <div class="card privacy-card">
+            <div class="card-header">
+                <h5 class="mb-0">Preferenze di privacy</h5>
+            </div>
+            <div class="card-body">
+                <form id="privacy-settings-form">
+                    <div class="toggle-container">
+                        <div class="toggle-description">
+                            <h5>Analisi dell'utilizzo</h5>
+                            <p class="small text-secondary mb-0">Consenti la raccolta di dati anonimi sull'utilizzo per migliorare il servizio.</p>
+                        </div>
+                        <div class="toggle-control">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="usage-analytics" checked>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="toggle-container">
+                        <div class="toggle-description">
+                            <h5>Cookie di terze parti</h5>
+                            <p class="small text-secondary mb-0">Consenti l'utilizzo di cookie di terze parti per funzionalità avanzate.</p>
+                        </div>
+                        <div class="toggle-control">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="third-party-cookies">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="toggle-container">
+                        <div class="toggle-description">
+                            <h5>Notifiche personalizzate</h5>
+                            <p class="small text-secondary mb-0">Ricevi notifiche personalizzate basate sulla tua attività.</p>
+                        </div>
+                        <div class="toggle-control">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="personalized-notifications" checked>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="toggle-container">
+                        <div class="toggle-description">
+                            <h5>Condivisione dati con integrazioni</h5>
+                            <p class="small text-secondary mb-0">Condividi i tuoi dati con le integrazioni di terze parti che utilizzi.</p>
+                        </div>
+                        <div class="toggle-control">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="data-sharing" checked>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-3">
+                        <button type="submit" class="btn btn-primary" id="save-privacy-settings">
+                            <i class="fas fa-save me-2"></i>Salva impostazioni
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-8">
+        <div class="card privacy-card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">I tuoi dati personali</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-user me-2"></i>Profilo</h6>
+                        <div class="data-preview">
+                            <div class="mb-2">
+                                <strong>Nome utente:</strong> {{ user.username }}
+                            </div>
+                            <div class="mb-2">
+                                <strong>Email:</strong> {{ user.email }}
+                            </div>
+                            <div class="mb-2">
+                                <strong>Data di registrazione:</strong> {{ user.registered_at|date('d/m/Y') }}
+                            </div>
+                            <div>
+                                <strong>Ultimo accesso:</strong> {{ user.last_login|date('d/m/Y H:i') }}
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <a href="{{ url_for('user_profile') }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit me-1"></i>Modifica profilo
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-secondary ms-2" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                                <i class="fas fa-key me-1"></i>Cambia password
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-cog me-2"></i>Impostazioni collegate</h6>
+                        <div class="data-preview">
+                            <div class="mb-2">
+                                <strong>Tema:</strong> {{ user.preferences.theme|capitalize }}
+                            </div>
+                            <div class="mb-2">
+                                <strong>Lingua:</strong> {{ user.preferences.language|default('Italiano') }}
+                            </div>
+                            <div class="mb-2">
+                                <strong>Notifiche email:</strong> {{ 'Abilitate' if user.preferences.email_notifications else 'Disabilitate' }}
+                            </div>
+                            <div>
+                                <strong>Autenticazione a due fattori:</strong> {{ 'Abilitata' if user.has_2fa else 'Disabilitata' }}
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            {% if not user.has_2fa %}
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#setup2FAModal">
+                                <i class="fas fa-lock me-1"></i>Attiva 2FA
+                            </button>
+                            {% else %}
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#disable2FAModal">
+                                <i class="fas fa-unlock me-1"></i>Disattiva 2FA
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card privacy-card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Accessi e attività recenti</h5>
+                    <button class="btn btn-sm btn-outline-secondary" id="refresh-activity-log">
+                        <i class="fas fa-sync-alt me-1"></i>Aggiorna
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="collapse-header" data-bs-toggle="collapse" data-bs-target="#accessLog" aria-expanded="true" aria-controls="accessLog">
+                    <div>
+                        <i class="fas fa-sign-in-alt me-2"></i>Log degli accessi
+                    </div>
+                    <div class="collapse-icon">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+                
+                <div class="collapse show" id="accessLog">
+                    <div class="activity-timeline">
+                        {% for entry in access_log %}
+                        <div class="timeline-item">
+                            <div class="timeline-date">{{ entry.timestamp|date('d/m/Y H:i') }}</div>
+                            <div class="timeline-content">
+                                <div><strong>{{ entry.activity }}</strong></div>
+                                <div class="small">
+                                    <span class="me-3">IP: {{ entry.ip }}</span>
+                                    <span>Dispositivo: {{ entry.device }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="collapse-header mt-4" data-bs-toggle="collapse" data-bs-target="#activityLog" aria-expanded="true" aria-controls="activityLog">
+                    <div>
+                        <i class="fas fa-history me-2"></i>Attività recenti
+                    </div>
+                    <div class="collapse-icon">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+                
+                <div class="collapse show" id="activityLog">
+                    <div class="activity-timeline">
+                        {% for entry in activity_log %}
+                        <div class="timeline-item">
+                            <div class="timeline-date">{{ entry.timestamp|date('d/m/Y H:i') }}</div>
+                            <div class="timeline-content">
+                                <div><strong>{{ entry.activity }}</strong></div>
+                                <div class="small">
+                                    {% if entry.details %}
+                                    <span>{{ entry.details }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="mt-3 text-center">
+                    <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#clearActivityModal">
+                        <i class="fas fa-trash me-1"></i>Cancella cronologia attività
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row privacy-section">
+    <div class="col-12">
+        <div class="card privacy-card">
+            <div class="card-header">
+                <h5 class="mb-0">Servizi collegati e autorizzazioni</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    {% for connection in connected_services %}
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="me-3">
+                                        <img src="{{ connection.icon }}" alt="{{ connection.name }}" width="40" height="40" class="rounded">
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">{{ connection.name }}</h6>
+                                        <small class="text-secondary">{{ 'Connesso' if connection.active else 'Non connesso' }}</small>
+                                    </div>
+                                </div>
+                                
+                                <p class="small text-secondary">{{ connection.description }}</p>
+                                
+                                <div class="mt-3">
+                                    <strong class="small">Permessi:</strong>
+                                    <ul class="small ps-3 mb-3">
+                                        {% for permission in connection.permissions %}
+                                        <li>{{ permission }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                
+                                <div class="d-grid">
+                                    {% if connection.active %}
+                                    <button class="btn btn-sm btn-outline-danger disconnect-service" data-service-id="{{ connection.id }}">
+                                        <i class="fas fa-unlink me-1"></i>Disconnetti
+                                    </button>
+                                    {% else %}
+                                    <button class="btn btn-sm btn-outline-primary connect-service" data-service-id="{{ connection.id }}">
+                                        <i class="fas fa-link me-1"></i>Connetti
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row privacy-section">
+    <div class="col-12">
+        <div class="card privacy-card">
+            <div class="card-header">
+                <h5 class="mb-0">Azioni avanzate</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card h-100 bg-light border-0">
+                            <div class="card-body">
+                                <h6 class="card-title"><i class="fas fa-file-export me-2"></i>Esportazione dei dati</h6>
+                                <p class="small text-secondary">Esporta tutti i tuoi dati personali in un formato leggibile.</p>
+                                
+                                <div class="mt-3">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="export-profile" checked>
+                                        <label class="form-check-label" for="export-profile">Dati profilo</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="export-settings" checked>
+                                        <label class="form-check-label" for="export-settings">Impostazioni</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="export-activity" checked>
+                                        <label class="form-check-label" for="export-activity">Cronologia attività</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="export-connections" checked>
+                                        <label class="form-check-label" for="export-connections">Connessioni</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid mt-3">
+                                    <button class="btn btn-primary btn-sm" id="export-data-options">
+                                        <i class="fas fa-download me-1"></i>Esporta dati selezionati
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card h-100 bg-light border-0">
+                            <div class="card-body">
+                                <h6 class="card-title text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Azioni irreversibili</h6>
+                                <p class="small text-secondary">Queste azioni non possono essere annullate. Procedere con cautela.</p>
+                                
+                                <div class="mt-3">
+                                    <button class="btn btn-outline-danger btn-sm mb-3 w-100" data-bs-toggle="modal" data-bs-target="#deleteDataModal">
+                                        <i class="fas fa-eraser me-1"></i>Elimina tutti i dati di attività
+                                    </button>
+                                    
+                                    <button class="btn btn-outline-danger btn-sm mb-3 w-100" data-bs-toggle="modal" data-bs-target="#revokeAccessModal">
+                                        <i class="fas fa-ban me-1"></i>Revoca tutti gli accessi
+                                    </button>
+                                    
+                                    <button class="btn btn-danger btn-sm w-100" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
+                                        <i class="fas fa-user-times me-1"></i>Elimina account
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modali -->
+<!-- Cambio Password -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changePasswordModalLabel">Cambia password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="change-password-form">
+                    <div class="mb-3">
+                        <label for="current-password" class="form-label">Password attuale</label>
+                        <input type="password" class="form-control" id="current-password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new-password" class="form-label">Nuova password</label>
+                        <input type="password" class="form-control" id="new-password" required>
+                        <div class="form-text">Almeno 8 caratteri con lettere, numeri e simboli.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm-password" class="form-label">Conferma password</label>
+                        <input type="password" class="form-control" id="confirm-password" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="save-password">Salva</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancellazione account -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-labelledby="deleteAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger" id="deleteAccountModalLabel">Elimina account</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Attenzione:</strong> Questa azione è irreversibile. Tutti i tuoi dati verranno eliminati permanentemente dal sistema.
+                </div>
+                
+                <p>Per confermare l'eliminazione dell'account, inserisci la tua password:</p>
+                
+                <form id="delete-account-form">
+                    <div class="mb-3">
+                        <input type="password" class="form-control" id="delete-account-password" placeholder="Password" required>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="delete-account-confirm" required>
+                        <label class="form-check-label" for="delete-account-confirm">
+                            Confermo di voler eliminare il mio account e tutti i dati associati
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete-account">Elimina account</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Salvataggio impostazioni di privacy
+        document.getElementById('privacy-settings-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const settings = {
+                usageAnalytics: document.getElementById('usage-analytics').checked,
+                thirdPartyCookies: document.getElementById('third-party-cookies').checked,
+                personalizedNotifications: document.getElementById('personalized-notifications').checked,
+                dataSharing: document.getElementById('data-sharing').checked
+            };
+            
+            // Simula il salvataggio
+            setTimeout(function() {
+                // Mostra toast di conferma
+                if (window.showToast) {
+                    window.showToast('Impostazioni di privacy salvate con successo', 'success');
+                } else {
+                    alert('Impostazioni di privacy salvate con successo');
+                }
+            }, 1000);
+        });
+        
+        // Cambio password
+        document.getElementById('save-password').addEventListener('click', function() {
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                alert('Tutti i campi sono obbligatori');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                alert('Le password non coincidono');
+                return;
+            }
+            
+            // Simula il cambio password
+            setTimeout(function() {
+                // Chiudi il modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('changePasswordModal'));
+                modal.hide();
+                
+                // Mostra toast di conferma
+                if (window.showToast) {
+                    window.showToast('Password cambiata con successo', 'success');
+                } else {
+                    alert('Password cambiata con successo');
+                }
+                
+                // Resetta il form
+                document.getElementById('change-password-form').reset();
+            }, 1000);
+        });
+        
+        // Esportazione dati
+        document.getElementById('download-all-data').addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Simula il download
+            setTimeout(function() {
+                if (window.showToast) {
+                    window.showToast('L\'esportazione dei dati è stata avviata. Riceverai un\'email quando sarà pronta.', 'info');
+                } else {
+                    alert('L\'esportazione dei dati è stata avviata. Riceverai un\'email quando sarà pronta.');
+                }
+            }, 1000);
+        });
+        
+        // Esportazione dati selettiva
+        document.getElementById('export-data-options').addEventListener('click', function() {
+            const options = {
+                profile: document.getElementById('export-profile').checked,
+                settings: document.getElementById('export-settings').checked,
+                activity: document.getElementById('export-activity').checked,
+                connections: document.getElementById('export-connections').checked
+            };
+            
+            // Verifica se almeno un'opzione è selezionata
+            if (!Object.values(options).some(Boolean)) {
+                alert('Seleziona almeno un tipo di dato da esportare');
+                return;
+            }
+            
+            // Simula il download
+            setTimeout(function() {
+                if (window.showToast) {
+                    window.showToast('L\'esportazione dei dati selezionati è stata avviata. Riceverai un\'email quando sarà pronta.', 'info');
+                } else {
+                    alert('L\'esportazione dei dati selezionati è stata avviata. Riceverai un\'email quando sarà pronta.');
+                }
+            }, 1000);
+        });
+        
+        // Collegamento servizi
+        document.querySelectorAll('.connect-service').forEach(button => {
+            button.addEventListener('click', function() {
+                const serviceId = this.getAttribute('data-service-id');
+                
+                // Simula la connessione
+                setTimeout(() => {
+                    // Cambia lo stato del pulsante
+                    this.innerHTML = '<i class="fas fa-unlink me-1"></i>Disconnetti';
+                    this.classList.remove('btn-outline-primary');
+                    this.classList.add('btn-outline-danger');
+                    this.classList.remove('connect-service');
+                    this.classList.add('disconnect-service');
+                    
+                    // Aggiorna lo stato nel parent
+                    const parent = this.closest('.card');
+                    const statusEl = parent.querySelector('small.text-secondary');
+                    if (statusEl) {
+                        statusEl.textContent = 'Connesso';
+                    }
+                    
+                    // Mostra toast
+                    if (window.showToast) {
+                        window.showToast('Servizio connesso con successo', 'success');
+                    }
+                }, 1000);
+            });
+        });
+        
+        // Disconnessione servizi
+        document.querySelectorAll('.disconnect-service').forEach(button => {
+            button.addEventListener('click', function() {
+                const serviceId = this.getAttribute('data-service-id');
+                
+                // Simula la disconnessione
+                setTimeout(() => {
+                    // Cambia lo stato del pulsante
+                    this.innerHTML = '<i class="fas fa-link me-1"></i>Connetti';
+                    this.classList.remove('btn-outline-danger');
+                    this.classList.add('btn-outline-primary');
+                    this.classList.remove('disconnect-service');
+                    this.classList.add('connect-service');
+                    
+                    // Aggiorna lo stato nel parent
+                    const parent = this.closest('.card');
+                    const statusEl = parent.querySelector('small.text-secondary');
+                    if (statusEl) {
+                        statusEl.textContent = 'Non connesso';
+                    }
+                    
+                    // Mostra toast
+                    if (window.showToast) {
+                        window.showToast('Servizio disconnesso con successo', 'success');
+                    }
+                }, 1000);
+            });
+        });
+        
+        // Eliminazione account
+        document.getElementById('confirm-delete-account').addEventListener('click', function() {
+            const password = document.getElementById('delete-account-password').value;
+            const confirmed = document.getElementById('delete-account-confirm').checked;
+            
+            if (!password) {
+                alert('Inserisci la tua password per confermare');
+                return;
+            }
+            
+            if (!confirmed) {
+                alert('Devi confermare di voler eliminare il tuo account');
+                return;
+            }
+            
+            // Simula l'eliminazione
+            setTimeout(function() {
+                // Chiudi il modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('deleteAccountModal'));
+                modal.hide();
+                
+                // Reindirizza alla pagina di logout o conferma
+                alert('Account eliminato con successo. Verrai reindirizzato alla pagina principale.');
+                window.location.href = '/';
+            }, 2000);
+        });
+        
+        // Aggiorna log attività
+        document.getElementById('refresh-activity-log').addEventListener('click', function() {
+            this.innerHTML = '<i class="fas fa-sync-alt fa-spin me-1"></i>Aggiornamento...';
+            this.disabled = true;
+            
+            // Simula l'aggiornamento
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-sync-alt me-1"></i>Aggiorna';
+                this.disabled = false;
+                
+                if (window.showToast) {
+                    window.showToast('Log attività aggiornato', 'success');
+                }
+            }, 1500);
+        });
+    });
+</script>
+{% endblock %} 

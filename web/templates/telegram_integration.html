@@ -1,0 +1,948 @@
+{% extends 'base.html' %}
+
+{% block title %}M4Bot - Integrazione Telegram{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .telegram-bg {
+        background-color: #31a2db;
+    }
+    .telegram-text {
+        color: #31a2db;
+    }
+    .setup-step {
+        position: relative;
+        padding-left: 30px;
+        margin-bottom: 15px;
+    }
+    .setup-step-number {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 24px;
+        height: 24px;
+        background-color: #31a2db;
+        color: white;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 24px;
+        font-weight: bold;
+    }
+    .notification-preview {
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+        background-color: #f8f9fa;
+    }
+    .telegram-chat {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        background-color: #f8f9fa;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    .telegram-message {
+        display: flex;
+        margin-bottom: 15px;
+    }
+    .telegram-message-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 10px;
+        background-color: #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: #666;
+    }
+    .telegram-message-content {
+        flex: 1;
+        background-color: white;
+        border-radius: 10px;
+        padding: 10px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .telegram-message-author {
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .telegram-message-text {
+        color: #333;
+    }
+    .telegram-message-time {
+        text-align: right;
+        font-size: 0.8em;
+        color: #999;
+        margin-top: 5px;
+    }
+    .copy-field {
+        position: relative;
+    }
+    .copy-btn {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #6c757d;
+        cursor: pointer;
+    }
+    .copy-btn:hover {
+        color: #31a2db;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Integrazione Telegram</li>
+    </ol>
+</nav>
+
+<div class="container mb-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <h1 class="h2 mb-3 mb-sm-0">
+                    <i class="fab fa-telegram-plane me-2 telegram-text"></i>Integrazione Telegram
+                </h1>
+                
+                <div>
+                    {% if telegram_connected %}
+                    <span class="badge bg-success me-2"><i class="fas fa-check-circle me-1"></i>Connesso</span>
+                    <button id="disconnect-telegram" class="btn btn-outline-danger">
+                        <i class="fas fa-unlink me-1"></i>Disconnetti
+                    </button>
+                    {% else %}
+                    <span class="badge bg-danger me-2"><i class="fas fa-times-circle me-1"></i>Non connesso</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header telegram-bg text-white">
+                    <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Configurazione</h5>
+                </div>
+                <div class="card-body">
+                    {% if telegram_connected %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>Il tuo bot Telegram è configurato e funzionante.
+                    </div>
+                    
+                    <h6 class="mt-4">Dettagli del Bot</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tr>
+                                <th style="width: 140px;">Nome Bot:</th>
+                                <td>{{ telegram_settings.bot_name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Username:</th>
+                                <td>{{ telegram_settings.bot_username }}</td>
+                            </tr>
+                            <tr>
+                                <th>Token:</th>
+                                <td>
+                                    <div class="copy-field">
+                                        <input type="password" class="form-control" value="••••••••••••••••" disabled>
+                                        <button class="copy-btn" data-clipboard-text="{{ telegram_settings.token }}">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Chat collegate:</th>
+                                <td>{{ telegram_settings.chat_count }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <h6 class="mt-4">Chat collegate</h6>
+                    {% if telegram_settings.chats %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Tipo</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for chat in telegram_settings.chats %}
+                                <tr>
+                                    <td>{{ chat.name }}</td>
+                                    <td>{{ chat.type }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-danger remove-chat" 
+                                                data-chat-id="{{ chat.id }}" 
+                                                data-chat-name="{{ chat.name }}">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        Nessuna chat collegata. Invita il bot in una chat o gruppo Telegram.
+                    </div>
+                    {% endif %}
+                    
+                    <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#addChatModal">
+                        <i class="fas fa-plus me-1"></i>Aggiungi Chat
+                    </button>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Il bot Telegram non è ancora configurato.
+                    </div>
+                    
+                    <h6 class="mb-3">Segui questi passaggi per configurare il tuo bot Telegram:</h6>
+                    
+                    <div class="setup-steps">
+                        <div class="setup-step">
+                            <div class="setup-step-number">1</div>
+                            <div class="setup-step-content">
+                                <p>Apri Telegram e cerca "@BotFather"</p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="setup-step-number">2</div>
+                            <div class="setup-step-content">
+                                <p>Invia il comando <code>/newbot</code></p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="setup-step-number">3</div>
+                            <div class="setup-step-content">
+                                <p>Segui le istruzioni di BotFather per creare il bot</p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="setup-step-number">4</div>
+                            <div class="setup-step-content">
+                                <p>Copia il token API fornito da BotFather</p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="setup-step-number">5</div>
+                            <div class="setup-step-content">
+                                <p>Incolla il token nel campo qui sotto</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form id="telegram-setup-form" class="mt-4">
+                        <div class="mb-3">
+                            <label for="telegram-token" class="form-label">Token del Bot Telegram</label>
+                            <input type="text" class="form-control" id="telegram-token" placeholder="1234567890:ABCDefGhIJKlmNoPQRsTUVwxyZ">
+                            <div class="form-text">Il token è una stringa di numeri e lettere fornita da BotFather.</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Salva Configurazione
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header telegram-bg text-white">
+                    <h5 class="mb-0"><i class="fas fa-sync-alt me-2"></i>Sincronizzazione Messaggi</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="enable-sync" {% if telegram_settings.sync_enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="enable-sync">Abilita sincronizzazione messaggi</label>
+                    </div>
+                    
+                    <p class="mb-4">
+                        Quando abilitata, la sincronizzazione dei messaggi invia i messaggi della chat di streaming a Telegram e viceversa.
+                    </p>
+                    
+                    <h6>Esempio di messaggio sincronizzato:</h6>
+                    <div class="notification-preview">
+                        <div class="telegram-message">
+                            <div class="telegram-message-avatar">M</div>
+                            <div class="telegram-message-content">
+                                <div class="telegram-message-author">M4Bot</div>
+                                <div class="telegram-message-text">
+                                    <strong>[TWITCH] User123:</strong> Ciao a tutti! Come va lo streaming oggi?
+                                </div>
+                                <div class="telegram-message-time">14:32</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h6 class="mt-4">Opzioni</h6>
+                    <div class="mb-3">
+                        <label for="sync-format" class="form-label">Formato dei messaggi sincronizzati</label>
+                        <select class="form-select" id="sync-format">
+                            <option value="1" {% if telegram_settings.sync_format == 1 %}selected{% endif %}>[PIATTAFORMA] Utente: Messaggio</option>
+                            <option value="2" {% if telegram_settings.sync_format == 2 %}selected{% endif %}>Utente (PIATTAFORMA): Messaggio</option>
+                            <option value="3" {% if telegram_settings.sync_format == 3 %}selected{% endif %}>Messaggio (da Utente su PIATTAFORMA)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="sync-follows" {% if telegram_settings.sync_follows %}checked{% endif %}>
+                                <label class="form-check-label" for="sync-follows">Sincronizza nuovi follower</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="sync-subs" {% if telegram_settings.sync_subs %}checked{% endif %}>
+                                <label class="form-check-label" for="sync-subs">Sincronizza nuovi iscritti</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="sync-donations" {% if telegram_settings.sync_donations %}checked{% endif %}>
+                                <label class="form-check-label" for="sync-donations">Sincronizza donazioni</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="sync-stream-status" {% if telegram_settings.sync_stream_status %}checked{% endif %}>
+                                <label class="form-check-label" for="sync-stream-status">Stato dello stream</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="save-sync-settings" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Salva Impostazioni
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header telegram-bg text-white">
+                    <h5 class="mb-0"><i class="fas fa-bullhorn me-2"></i>Notifiche</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="enable-notifications" {% if telegram_settings.notifications_enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="enable-notifications">Abilita notifiche automatiche</label>
+                    </div>
+                    
+                    <p class="mb-4">
+                        Configura notifiche automatiche da inviare su Telegram quando accadono eventi specifici.
+                    </p>
+                    
+                    <h6>Tipi di notifiche</h6>
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="stream-start-notification" {% if telegram_settings.notify_stream_start %}checked{% endif %}>
+                                        <label class="form-check-label" for="stream-start-notification">Inizio stream</label>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="stream-start-message" class="form-label">Messaggio</label>
+                                        <textarea class="form-control" id="stream-start-message" rows="3">{{ telegram_settings.stream_start_message or '🔴 Lo streaming è iniziato!\n\nTitolo: [stream_title]\nGioco: [game_name]\n\nGuarda ora: [stream_url]' }}</textarea>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Variabili disponibili: [stream_title], [game_name], [stream_url], [channel_name], [date], [time]
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="stream-end-notification" {% if telegram_settings.notify_stream_end %}checked{% endif %}>
+                                        <label class="form-check-label" for="stream-end-notification">Fine stream</label>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="stream-end-message" class="form-label">Messaggio</label>
+                                        <textarea class="form-control" id="stream-end-message" rows="3">{{ telegram_settings.stream_end_message or '🟢 Lo streaming è terminato!\n\nDurata: [stream_duration]\nVisualizzazioni: [view_count]\n\nGrazie per aver partecipato!' }}</textarea>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Variabili disponibili: [stream_duration], [view_count], [channel_name], [date], [time]
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="schedule-notification" {% if telegram_settings.notify_scheduled_streams %}checked{% endif %}>
+                                        <label class="form-check-label" for="schedule-notification">Stream pianificati</label>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="schedule-message" class="form-label">Messaggio</label>
+                                        <textarea class="form-control" id="schedule-message" rows="3">{{ telegram_settings.schedule_message or '📅 Nuovo stream pianificato!\n\nTitolo: [stream_title]\nGioco: [game_name]\nData: [schedule_date] alle [schedule_time]\n\nNon perderlo!' }}</textarea>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Variabili disponibili: [stream_title], [game_name], [schedule_date], [schedule_time], [channel_name]
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="milestone-notification" {% if telegram_settings.notify_milestones %}checked{% endif %}>
+                                        <label class="form-check-label" for="milestone-notification">Milestone raggiunti</label>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="milestone-message" class="form-label">Messaggio</label>
+                                        <textarea class="form-control" id="milestone-message" rows="3">{{ telegram_settings.milestone_message or '🎉 Traguardo importante raggiunto!\n\n[milestone_type]: [milestone_value]\n\nContinuiamo a crescere insieme!' }}</textarea>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Variabili disponibili: [milestone_type], [milestone_value], [channel_name], [date], [time]
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="save-notification-settings" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Salva Impostazioni Notifiche
+                    </button>
+                    <button id="test-notification" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-paper-plane me-1"></i>Invia Notifica di Test
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modale per aggiungere una chat -->
+<div class="modal fade" id="addChatModal" tabindex="-1" aria-labelledby="addChatModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addChatModalLabel">Aggiungi Chat Telegram</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Per aggiungere una chat o un gruppo, segui questi passaggi:</p>
+                <ol>
+                    <li>Aggiungi il bot <strong>@{{ telegram_settings.bot_username if telegram_connected else 'YourBotName' }}</strong> alla chat o al gruppo</li>
+                    <li>Invia il comando <code>/chatid</code> nella chat</li>
+                    <li>Copia l'ID della chat fornito dal bot</li>
+                    <li>Inserisci l'ID chat e un nome descrittivo qui sotto</li>
+                </ol>
+                
+                <form id="add-chat-form">
+                    <div class="mb-3">
+                        <label for="chat-id" class="form-label">ID Chat</label>
+                        <input type="text" class="form-control" id="chat-id" placeholder="-1001234567890">
+                    </div>
+                    <div class="mb-3">
+                        <label for="chat-name" class="form-label">Nome Descrittivo</label>
+                        <input type="text" class="form-control" id="chat-name" placeholder="Gruppo streaming">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                <button type="button" class="btn btn-primary" id="save-chat">Salva</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modale di conferma rimozione chat -->
+<div class="modal fade" id="removeChatModal" tabindex="-1" aria-labelledby="removeChatModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="removeChatModalLabel">Conferma Rimozione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Sei sicuro di voler rimuovere la chat "<span id="remove-chat-name"></span>"?</p>
+                <p>Il bot non invierà più messaggi a questa chat, ma rimarrà membro della chat o del gruppo finché non lo rimuovi manualmente.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-danger" id="confirm-remove-chat">Rimuovi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modale di conferma disconnessione -->
+<div class="modal fade" id="disconnectModal" tabindex="-1" aria-labelledby="disconnectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="disconnectModalLabel">Conferma Disconnessione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Attenzione!
+                </div>
+                <p>Sei sicuro di voler disconnettere il bot Telegram?</p>
+                <p>Questa azione rimuoverà tutte le impostazioni di integrazione con Telegram. Il bot rimarrà attivo su Telegram finché non lo disattivi tramite BotFather.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-danger" id="confirm-disconnect">Disconnetti</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modale di notifica di test -->
+<div class="modal fade" id="testNotificationModal" tabindex="-1" aria-labelledby="testNotificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="testNotificationModalLabel">Invia Notifica di Test</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="test-notification-type" class="form-label">Tipo di notifica</label>
+                    <select class="form-select" id="test-notification-type">
+                        <option value="stream_start">Inizio stream</option>
+                        <option value="stream_end">Fine stream</option>
+                        <option value="schedule">Stream pianificato</option>
+                        <option value="milestone">Milestone</option>
+                        <option value="custom">Messaggio personalizzato</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3" id="custom-message-container" style="display: none;">
+                    <label for="custom-message" class="form-label">Messaggio personalizzato</label>
+                    <textarea class="form-control" id="custom-message" rows="4" placeholder="Inserisci il testo del messaggio..."></textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="test-notification-chat" class="form-label">Invia a</label>
+                    <select class="form-select" id="test-notification-chat">
+                        <option value="all">Tutte le chat</option>
+                        {% if telegram_connected and telegram_settings.chats %}
+                            {% for chat in telegram_settings.chats %}
+                            <option value="{{ chat.id }}">{{ chat.name }}</option>
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="send-test-notification">Invia</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.8/dist/clipboard.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inizializza clipboard.js
+        new ClipboardJS('.copy-btn');
+        
+        // Gestione form configurazione iniziale
+        const telegramSetupForm = document.getElementById('telegram-setup-form');
+        if (telegramSetupForm) {
+            telegramSetupForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const token = document.getElementById('telegram-token').value.trim();
+                if (!token) {
+                    showToast('error', 'Errore', 'Inserisci un token valido');
+                    return;
+                }
+                
+                // Invia il token al server
+                fetch('/api/telegram/setup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ token })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', 'Successo', 'Bot Telegram configurato con successo');
+                        // Ricarica la pagina dopo un breve ritardo
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showToast('error', 'Errore', data.message || 'Errore nella configurazione del bot');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Errore', 'Si è verificato un errore nella configurazione');
+                });
+            });
+        }
+        
+        // Toggle sincronizzazione messaggi
+        const enableSyncSwitch = document.getElementById('enable-sync');
+        if (enableSyncSwitch) {
+            enableSyncSwitch.addEventListener('change', function() {
+                updateSyncSettings();
+            });
+        }
+        
+        // Salvataggio impostazioni sincronizzazione
+        const saveSyncSettingsBtn = document.getElementById('save-sync-settings');
+        if (saveSyncSettingsBtn) {
+            saveSyncSettingsBtn.addEventListener('click', function() {
+                updateSyncSettings();
+            });
+        }
+        
+        // Salvataggio impostazioni notifiche
+        const saveNotificationSettingsBtn = document.getElementById('save-notification-settings');
+        if (saveNotificationSettingsBtn) {
+            saveNotificationSettingsBtn.addEventListener('click', function() {
+                updateNotificationSettings();
+            });
+        }
+        
+        // Apertura modale notifica di test
+        const testNotificationBtn = document.getElementById('test-notification');
+        if (testNotificationBtn) {
+            testNotificationBtn.addEventListener('click', function() {
+                const testModal = new bootstrap.Modal(document.getElementById('testNotificationModal'));
+                testModal.show();
+            });
+        }
+        
+        // Switch tipo messaggio personalizzato
+        const testNotificationType = document.getElementById('test-notification-type');
+        if (testNotificationType) {
+            testNotificationType.addEventListener('change', function() {
+                const customMessageContainer = document.getElementById('custom-message-container');
+                if (this.value === 'custom') {
+                    customMessageContainer.style.display = 'block';
+                } else {
+                    customMessageContainer.style.display = 'none';
+                }
+            });
+        }
+        
+        // Invio notifica di test
+        const sendTestNotificationBtn = document.getElementById('send-test-notification');
+        if (sendTestNotificationBtn) {
+            sendTestNotificationBtn.addEventListener('click', function() {
+                const type = document.getElementById('test-notification-type').value;
+                const chatId = document.getElementById('test-notification-chat').value;
+                let message = '';
+                
+                if (type === 'custom') {
+                    message = document.getElementById('custom-message').value.trim();
+                    if (!message) {
+                        showToast('error', 'Errore', 'Inserisci un messaggio');
+                        return;
+                    }
+                }
+                
+                // Invia la notifica di test
+                fetch('/api/telegram/test-notification', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ type, chatId, message })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', 'Successo', 'Notifica di test inviata con successo');
+                        // Chiudi la modale
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('testNotificationModal'));
+                        if (modal) modal.hide();
+                    } else {
+                        showToast('error', 'Errore', data.message || 'Errore nell\'invio della notifica');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Errore', 'Si è verificato un errore nell\'invio della notifica');
+                });
+            });
+        }
+        
+        // Salvataggio nuova chat
+        const saveChatBtn = document.getElementById('save-chat');
+        if (saveChatBtn) {
+            saveChatBtn.addEventListener('click', function() {
+                const chatId = document.getElementById('chat-id').value.trim();
+                const chatName = document.getElementById('chat-name').value.trim();
+                
+                if (!chatId || !chatName) {
+                    showToast('error', 'Errore', 'Compila tutti i campi');
+                    return;
+                }
+                
+                // Invia i dati al server
+                fetch('/api/telegram/add-chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ chatId, chatName })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', 'Successo', 'Chat aggiunta con successo');
+                        // Chiudi la modale e ricarica la pagina
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('addChatModal'));
+                        if (modal) modal.hide();
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showToast('error', 'Errore', data.message || 'Errore nell\'aggiunta della chat');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Errore', 'Si è verificato un errore');
+                });
+            });
+        }
+        
+        // Apertura modale rimozione chat
+        const removeChatBtns = document.querySelectorAll('.remove-chat');
+        removeChatBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const chatId = this.getAttribute('data-chat-id');
+                const chatName = this.getAttribute('data-chat-name');
+                
+                document.getElementById('remove-chat-name').textContent = chatName;
+                document.getElementById('confirm-remove-chat').setAttribute('data-chat-id', chatId);
+                
+                const removeModal = new bootstrap.Modal(document.getElementById('removeChatModal'));
+                removeModal.show();
+            });
+        });
+        
+        // Conferma rimozione chat
+        const confirmRemoveChatBtn = document.getElementById('confirm-remove-chat');
+        if (confirmRemoveChatBtn) {
+            confirmRemoveChatBtn.addEventListener('click', function() {
+                const chatId = this.getAttribute('data-chat-id');
+                
+                // Invia la richiesta al server
+                fetch('/api/telegram/remove-chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ chatId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', 'Successo', 'Chat rimossa con successo');
+                        // Chiudi la modale e ricarica la pagina
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('removeChatModal'));
+                        if (modal) modal.hide();
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showToast('error', 'Errore', data.message || 'Errore nella rimozione della chat');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Errore', 'Si è verificato un errore');
+                });
+            });
+        }
+        
+        // Apertura modale disconnessione
+        const disconnectBtn = document.getElementById('disconnect-telegram');
+        if (disconnectBtn) {
+            disconnectBtn.addEventListener('click', function() {
+                const disconnectModal = new bootstrap.Modal(document.getElementById('disconnectModal'));
+                disconnectModal.show();
+            });
+        }
+        
+        // Conferma disconnessione
+        const confirmDisconnectBtn = document.getElementById('confirm-disconnect');
+        if (confirmDisconnectBtn) {
+            confirmDisconnectBtn.addEventListener('click', function() {
+                // Invia la richiesta al server
+                fetch('/api/telegram/disconnect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', 'Successo', 'Bot Telegram disconnesso con successo');
+                        // Chiudi la modale e ricarica la pagina
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('disconnectModal'));
+                        if (modal) modal.hide();
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showToast('error', 'Errore', data.message || 'Errore nella disconnessione del bot');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Errore', 'Si è verificato un errore');
+                });
+            });
+        }
+        
+        // Funzione per aggiornare le impostazioni di sincronizzazione
+        function updateSyncSettings() {
+            const syncEnabled = document.getElementById('enable-sync').checked;
+            const syncFormat = document.getElementById('sync-format').value;
+            const syncFollows = document.getElementById('sync-follows').checked;
+            const syncSubs = document.getElementById('sync-subs').checked;
+            const syncDonations = document.getElementById('sync-donations').checked;
+            const syncStreamStatus = document.getElementById('sync-stream-status').checked;
+            
+            // Invia i dati al server
+            fetch('/api/telegram/update-sync-settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    syncEnabled,
+                    syncFormat,
+                    syncFollows,
+                    syncSubs,
+                    syncDonations,
+                    syncStreamStatus
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('success', 'Successo', 'Impostazioni di sincronizzazione aggiornate');
+                } else {
+                    showToast('error', 'Errore', data.message || 'Errore nell\'aggiornamento delle impostazioni');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('error', 'Errore', 'Si è verificato un errore');
+            });
+        }
+        
+        // Funzione per aggiornare le impostazioni delle notifiche
+        function updateNotificationSettings() {
+            const notificationsEnabled = document.getElementById('enable-notifications').checked;
+            const notifyStreamStart = document.getElementById('stream-start-notification').checked;
+            const streamStartMessage = document.getElementById('stream-start-message').value;
+            const notifyStreamEnd = document.getElementById('stream-end-notification').checked;
+            const streamEndMessage = document.getElementById('stream-end-message').value;
+            const notifyScheduledStreams = document.getElementById('schedule-notification').checked;
+            const scheduleMessage = document.getElementById('schedule-message').value;
+            const notifyMilestones = document.getElementById('milestone-notification').checked;
+            const milestoneMessage = document.getElementById('milestone-message').value;
+            
+            // Invia i dati al server
+            fetch('/api/telegram/update-notification-settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    notificationsEnabled,
+                    notifyStreamStart,
+                    streamStartMessage,
+                    notifyStreamEnd,
+                    streamEndMessage,
+                    notifyScheduledStreams,
+                    scheduleMessage,
+                    notifyMilestones,
+                    milestoneMessage
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('success', 'Successo', 'Impostazioni di notifica aggiornate');
+                } else {
+                    showToast('error', 'Errore', data.message || 'Errore nell\'aggiornamento delle impostazioni');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('error', 'Errore', 'Si è verificato un errore');
+            });
+        }
+        
+        // Helper per mostrare toast
+        function showToast(type, title, message) {
+            const toastContainer = document.querySelector('.toast-container');
+            if (!toastContainer) return;
+            
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            
+            const iconClass = type === 'success' ? 'fas fa-check-circle text-success' : 
+                             type === 'error' ? 'fas fa-exclamation-circle text-danger' : 
+                             'fas fa-info-circle text-info';
+            
+            toast.innerHTML = `
+                <div class="toast-header">
+                    <i class="${iconClass} me-2"></i>
+                    <strong class="me-auto">${title}</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">${message}</div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            // Rimuovi il toast dopo che è stato nascosto
+            toast.addEventListener('hidden.bs.toast', function() {
+                toastContainer.removeChild(toast);
+            });
+        }
+    });
+</script>
+{% endblock %} 

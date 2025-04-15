@@ -1,0 +1,58 @@
+# Translations template for M4Bot.
+# Copyright (C) 2025 M4Bot
+# This file is distributed under the same license as the M4Bot project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: M4Bot 1.0\n"
+"Report-Msgid-Bugs-To: support@m4bot.com\n"
+"POT-Creation-Date: 2025-04-14 22:00+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.9.1\n"
+
+#: templates/base.html:180
+msgid "Home"
+msgstr ""
+
+#: templates/base.html:186
+msgid "Funzionalità"
+msgstr ""
+
+#: templates/base.html:202
+msgid "Panoramica"
+msgstr ""
+
+#: templates/base.html:208
+msgid "Statistiche"
+msgstr ""
+
+#: templates/base.html:214
+msgid "Comandi"
+msgstr ""
+
+#: templates/base.html:220
+msgid "Impostazioni"
+msgstr ""
+
+#: templates/base.html:227
+msgid "Integrazioni"
+msgstr ""
+
+#: templates/base.html:233
+msgid "Discord"
+msgstr ""
+
+#: templates/base.html:239
+msgid "OBS"
+msgstr ""
+
+#: templates/base.html:245
+msgid "Webhook"
+msgstr ""

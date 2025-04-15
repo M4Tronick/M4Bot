@@ -1,0 +1,949 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Sicurezza e Stabilità | M4Bot Admin{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin/stability_security.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-2">
+        <div class="sidebar">
+            <h5>Navigazione</h5>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#overview">Panoramica</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#self-healing">Self-Healing</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#security">Sicurezza</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#resilience-testing">Test di Resilienza</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#attack-events">Eventi di Attacco</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="col-md-10 content-area">
+        <!-- Panoramica dello stato -->
+        <section id="overview" class="mb-5">
+            <h2>Panoramica della Sicurezza e Stabilità</h2>
+            <div class="row status-overview">
+                <div class="col-md-3">
+                    <div class="card status-card {{ system_status.overall_status }}">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Stato del Sistema</h5>
+                            <div class="status-indicator">
+                                <i class="fa fa-circle"></i>
+                            </div>
+                            <p class="status-text">{{ system_status.overall_status|capitalize }}</p>
+                            <p class="incidents">{{ system_status.incidents_last_24h }} incidenti nelle ultime 24h</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card status-card {{ system_status.self_healing_status }}">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Self-Healing</h5>
+                            <div class="status-indicator">
+                                <i class="fa fa-circle"></i>
+                            </div>
+                            <p class="status-text">{{ system_status.self_healing_status|capitalize }}</p>
+                            <p class="auto-healed">{{ system_status.self_healed_count }} servizi guariti automaticamente</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card status-card {{ system_status.waf_status }}">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Stato WAF</h5>
+                            <div class="status-indicator">
+                                <i class="fa fa-circle"></i>
+                            </div>
+                            <p class="status-text">{{ system_status.waf_status|capitalize }}</p>
+                            <p class="attacks-blocked">{{ security_summary.attacks_blocked_24h }} attacchi bloccati (24h)</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card status-card {{ system_status.encryption_status }}">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Crittografia</h5>
+                            <div class="status-indicator">
+                                <i class="fa fa-circle"></i>
+                            </div>
+                            <p class="status-text">{{ system_status.encryption_status|capitalize }}</p>
+                            <p class="key-age">Chiavi aggiornate {{ security_summary.encryption_age }} giorni fa</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <button id="refresh-status" class="btn btn-outline-primary mr-2">
+                    <i class="fa fa-sync"></i> Aggiorna Stato
+                </button>
+                <button id="toggle-maintenance" class="btn btn-outline-warning mr-2" data-status="{{ system_status.maintenance_mode }}">
+                    {% if system_status.maintenance_mode %}
+                        <i class="fa fa-tools"></i> Disattiva Modalità Manutenzione
+                    {% else %}
+                        <i class="fa fa-tools"></i> Attiva Modalità Manutenzione
+                    {% endif %}
+                </button>
+                <button id="export-report" class="btn btn-outline-secondary">
+                    <i class="fa fa-download"></i> Esporta Report
+                </button>
+            </div>
+        </section>
+        
+        <!-- Sezione Self-Healing -->
+        <section id="self-healing" class="mb-5">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2>Gestione Self-Healing</h2>
+                <button id="configure-self-healing" class="btn btn-primary" data-toggle="modal" data-target="#selfHealingModal">
+                    <i class="fa fa-cog"></i> Configura
+                </button>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            Servizi Monitorati
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Servizio</th>
+                                            <th>Stato</th>
+                                            <th>Uptime</th>
+                                            <th>Ultimo Fallimento</th>
+                                            <th>Ultimo Riavvio</th>
+                                            <th>Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for service in system_status.services %}
+                                        <tr class="{{ service.status }}">
+                                            <td>{{ service.name }}</td>
+                                            <td>
+                                                <span class="badge 
+                                                    {% if service.status == 'running' %}badge-success
+                                                    {% elif service.status == 'degraded' %}badge-warning
+                                                    {% else %}badge-danger{% endif %}">
+                                                    {{ service.status }}
+                                                </span>
+                                            </td>
+                                            <td>{{ "%.2f"|format(service.uptime) }}%</td>
+                                            <td>{{ service.last_failure|default('Mai', true)|format_datetime }}</td>
+                                            <td>{{ service.last_restart|default('Mai', true)|format_datetime }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary restart-service" data-service="{{ service.name }}">
+                                                    <i class="fa fa-redo"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-secondary toggle-monitoring" data-service="{{ service.name }}" data-monitored="{{ service.monitored }}">
+                                                    {% if service.monitored %}
+                                                        <i class="fa fa-eye-slash"></i>
+                                                    {% else %}
+                                                        <i class="fa fa-eye"></i>
+                                                    {% endif %}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            Metriche di Auto-Recupero
+                        </div>
+                        <div class="card-body">
+                            <div class="metric-item">
+                                <div class="metric-label">Media tempi di recupero (MTTR)</div>
+                                <div class="metric-value">{{ "%.2f"|format(system_status.mttr) }} minuti</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label">Uptime Self-Healing</div>
+                                <div class="metric-value">{{ "%.2f"|format(system_status.self_healing_uptime) }}%</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label">Incidenti Recuperati</div>
+                                <div class="metric-value">{{ system_status.self_healed_count }}</div>
+                            </div>
+                            <div class="mt-4">
+                                <canvas id="self-healing-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Sezione Sicurezza -->
+        <section id="security" class="mb-5">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2>Gestione Sicurezza</h2>
+                <div>
+                    <button id="block-ip" class="btn btn-danger mr-2" data-toggle="modal" data-target="#blockIpModal">
+                        <i class="fa fa-ban"></i> Blocca IP
+                    </button>
+                    <button id="rotate-keys" class="btn btn-warning">
+                        <i class="fa fa-key"></i> Ruota Chiavi
+                    </button>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            IP Bloccati
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>IP</th>
+                                            <th>Motivo</th>
+                                            <th>Bloccato</th>
+                                            <th>Scadenza</th>
+                                            <th>Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for ip in blocked_ips %}
+                                        <tr>
+                                            <td>{{ ip.ip }}</td>
+                                            <td>{{ ip.reason }}</td>
+                                            <td>{{ ip.blocked_at|format_datetime }}</td>
+                                            <td>{{ ip.expires_at|default('Permanente', true)|format_datetime }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-success unblock-ip" data-ip="{{ ip.ip }}">
+                                                    <i class="fa fa-check"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            Statistiche Sicurezza
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="security-metric">
+                                        <div class="security-metric-label">Punteggio Sicurezza</div>
+                                        <div class="security-score">
+                                            <div class="score-value">{{ "%.1f"|format(security_summary.security_score) }}</div>
+                                            <div class="score-max">/10</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="security-metric">
+                                        <div class="security-metric-label">Attacchi Bloccati (24h)</div>
+                                        <div class="attacks-value">{{ security_summary.attacks_blocked_24h }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <canvas id="security-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Sezione Eventi di Attacco Recenti -->
+        <section id="attack-events" class="mb-5">
+            <h2>Eventi di Attacco Recenti</h2>
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>IP</th>
+                                    <th>Tipo</th>
+                                    <th>Severità</th>
+                                    <th>Bloccato</th>
+                                    <th>Dettagli</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for event in security_events %}
+                                <tr class="event-{{ event.severity }}">
+                                    <td>{{ event.timestamp|format_datetime }}</td>
+                                    <td>{{ event.ip_address }}</td>
+                                    <td>{{ event.event_type }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if event.severity == 'high' %}badge-danger
+                                            {% elif event.severity == 'medium' %}badge-warning
+                                            {% else %}badge-info{% endif %}">
+                                            {{ event.severity }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if event.blocked %}
+                                            <i class="fa fa-check text-success"></i>
+                                        {% else %}
+                                            <i class="fa fa-times text-danger"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-info view-event-details" data-event="{{ loop.index0 }}">
+                                            <i class="fa fa-info-circle"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Sezione Test di Resilienza -->
+        <section id="resilience-testing" class="mb-5">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2>Test di Resilienza</h2>
+                <button class="btn btn-primary" data-toggle="modal" data-target="#newTestModal">
+                    <i class="fa fa-plus"></i> Nuovo Test
+                </button>
+            </div>
+            
+            <div class="row">
+                <!-- Risultati dei test recenti -->
+                <div class="col-md-7">
+                    <div class="card">
+                        <div class="card-header">
+                            Risultati dei Test Recenti
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Data</th>
+                                            <th>Tipo</th>
+                                            <th>Target</th>
+                                            <th>Durata</th>
+                                            <th>Risultato</th>
+                                            <th>Recupero</th>
+                                            <th>Report</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for result in chaos_test_results %}
+                                        <tr>
+                                            <td>{{ result.timestamp|format_datetime }}</td>
+                                            <td>{{ result.test_type }}</td>
+                                            <td>{{ result.target }}</td>
+                                            <td>{{ result.duration }}s</td>
+                                            <td>
+                                                {% if result.success %}
+                                                    <span class="badge badge-success">Successo</span>
+                                                {% else %}
+                                                    <span class="badge badge-danger">Fallimento</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ "%.1f"|format(result.recovery_rate) }}%</td>
+                                            <td>
+                                                <a href="{{ url_for('admin.download_report', path=result.report_path) }}" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="fa fa-download"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Test pianificati -->
+                <div class="col-md-5">
+                    <div class="card">
+                        <div class="card-header">
+                            Test Pianificati
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Tipo</th>
+                                            <th>Target</th>
+                                            <th>Frequenza</th>
+                                            <th>Prossima Esecuzione</th>
+                                            <th>Stato</th>
+                                            <th>Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for test in system_status.scheduled_tests %}
+                                        <tr>
+                                            <td>{{ test.test_type }}</td>
+                                            <td>{{ test.target }}</td>
+                                            <td>{{ test.frequency }}</td>
+                                            <td>{{ test.next_run|format_datetime }}</td>
+                                            <td>
+                                                <span class="badge 
+                                                    {% if test.status == 'scheduled' %}badge-info
+                                                    {% elif test.status == 'running' %}badge-primary
+                                                    {% else %}badge-secondary{% endif %}">
+                                                    {{ test.status }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-danger cancel-test" data-test="{{ test.id }}">
+                                                    <i class="fa fa-times"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<!-- Modal per la configurazione del self-healing -->
+<div class="modal fade" id="selfHealingModal" tabindex="-1" role="dialog" aria-labelledby="selfHealingModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="selfHealingModalLabel">Configura Self-Healing</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="self-healing-form">
+                    <div class="form-group">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="auto_recovery_enabled" 
+                                   {% if self_healing_config.auto_recovery_enabled %}checked{% endif %}>
+                            <label class="custom-control-label" for="auto_recovery_enabled">Abilita Auto-Recupero</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="max_retries">Tentativi Massimi</label>
+                        <input type="number" class="form-control" id="max_retries" 
+                               value="{{ self_healing_config.max_retries }}" min="1" max="10">
+                        <small class="form-text text-muted">Numero massimo di tentativi di riavvio (1-10)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="retry_delay">Ritardo tra Tentativi (secondi)</label>
+                        <input type="number" class="form-control" id="retry_delay" 
+                               value="{{ self_healing_config.retry_delay }}" min="1" max="300">
+                        <small class="form-text text-muted">Attesa tra tentativi di riavvio (1-300 secondi)</small>
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="notify_on_recovery" 
+                                   {% if self_healing_config.notify_on_recovery %}checked{% endif %}>
+                            <label class="custom-control-label" for="notify_on_recovery">Notifica su Recupero</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Servizi Monitorati</label>
+                        {% for service in system_status.services %}
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input service-checkbox" 
+                                   id="service_{{ service.name }}" 
+                                   data-service="{{ service.name }}"
+                                   {% if service.name in self_healing_config.monitored_services %}checked{% endif %}>
+                            <label class="custom-control-label" for="service_{{ service.name }}">{{ service.name }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="save-self-healing">Salva Configurazione</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per creare un nuovo test di resilienza -->
+<div class="modal fade" id="newTestModal" tabindex="-1" role="dialog" aria-labelledby="newTestModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newTestModalLabel">Nuovo Test di Resilienza</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="new-test-form">
+                    <div class="form-group">
+                        <label for="test_type">Tipo di Test</label>
+                        <select class="form-control" id="test_type">
+                            <option value="service-kill">Service Kill</option>
+                            <option value="resource-exhaustion">Resource Exhaustion</option>
+                            <option value="network-failure">Network Failure</option>
+                            <option value="database-corruption">Database Corruption</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="test_target">Target</label>
+                        <select class="form-control" id="test_target">
+                            <option value="system">System (Tutto)</option>
+                            {% for service in system_status.services %}
+                            <option value="{{ service.name }}">{{ service.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="test_duration">Durata (secondi)</label>
+                        <input type="number" class="form-control" id="test_duration" value="30" min="5" max="300">
+                        <small class="form-text text-muted">Quanto a lungo eseguire il test</small>
+                    </div>
+                    <div class="form-group" id="resource_type_group" style="display: none;">
+                        <label for="resource_type">Tipo di Risorsa</label>
+                        <select class="form-control" id="resource_type">
+                            <option value="cpu">CPU</option>
+                            <option value="memory">Memoria</option>
+                            <option value="disk">Disco</option>
+                            <option value="network">Rete</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="intensity_group" style="display: none;">
+                        <label for="intensity">Intensità (%)</label>
+                        <input type="number" class="form-control" id="intensity" value="80" min="10" max="100">
+                    </div>
+                    <div class="form-group" id="custom_options_group" style="display: none;">
+                        <label for="custom_options">Opzioni Personalizzate (JSON)</label>
+                        <textarea class="form-control" id="custom_options" rows="3">{"option1": "value1"}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="schedule_test">
+                            <label class="custom-control-label" for="schedule_test">Pianifica Test</label>
+                        </div>
+                    </div>
+                    <div id="schedule_options" style="display: none;">
+                        <div class="form-group">
+                            <label for="frequency">Frequenza</label>
+                            <select class="form-control" id="frequency">
+                                <option value="daily">Giornaliera</option>
+                                <option value="weekly">Settimanale</option>
+                                <option value="monthly">Mensile</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="first_run">Prima Esecuzione</label>
+                            <input type="datetime-local" class="form-control" id="first_run">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-warning" id="run-test-now">Esegui Ora</button>
+                <button type="button" class="btn btn-primary" id="schedule-test" style="display: none;">Pianifica Test</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per bloccare un IP -->
+<div class="modal fade" id="blockIpModal" tabindex="-1" role="dialog" aria-labelledby="blockIpModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="blockIpModalLabel">Blocca IP</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="block-ip-form">
+                    <div class="form-group">
+                        <label for="ip_address">Indirizzo IP</label>
+                        <input type="text" class="form-control" id="ip_address" placeholder="192.168.1.1">
+                    </div>
+                    <div class="form-group">
+                        <label for="block_reason">Motivo del Blocco</label>
+                        <input type="text" class="form-control" id="block_reason" placeholder="Attività sospetta">
+                    </div>
+                    <div class="form-group">
+                        <label for="block_duration">Durata</label>
+                        <select class="form-control" id="block_duration">
+                            <option value="">Permanente</option>
+                            <option value="1h">1 ora</option>
+                            <option value="6h">6 ore</option>
+                            <option value="24h">24 ore</option>
+                            <option value="7d">7 giorni</option>
+                            <option value="30d">30 giorni</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-danger" id="confirm-block-ip">Blocca IP</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+<script src="{{ url_for('static', filename='js/admin/stability_security.js') }}"></script>
+<script>
+    $(document).ready(function() {
+        // Gestisci il cambio del tipo di test
+        $('#test_type').change(function() {
+            const testType = $(this).val();
+            
+            // Nascondi tutti i gruppi opzionali
+            $('#resource_type_group, #intensity_group, #custom_options_group').hide();
+            
+            // Mostra le opzioni in base al tipo di test
+            if (testType === 'resource-exhaustion') {
+                $('#resource_type_group, #intensity_group').show();
+            } else if (testType === 'custom') {
+                $('#custom_options_group').show();
+            }
+        });
+        
+        // Gestisci il toggle della pianificazione
+        $('#schedule_test').change(function() {
+            if ($(this).is(':checked')) {
+                $('#schedule_options').show();
+                $('#run-test-now').hide();
+                $('#schedule-test').show();
+            } else {
+                $('#schedule_options').hide();
+                $('#run-test-now').show();
+                $('#schedule-test').hide();
+            }
+        });
+        
+        // Inizializza i grafici
+        const selfHealingChart = new Chart($('#self-healing-chart'), {
+            type: 'line',
+            data: {
+                labels: ['7 giorni fa', '6 giorni fa', '5 giorni fa', '4 giorni fa', '3 giorni fa', '2 giorni fa', 'Ieri', 'Oggi'],
+                datasets: [{
+                    label: 'Incidenti',
+                    data: [3, 1, 0, 2, 4, 1, 2, {{ system_status.incidents_last_24h }}],
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderWidth: 2,
+                    fill: true
+                }, {
+                    label: 'Auto-Recuperati',
+                    data: [2, 1, 0, 2, 3, 1, 1, {{ system_status.self_healed_count }}],
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderWidth: 2,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true,
+                            stepSize: 1
+                        }
+                    }]
+                }
+            }
+        });
+        
+        const securityChart = new Chart($('#security-chart'), {
+            type: 'bar',
+            data: {
+                labels: ['7 giorni fa', '6 giorni fa', '5 giorni fa', '4 giorni fa', '3 giorni fa', '2 giorni fa', 'Ieri', 'Oggi'],
+                datasets: [{
+                    label: 'Attacchi Rilevati',
+                    data: [25, 18, 30, 22, 17, 28, 32, {{ security_summary.attacks_blocked_24h * 1.5 }}],
+                    backgroundColor: 'rgba(255, 159, 64, 0.7)'
+                }, {
+                    label: 'Attacchi Bloccati',
+                    data: [20, 15, 25, 18, 14, 24, 28, {{ security_summary.attacks_blocked_24h }}],
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)'
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }]
+                }
+            }
+        });
+        
+        // Gestisci il bottone di esportazione
+        $('#export-report').click(function() {
+            alert('Report esportato con successo');
+        });
+        
+        // Gestisci il toggle della modalità manutenzione
+        $('#toggle-maintenance').click(function() {
+            const currentStatus = $(this).data('status');
+            const newStatus = !currentStatus;
+            
+            $.ajax({
+                url: '/api/stability/maintenance',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ enabled: newStatus }),
+                success: function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert('Errore: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('Si è verificato un errore di comunicazione con il server');
+                }
+            });
+        });
+        
+        // Gestisci il salvataggio della configurazione self-healing
+        $('#save-self-healing').click(function() {
+            const monitoredServices = [];
+            $('.service-checkbox:checked').each(function() {
+                monitoredServices.push($(this).data('service'));
+            });
+            
+            const config = {
+                auto_recovery_enabled: $('#auto_recovery_enabled').is(':checked'),
+                max_retries: parseInt($('#max_retries').val()),
+                retry_delay: parseInt($('#retry_delay').val()),
+                notify_on_recovery: $('#notify_on_recovery').is(':checked'),
+                monitored_services: monitoredServices
+            };
+            
+            $.ajax({
+                url: '/api/stability/self-healing/config',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(config),
+                success: function(response) {
+                    if (response.success) {
+                        $('#selfHealingModal').modal('hide');
+                        location.reload();
+                    } else {
+                        alert('Errore: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('Si è verificato un errore di comunicazione con il server');
+                }
+            });
+        });
+        
+        // Gestisci l'esecuzione di un test
+        $('#run-test-now').click(function() {
+            const testType = $('#test_type').val();
+            const target = $('#test_target').val();
+            const duration = parseInt($('#test_duration').val());
+            
+            let options = { duration: duration };
+            
+            if (testType === 'resource-exhaustion') {
+                options.resource_type = $('#resource_type').val();
+                options.intensity = parseInt($('#intensity').val());
+            } else if (testType === 'custom') {
+                try {
+                    const customOptions = JSON.parse($('#custom_options').val());
+                    options = { ...options, ...customOptions };
+                } catch (e) {
+                    alert('Errore nel formato JSON delle opzioni personalizzate');
+                    return;
+                }
+            }
+            
+            if (confirm('Sei sicuro di voler eseguire questo test? Potrebbe causare interruzioni temporanee del servizio.')) {
+                $.ajax({
+                    url: '/api/stability/resilience-test',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        test_type: testType,
+                        target: target,
+                        options: options
+                    }),
+                    success: function(response) {
+                        if (response.success) {
+                            $('#newTestModal').modal('hide');
+                            alert('Test avviato: ' + response.message);
+                            setTimeout(function() {
+                                location.reload();
+                            }, duration * 1000 + 1000);
+                        } else {
+                            alert('Errore: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('Si è verificato un errore di comunicazione con il server');
+                    }
+                });
+            }
+        });
+        
+        // Gestisci il blocco di un IP
+        $('#confirm-block-ip').click(function() {
+            const ip = $('#ip_address').val().trim();
+            const reason = $('#block_reason').val().trim();
+            const duration = $('#block_duration').val();
+            
+            if (!ip) {
+                alert('Inserisci un indirizzo IP valido');
+                return;
+            }
+            
+            if (!reason) {
+                alert('Inserisci un motivo per il blocco');
+                return;
+            }
+            
+            $.ajax({
+                url: '/api/security/block-ip',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    ip_address: ip,
+                    reason: reason,
+                    duration: duration
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        $('#blockIpModal').modal('hide');
+                        location.reload();
+                    } else {
+                        alert('Errore: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('Si è verificato un errore di comunicazione con il server');
+                }
+            });
+        });
+        
+        // Gestisci il riavvio di un servizio
+        $('.restart-service').click(function() {
+            const service = $(this).data('service');
+            
+            if (confirm(`Sei sicuro di voler riavviare il servizio ${service}?`)) {
+                $.ajax({
+                    url: '/api/stability/restart-service',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ service: service }),
+                    success: function(response) {
+                        if (response.success) {
+                            alert('Servizio riavviato con successo');
+                            location.reload();
+                        } else {
+                            alert('Errore: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('Si è verificato un errore di comunicazione con il server');
+                    }
+                });
+            }
+        });
+        
+        // Gestisci la rotazione delle chiavi
+        $('#rotate-keys').click(function() {
+            if (confirm('Sei sicuro di voler ruotare le chiavi di crittografia? Questa operazione potrebbe richiedere alcuni secondi.')) {
+                $.ajax({
+                    url: '/api/security/rotate-keys',
+                    method: 'POST',
+                    success: function(response) {
+                        if (response.success) {
+                            alert('Chiavi ruotate con successo');
+                            location.reload();
+                        } else {
+                            alert('Errore: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('Si è verificato un errore di comunicazione con il server');
+                    }
+                });
+            }
+        });
+        
+        // Gestisci lo sblocco di un IP
+        $('.unblock-ip').click(function() {
+            const ip = $(this).data('ip');
+            
+            if (confirm(`Sei sicuro di voler sbloccare l'IP ${ip}?`)) {
+                $.ajax({
+                    url: '/api/security/unblock-ip',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ ip_address: ip }),
+                    success: function(response) {
+                        if (response.success) {
+                            location.reload();
+                        } else {
+                            alert('Errore: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('Si è verificato un errore di comunicazione con il server');
+                    }
+                });
+            }
+        });
+    });
+</script>
+{% endblock %} 
