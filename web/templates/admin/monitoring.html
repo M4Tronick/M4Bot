@@ -1,0 +1,248 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Monitoraggio Sistema | M4Bot Admin{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin/monitoring.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="monitoring-dashboard">
+    <!-- Overlay di caricamento -->
+    <div id="loading-overlay">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Caricamento...</span>
+        </div>
+        <div class="mt-2">Aggiornamento dati...</div>
+    </div>
+
+    <!-- Intestazione -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="monitoring-title">Monitoraggio Sistema</h1>
+        <div class="d-flex align-items-center">
+            <div class="me-3">
+                <label for="update-interval" class="form-label mb-0">Intervallo di aggiornamento:</label>
+                <select class="form-select form-select-sm" id="update-interval">
+                    <option value="0">Manuale</option>
+                    <option value="5000">5 secondi</option>
+                    <option value="10000" selected>10 secondi</option>
+                    <option value="30000">30 secondi</option>
+                    <option value="60000">1 minuto</option>
+                </select>
+            </div>
+            <button class="btn btn-primary btn-refresh" onclick="MonitoringApp.fetchData()">
+                <i class="bi bi-arrow-clockwise"></i> Aggiorna
+            </button>
+        </div>
+    </div>
+
+    <!-- Metriche principali -->
+    <div class="row gx-4 gy-4 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="metric-card">
+                <div class="metric-icon cpu-icon">
+                    <i class="bi bi-cpu"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-title">CPU</div>
+                    <div class="metric-value" id="cpu-value">0%</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="metric-card">
+                <div class="metric-icon memory-icon">
+                    <i class="bi bi-memory"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-title">Memoria</div>
+                    <div class="metric-value" id="memory-value">0%</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="metric-card">
+                <div class="metric-icon disk-icon">
+                    <i class="bi bi-hdd"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-title">Disco</div>
+                    <div class="metric-value" id="disk-value">0%</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="metric-card">
+                <div class="metric-icon network-icon">
+                    <i class="bi bi-speedometer2"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-title">Rete</div>
+                    <div class="metric-value" id="network-value">0 B/s</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grafici -->
+    <div class="row gx-4 gy-4 mb-4">
+        <div class="col-md-6">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">Utilizzo CPU</h3>
+                    <button class="chart-settings-btn"><i class="bi bi-three-dots-vertical"></i></button>
+                </div>
+                <div class="chart-body">
+                    <canvas id="cpu-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">Utilizzo Memoria</h3>
+                    <button class="chart-settings-btn"><i class="bi bi-three-dots-vertical"></i></button>
+                </div>
+                <div class="chart-body">
+                    <canvas id="memory-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">Rete</h3>
+                    <button class="chart-settings-btn"><i class="bi bi-three-dots-vertical"></i></button>
+                </div>
+                <div class="chart-body">
+                    <canvas id="network-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informazioni e avvisi -->
+    <div class="row gx-4 gy-4 mb-4">
+        <div class="col-md-6">
+            <div class="card info-card">
+                <div class="card-header">
+                    <h3 class="card-title">Informazioni Sistema</h3>
+                </div>
+                <div class="card-body">
+                    <div class="system-info" id="system-info">
+                        <div class="loading-placeholder">Caricamento informazioni...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card info-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">Avvisi</h3>
+                    <div class="btn-group alert-filters" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary alert-filter active" data-severity="all">Tutti</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger alert-filter" data-severity="critical">Critici</button>
+                        <button type="button" class="btn btn-sm btn-outline-warning alert-filter" data-severity="warning">Avvisi</button>
+                        <button type="button" class="btn btn-sm btn-outline-info alert-filter" data-severity="info">Info</button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="alerts-list" id="alerts-list">
+                        <div class="loading-placeholder m-3">Caricamento avvisi...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Servizi e Dischi -->
+    <div class="row gx-4 gy-4 mb-4">
+        <div class="col-md-6">
+            <div class="card info-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">Servizi</h3>
+                    <button class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus"></i> Nuovo servizio
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Nome</th>
+                                    <th scope="col">Stato</th>
+                                    <th scope="col">Ultimo riavvio</th>
+                                    <th scope="col">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="services-list">
+                                <tr>
+                                    <td colspan="4" class="text-center py-3">Caricamento servizi...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card info-card">
+                <div class="card-header">
+                    <h3 class="card-title">Dischi</h3>
+                </div>
+                <div class="card-body">
+                    <div class="disks-list" id="disks-list">
+                        <div class="loading-placeholder">Caricamento dischi...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connessioni di rete -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card info-card">
+                <div class="card-header">
+                    <h3 class="card-title">Connessioni di rete attive</h3>
+                </div>
+                <div class="card-body">
+                    <div class="network-connections" id="network-list">
+                        <div class="loading-placeholder">Caricamento connessioni...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal per riavvio servizio -->
+    <div class="modal fade" id="restart-service-modal" tabindex="-1" aria-labelledby="restartServiceModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="restartServiceModalLabel">Conferma riavvio</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Sei sicuro di voler riavviare il servizio <span class="service-name fw-bold"></span>?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-primary" id="confirm-restart">Riavvia</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-container"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/admin/monitoring.js') }}"></script>
+{% endblock %} 

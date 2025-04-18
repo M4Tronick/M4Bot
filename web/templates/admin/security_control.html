@@ -1,0 +1,888 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Controllo Sicurezza Avanzato | M4Bot Admin{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin/security_control.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="security-dashboard">
+    <!-- Header della dashboard con metriche principali -->
+    <div class="security-header glass-card mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h1 class="mb-2">Dashboard Sicurezza</h1>
+                <p class="text-muted">Monitoraggio e controllo avanzato della sicurezza dell'infrastruttura</p>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex justify-content-md-end mt-3 mt-md-0">
+                    <div class="security-score-container me-4">
+                        <div class="security-score" data-score="{{ security_stats.score }}">
+                            <svg viewBox="0 0 36 36" class="circular-chart">
+                                <path class="circle-bg" d="M18 2.0845
+                                    a 15.9155 15.9155 0 0 1 0 31.831
+                                    a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                                <path class="circle" stroke-dasharray="{{ security_stats.score }}, 100" d="M18 2.0845
+                                    a 15.9155 15.9155 0 0 1 0 31.831
+                                    a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                                <text x="18" y="20.35" class="score-text">{{ security_stats.score }}</text>
+                            </svg>
+                            <div class="score-label">Sicurezza</div>
+                        </div>
+                    </div>
+                    <div class="status-indicator-container">
+                        <div class="status-indicator {{ security_stats.status_class }}">
+                            <i class="status-icon fas {{ security_stats.status_icon }}"></i>
+                            <span class="status-text">{{ security_stats.status_text }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pannello di controllo rapido -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="quick-actions card">
+                <div class="card-body d-flex flex-wrap gap-2">
+                    <button class="btn btn-primary" id="btn-security-scan">
+                        <i class="fas fa-shield-alt me-2"></i>Scansione Completa
+                    </button>
+                    <button class="btn btn-danger" id="btn-lockdown-mode" data-status="{{ security_stats.lockdown_mode }}">
+                        <i class="fas fa-lock me-2"></i>{{ 'Disattiva' if security_stats.lockdown_mode else 'Attiva' }} Modalità Lockdown
+                    </button>
+                    <button class="btn btn-warning" id="btn-rotate-keys">
+                        <i class="fas fa-key me-2"></i>Rotazione Chiavi
+                    </button>
+                    <button class="btn btn-success" id="btn-backup-secure">
+                        <i class="fas fa-cloud-upload-alt me-2"></i>Backup Sicuro
+                    </button>
+                    <button class="btn btn-info" id="btn-security-report">
+                        <i class="fas fa-file-alt me-2"></i>Genera Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Riepilogo degli eventi recenti -->
+    <div class="row mb-4">
+        <div class="col-xl-8 col-lg-7">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Eventi di Sicurezza Recenti</h5>
+                    <div>
+                        <select class="form-select form-select-sm event-filter" id="event-severity-filter">
+                            <option value="all">Tutte le severità</option>
+                            <option value="high">Solo alta</option>
+                            <option value="medium">Media e alta</option>
+                            <option value="low">Tutte</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body security-events p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th style="width: 150px">Timestamp</th>
+                                    <th style="width: 120px">Tipo</th>
+                                    <th style="width: 100px">Severità</th>
+                                    <th>Dettagli</th>
+                                    <th style="width: 80px">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for event in security_events %}
+                                <tr class="security-event-row" data-severity="{{ event.severity }}">
+                                    <td>{{ event.timestamp|format_datetime }}</td>
+                                    <td>
+                                        <span class="badge rounded-pill bg-{{ event.type_class }}">
+                                            <i class="fas {{ event.type_icon }} me-1"></i>
+                                            {{ event.type }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge rounded-pill bg-{{ event.severity_class }}">
+                                            {{ event.severity }}
+                                        </span>
+                                    </td>
+                                    <td>{{ event.details }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-icon btn-outline-secondary" 
+                                                data-bs-toggle="tooltip" 
+                                                title="Visualizza dettagli"
+                                                data-event-id="{{ event.id }}">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted">Mostrati {{ security_events|length }} eventi degli ultimi 7 giorni</small>
+                    </div>
+                    <a href="#" class="btn btn-sm btn-link">Visualizza tutti</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-lg-5">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Statistiche di Sicurezza</h5>
+                </div>
+                <div class="card-body">
+                    <div class="security-metric mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div class="metric-label">Tentativi di intrusione (24h)</div>
+                            <div class="metric-value">{{ security_stats.intrusion_attempts }}</div>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-danger" role="progressbar" 
+                                 style="width: {{ security_stats.intrusion_bar }}%" 
+                                 aria-valuenow="{{ security_stats.intrusion_attempts }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="security-metric mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div class="metric-label">Traffico bloccato</div>
+                            <div class="metric-value">{{ security_stats.blocked_traffic }}%</div>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-warning" role="progressbar" 
+                                 style="width: {{ security_stats.blocked_traffic }}%" 
+                                 aria-valuenow="{{ security_stats.blocked_traffic }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="security-metric mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div class="metric-label">Vulnerabilità rilevate</div>
+                            <div class="metric-value">{{ security_stats.vulnerabilities }}</div>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-primary" role="progressbar" 
+                                 style="width: {{ security_stats.vuln_bar }}%" 
+                                 aria-valuenow="{{ security_stats.vulnerabilities }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="security-metric">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div class="metric-label">Integrità backup</div>
+                            <div class="metric-value">{{ security_stats.backup_integrity }}%</div>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                 style="width: {{ security_stats.backup_integrity }}%" 
+                                 aria-valuenow="{{ security_stats.backup_integrity }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <small class="text-muted">Ultimo aggiornamento: {{ security_stats.last_updated }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gestione sicurezza avanzata -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4 mb-lg-0">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Gestione Firewall</h5>
+                    <div>
+                        <button class="btn btn-sm btn-primary" id="add-firewall-rule">
+                            <i class="fas fa-plus me-1"></i>Nuova Regola
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th>
+                                    <th>Indirizzo/Range</th>
+                                    <th>Porta</th>
+                                    <th>Azione</th>
+                                    <th style="width: 100px">Stato</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rule in firewall_rules %}
+                                <tr>
+                                    <td>{{ rule.type }}</td>
+                                    <td>{{ rule.address }}</td>
+                                    <td>{{ rule.port }}</td>
+                                    <td>
+                                        <span class="badge rounded-pill bg-{{ rule.action_class }}">
+                                            {{ rule.action }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input rule-toggle" 
+                                                   type="checkbox" 
+                                                   id="rule-{{ rule.id }}" 
+                                                   data-rule-id="{{ rule.id }}"
+                                                   {{ 'checked' if rule.active else '' }}>
+                                            <label class="form-check-label" for="rule-{{ rule.id }}">
+                                                <span class="visually-hidden">{{ 'Attivo' if rule.active else 'Inattivo' }}</span>
+                                            </label>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <div>
+                        <button class="btn btn-sm btn-success" id="apply-firewall-changes">
+                            <i class="fas fa-save me-1"></i>Applica Modifiche
+                        </button>
+                    </div>
+                    <div>
+                        <span class="badge rounded-pill bg-{{ 'success' if firewall_stats.active else 'danger' }}">
+                            {{ 'Attivo' if firewall_stats.active else 'Inattivo' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">IP Bloccati</h5>
+                    <div>
+                        <button class="btn btn-sm btn-danger" id="block-ip-btn">
+                            <i class="fas fa-ban me-1"></i>Blocca IP
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Indirizzo IP</th>
+                                    <th>Motivo</th>
+                                    <th>Bloccato il</th>
+                                    <th>Durata</th>
+                                    <th style="width: 100px">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ip in blocked_ips %}
+                                <tr>
+                                    <td>{{ ip.address }}</td>
+                                    <td>{{ ip.reason }}</td>
+                                    <td>{{ ip.blocked_at|format_datetime }}</td>
+                                    <td>
+                                        {% if ip.permanent %}
+                                            <span class="badge rounded-pill bg-danger">Permanente</span>
+                                        {% else %}
+                                            {{ ip.duration }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-icon btn-outline-success unblock-ip" 
+                                                data-bs-toggle="tooltip" 
+                                                title="Sblocca questo IP"
+                                                data-ip="{{ ip.address }}">
+                                            <i class="fas fa-unlock"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-icon btn-outline-secondary view-ip-details" 
+                                                data-bs-toggle="tooltip" 
+                                                title="Visualizza dettagli"
+                                                data-ip="{{ ip.address }}">
+                                            <i class="fas fa-info-circle"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div>
+                        <small class="text-muted">{{ blocked_ips|length }} IP attualmente bloccati</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Certificati SSL e Vulnerabilità -->
+    <div class="row">
+        <div class="col-lg-7 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Certificati SSL</h5>
+                    <div>
+                        <button class="btn btn-sm btn-primary" id="renew-certificates">
+                            <i class="fas fa-sync-alt me-1"></i>Rinnova Tutti
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Dominio</th>
+                                    <th>Emesso da</th>
+                                    <th>Emesso il</th>
+                                    <th>Scadenza</th>
+                                    <th>Stato</th>
+                                    <th style="width: 100px">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cert in ssl_certificates %}
+                                <tr>
+                                    <td>{{ cert.domain }}</td>
+                                    <td>{{ cert.issuer }}</td>
+                                    <td>{{ cert.issued_at|format_date }}</td>
+                                    <td>{{ cert.expires_at|format_date }}</td>
+                                    <td>
+                                        <span class="badge rounded-pill bg-{{ cert.status_class }}">
+                                            {{ cert.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-icon btn-outline-primary renew-cert" 
+                                                data-bs-toggle="tooltip" 
+                                                title="Rinnova certificato"
+                                                data-domain="{{ cert.domain }}">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-icon btn-outline-secondary view-cert" 
+                                                data-bs-toggle="tooltip" 
+                                                title="Visualizza dettagli"
+                                                data-domain="{{ cert.domain }}">
+                                            <i class="fas fa-info-circle"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <small class="text-muted">
+                        Prossima scadenza: {{ next_expiry_date }} ({{ days_to_expiry }} giorni)
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-5 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Vulnerabilità Rilevate</h5>
+                    <button class="btn btn-sm btn-primary" id="scan-vulnerabilities">
+                        <i class="fas fa-search me-1"></i>Scansiona
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Descrizione</th>
+                                    <th>Severità</th>
+                                    <th>Stato</th>
+                                    <th style="width: 80px">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for vuln in vulnerabilities %}
+                                <tr>
+                                    <td>{{ vuln.description }}</td>
+                                    <td>
+                                        <span class="badge rounded-pill bg-{{ vuln.severity_class }}">
+                                            {{ vuln.severity }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge rounded-pill bg-{{ vuln.status_class }}">
+                                            {{ vuln.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-icon btn-outline-warning fix-vuln" 
+                                                data-bs-toggle="tooltip" 
+                                                title="Ripara vulnerabilità"
+                                                data-vuln-id="{{ vuln.id }}">
+                                            <i class="fas fa-tools"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted">Ultima scansione: {{ last_scan_date }}</small>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-success" id="fix-all-vulnerabilities" 
+                                {{ 'disabled' if not fixable_vulnerabilities else '' }}>
+                            <i class="fas fa-wrench me-1"></i>Ripara Tutte
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modale per aggiungere regola firewall -->
+<div class="modal fade" id="add-firewall-rule-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Aggiungi Regola Firewall</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="firewall-rule-form">
+                    <div class="mb-3">
+                        <label for="rule-type" class="form-label">Tipo</label>
+                        <select class="form-select" id="rule-type" required>
+                            <option value="INPUT">INPUT (Traffico in ingresso)</option>
+                            <option value="OUTPUT">OUTPUT (Traffico in uscita)</option>
+                            <option value="FORWARD">FORWARD (Traffico inoltrato)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rule-address" class="form-label">Indirizzo/Range IP</label>
+                        <input type="text" class="form-control" id="rule-address" 
+                               placeholder="es. 192.168.1.1 o 10.0.0.0/24" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rule-port" class="form-label">Porta</label>
+                        <input type="text" class="form-control" id="rule-port" 
+                               placeholder="es. 80 o 443 o 1000:2000">
+                        <small class="form-text text-muted">Lasciare vuoto per tutte le porte</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rule-action" class="form-label">Azione</label>
+                        <select class="form-select" id="rule-action" required>
+                            <option value="ACCEPT">ACCEPT (Accetta)</option>
+                            <option value="DROP">DROP (Scarta)</option>
+                            <option value="REJECT">REJECT (Rifiuta)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="rule-active" checked>
+                            <label class="form-check-label" for="rule-active">
+                                Regola attiva
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="save-firewall-rule">Salva</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modale per bloccare IP -->
+<div class="modal fade" id="block-ip-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Blocca Indirizzo IP</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="block-ip-form">
+                    <div class="mb-3">
+                        <label for="ip-address" class="form-label">Indirizzo IP</label>
+                        <input type="text" class="form-control" id="ip-address" 
+                               placeholder="es. 192.168.1.1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="block-reason" class="form-label">Motivo</label>
+                        <input type="text" class="form-control" id="block-reason" 
+                               placeholder="es. Tentativi di accesso non autorizzato">
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="permanent-block">
+                            <label class="form-check-label" for="permanent-block">
+                                Blocco permanente
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3" id="duration-container">
+                        <label for="block-duration" class="form-label">Durata (ore)</label>
+                        <input type="number" class="form-control" id="block-duration" 
+                               min="1" max="720" value="24">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-danger" id="confirm-block-ip">Blocca</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modale per dettagli evento -->
+<div class="modal fade" id="event-details-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Dettagli Evento di Sicurezza</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="event-details-content">
+                    <!-- Contenuto caricato dinamicamente -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                <button type="button" class="btn btn-primary" id="create-incident">Crea Incident</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Tooltips
+        const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        [...tooltips].map(tooltip => new bootstrap.Tooltip(tooltip));
+        
+        // Security Score Animation
+        const scoreElement = document.querySelector('.security-score');
+        if (scoreElement) {
+            const score = parseInt(scoreElement.getAttribute('data-score'));
+            const circle = scoreElement.querySelector('.circle');
+            
+            // Animazione graduale
+            let currentScore = 0;
+            const scoreInterval = setInterval(() => {
+                if (currentScore >= score) {
+                    clearInterval(scoreInterval);
+                    return;
+                }
+                
+                currentScore++;
+                circle.setAttribute('stroke-dasharray', `${currentScore}, 100`);
+                scoreElement.querySelector('.score-text').textContent = currentScore;
+            }, 20);
+            
+            // Colore basato sul punteggio
+            let scoreColor;
+            if (score < 50) {
+                scoreColor = '#dc3545'; // danger
+            } else if (score < 70) {
+                scoreColor = '#ffc107'; // warning
+            } else if (score < 90) {
+                scoreColor = '#0dcaf0'; // info
+            } else {
+                scoreColor = '#198754'; // success
+            }
+            
+            circle.style.stroke = scoreColor;
+        }
+        
+        // Modali
+        const addFirewallRuleModal = new bootstrap.Modal(document.getElementById('add-firewall-rule-modal'));
+        const blockIpModal = new bootstrap.Modal(document.getElementById('block-ip-modal'));
+        const eventDetailsModal = new bootstrap.Modal(document.getElementById('event-details-modal'));
+        
+        // Toggle blocco permanente/temporaneo
+        document.getElementById('permanent-block')?.addEventListener('change', function() {
+            const durationContainer = document.getElementById('duration-container');
+            if (this.checked) {
+                durationContainer.style.display = 'none';
+            } else {
+                durationContainer.style.display = 'block';
+            }
+        });
+        
+        // Handler bottoni modali
+        document.getElementById('add-firewall-rule')?.addEventListener('click', function() {
+            addFirewallRuleModal.show();
+        });
+        
+        document.getElementById('block-ip-btn')?.addEventListener('click', function() {
+            blockIpModal.show();
+        });
+        
+        // Gestore filtro eventi
+        document.getElementById('event-severity-filter')?.addEventListener('change', function() {
+            const severity = this.value;
+            const rows = document.querySelectorAll('.security-event-row');
+            
+            rows.forEach(row => {
+                const rowSeverity = row.getAttribute('data-severity');
+                
+                if (severity === 'all') {
+                    row.style.display = '';
+                } else if (severity === 'high' && rowSeverity === 'high') {
+                    row.style.display = '';
+                } else if (severity === 'medium' && (rowSeverity === 'high' || rowSeverity === 'medium')) {
+                    row.style.display = '';
+                } else if (severity === 'low') {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+        
+        // Toggle regole firewall
+        document.querySelectorAll('.rule-toggle').forEach(toggle => {
+            toggle.addEventListener('change', function() {
+                const ruleId = this.getAttribute('data-rule-id');
+                const active = this.checked;
+                
+                // Mostra notifica
+                showNotification(
+                    active ? 'Regola attivata' : 'Regola disattivata',
+                    `La regola ${ruleId} è stata ${active ? 'attivata' : 'disattivata'}. Clicca "Applica Modifiche" per rendere effettivo il cambiamento.`,
+                    active ? 'success' : 'warning'
+                );
+            });
+        });
+        
+        // Sblocca IP
+        document.querySelectorAll('.unblock-ip').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const ip = this.getAttribute('data-ip');
+                
+                if (confirm(`Sei sicuro di voler sbloccare l'IP ${ip}?`)) {
+                    // Simulazione API call
+                    setTimeout(() => {
+                        showNotification(
+                            'IP sbloccato',
+                            `L'IP ${ip} è stato sbloccato con successo.`,
+                            'success'
+                        );
+                        
+                        // Rimuovi riga dalla tabella
+                        this.closest('tr').remove();
+                    }, 500);
+                }
+            });
+        });
+        
+        // Visualizza dettagli evento
+        document.querySelectorAll('[data-event-id]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const eventId = this.getAttribute('data-event-id');
+                
+                // Simulazione caricamento dati
+                document.getElementById('event-details-content').innerHTML = `
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
+                `;
+                
+                eventDetailsModal.show();
+                
+                // Simulazione API call
+                setTimeout(() => {
+                    document.getElementById('event-details-content').innerHTML = `
+                        <div class="event-detail-header mb-3">
+                            <span class="badge rounded-pill bg-danger mb-2">Alta Severità</span>
+                            <h4>Tentativo di accesso non autorizzato</h4>
+                            <p class="text-muted">2023-12-10 14:23:45</p>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <dl>
+                                    <dt>IP di origine</dt>
+                                    <dd>192.168.1.105</dd>
+                                    
+                                    <dt>User Agent</dt>
+                                    <dd>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36</dd>
+                                    
+                                    <dt>Endpoint</dt>
+                                    <dd>/admin/login</dd>
+                                </dl>
+                            </div>
+                            <div class="col-md-6">
+                                <dl>
+                                    <dt>Azione intrapresa</dt>
+                                    <dd>Blocco automatico temporaneo (2h)</dd>
+                                    
+                                    <dt>Contromisure</dt>
+                                    <dd>Rate limiting, CAPTCHA richiesto</dd>
+                                    
+                                    <dt>Pattern rilevato</dt>
+                                    <dd>Forza bruta su credenziali</dd>
+                                </dl>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h5 class="mb-0">Payload</h5>
+                            </div>
+                            <div class="card-body">
+                                <pre><code>{"username": "admin", "password": "*******", "remember": true}</code></pre>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Log correlati</h5>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group">
+                                    <li class="list-group-item">14:23:40 - Tentativo di accesso fallito (username: admin)</li>
+                                    <li class="list-group-item">14:23:42 - Tentativo di accesso fallito (username: admin)</li>
+                                    <li class="list-group-item">14:23:44 - Tentativo di accesso fallito (username: admin)</li>
+                                    <li class="list-group-item">14:23:45 - Rilevato pattern di forza bruta</li>
+                                    <li class="list-group-item">14:23:45 - IP 192.168.1.105 bloccato temporaneamente</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                }, 1000);
+            });
+        });
+        
+        // Scan di sicurezza
+        document.getElementById('btn-security-scan')?.addEventListener('click', function() {
+            if (confirm('Avviare una scansione completa di sicurezza? Questo processo può richiedere alcuni minuti.')) {
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Scansione in corso...';
+                
+                // Simulazione API call
+                setTimeout(() => {
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-shield-alt me-2"></i>Scansione Completa';
+                    
+                    showNotification(
+                        'Scansione completata',
+                        'La scansione di sicurezza è stata completata con successo. Sono state trovate 2 nuove vulnerabilità.',
+                        'info'
+                    );
+                }, 3000);
+            }
+        });
+        
+        // Modalità Lockdown
+        document.getElementById('btn-lockdown-mode')?.addEventListener('click', function() {
+            const isActive = this.getAttribute('data-status') === 'true';
+            
+            if (confirm(`Sei sicuro di voler ${isActive ? 'disattivare' : 'attivare'} la modalità lockdown? ${!isActive ? 'Questo limiterà l\'accesso al sistema.' : ''}`)) {
+                this.disabled = true;
+                
+                // Simulazione API call
+                setTimeout(() => {
+                    this.disabled = false;
+                    const newStatus = !isActive;
+                    this.setAttribute('data-status', newStatus.toString());
+                    this.innerHTML = `<i class="fas fa-lock me-2"></i>${newStatus ? 'Disattiva' : 'Attiva'} Modalità Lockdown`;
+                    
+                    showNotification(
+                        `Modalità lockdown ${newStatus ? 'attivata' : 'disattivata'}`,
+                        `La modalità lockdown è stata ${newStatus ? 'attivata' : 'disattivata'} con successo.`,
+                        newStatus ? 'warning' : 'success'
+                    );
+                }, 1500);
+            }
+        });
+        
+        // Utility per notifiche
+        function showNotification(title, message, type = 'info') {
+            // Colori per i vari tipi
+            const bgColors = {
+                'success': 'bg-success',
+                'warning': 'bg-warning text-dark',
+                'danger': 'bg-danger',
+                'info': 'bg-info text-dark',
+                'primary': 'bg-primary'
+            };
+            
+            // Icone per i vari tipi
+            const icons = {
+                'success': 'fa-check-circle',
+                'warning': 'fa-exclamation-triangle',
+                'danger': 'fa-times-circle',
+                'info': 'fa-info-circle',
+                'primary': 'fa-bell'
+            };
+            
+            // Crea elemento toast
+            const toastContainer = document.querySelector('.toast-container');
+            if (!toastContainer) return;
+            
+            const toast = document.createElement('div');
+            toast.className = `toast ${bgColors[type] || 'bg-primary'} text-white`;
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            
+            toast.innerHTML = `
+                <div class="toast-header">
+                    <i class="fas ${icons[type] || 'fa-bell'} me-2"></i>
+                    <strong class="me-auto">${title}</strong>
+                    <small>Adesso</small>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">
+                    ${message}
+                </div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast, {
+                autohide: true,
+                delay: 5000
+            });
+            
+            bsToast.show();
+            
+            // Rimuovi dopo che viene nascosto
+            toast.addEventListener('hidden.bs.toast', () => {
+                toast.remove();
+            });
+        }
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,889 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}Gestione Punti Canale{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/channel_points.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Alert Container -->
+    <div id="alert-container"></div>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="page-title">Gestione Punti Canale</h1>
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="points-system-toggle" {% if settings.enabled %}checked{% endif %}>
+            <label class="form-check-label" for="points-system-toggle">Sistema Punti Attivo</label>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row stats-row">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="stats-card">
+                <div class="stats-icon">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <div class="stats-info">
+                    <div class="stats-title">Punti Totali</div>
+                    <h3 class="stats-value">{{ stats.total_points }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="stats-card">
+                <div class="stats-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stats-info">
+                    <div class="stats-title">Utenti Attivi</div>
+                    <h3 class="stats-value">{{ stats.active_users }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="stats-card">
+                <div class="stats-icon">
+                    <i class="fas fa-gift"></i>
+                </div>
+                <div class="stats-info">
+                    <div class="stats-title">Premi Riscattati</div>
+                    <h3 class="stats-value">{{ stats.redeemed_rewards }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="stats-card">
+                <div class="stats-icon">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <div class="stats-info">
+                    <div class="stats-title">Punti Spesi</div>
+                    <h3 class="stats-value">{{ stats.points_spent }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabbed Content -->
+    <ul class="nav nav-tabs mb-4" id="channelPointsTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="rewards-tab" data-bs-toggle="tab" data-bs-target="#rewards" type="button" role="tab" aria-controls="rewards" aria-selected="true">Premi</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">Impostazioni</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="user-points-tab" data-bs-toggle="tab" data-bs-target="#userPoints" type="button" role="tab" aria-controls="userPoints" aria-selected="false">Punti Utenti</button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="channelPointsTabContent">
+        <!-- Rewards Tab -->
+        <div class="tab-pane fade show active" id="rewards" role="tabpanel" aria-labelledby="rewards-tab">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Premi Disponibili</h2>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRewardModal">
+                    <i class="fas fa-plus-circle me-2"></i>Aggiungi Premio
+                </button>
+            </div>
+            
+            <div class="rewards-grid">
+                {% for reward in rewards %}
+                <div class="reward-card {% if not reward.enabled %}reward-disabled{% endif %}" data-reward-id="{{ reward.id }}">
+                    <div class="reward-color-bar" style="background-color: {{ reward.color }};"></div>
+                    <h3 class="reward-title">{{ reward.title }}</h3>
+                    <p class="reward-description">{{ reward.description }}</p>
+                    <div class="reward-cost">
+                        <i class="fas fa-coins"></i> {{ reward.cost }} punti
+                    </div>
+                    <div class="d-flex justify-content-end mt-3">
+                        <button class="btn btn-sm btn-outline-primary edit-reward-btn" data-reward-id="{{ reward.id }}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger ms-2 delete-reward-btn" data-reward-id="{{ reward.id }}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12 text-center py-5">
+                    <p class="text-muted">Nessun premio disponibile. Aggiungi il tuo primo premio!</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Impostazioni Punti Canale</h2>
+                </div>
+                <div class="card-body">
+                    <form id="channel-points-settings-form">
+                        <div class="mb-3">
+                            <label for="points-name" class="form-label">Nome Valuta</label>
+                            <input type="text" class="form-control" id="points-name" value="{{ settings.points_name }}" placeholder="Punti">
+                            <div class="form-text">Come verranno chiamati i tuoi punti (es. Monete, Stelle, ecc.)</div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="points-per-minute" class="form-label">Punti per Minuto</label>
+                                    <input type="number" class="form-control" id="points-per-minute" value="{{ settings.points_per_minute }}" min="0" step="1">
+                                    <div class="form-text">Quanti punti guadagnano gli spettatori per ogni minuto di visione</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="subscriber-multiplier" class="form-label">Moltiplicatore Abbonati</label>
+                                    <input type="number" class="form-control" id="subscriber-multiplier" value="{{ settings.subscriber_multiplier }}" min="1" step="0.1">
+                                    <div class="form-text">Moltiplicatore punti per gli abbonati (es. 1.5 = +50%)</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Punti Bonus</label>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <span class="input-group-text">Follow</span>
+                                        <input type="number" class="form-control" id="bonus-follow" value="{{ settings.bonus_follow }}" min="0">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <span class="input-group-text">Sub</span>
+                                        <input type="number" class="form-control" id="bonus-sub" value="{{ settings.bonus_sub }}" min="0">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <span class="input-group-text">Donazione</span>
+                                        <input type="number" class="form-control" id="bonus-donation" value="{{ settings.bonus_donation }}" min="0">
+                                        <span class="input-group-text">per €</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <span class="input-group-text">Bits</span>
+                                        <input type="number" class="form-control" id="bonus-bits" value="{{ settings.bonus_bits }}" min="0">
+                                        <span class="input-group-text">per 100</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary" id="save-settings">
+                                <i class="fas fa-save me-2"></i>Salva Impostazioni
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Points Tab -->
+        <div class="tab-pane fade" id="userPoints" role="tabpanel" aria-labelledby="user-points-tab">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="card-title mb-0">Punti Utenti</h2>
+                    <div class="d-flex">
+                        <div class="input-group me-2">
+                            <input type="text" class="form-control" placeholder="Cerca utente..." id="user-search">
+                            <button class="btn btn-outline-secondary" type="button" id="search-user-btn">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modifyPointsModal">
+                            <i class="fas fa-edit me-1"></i>Modifica
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Utente</th>
+                                    <th>Punti</th>
+                                    <th>Ultimo Accesso</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-points-table">
+                                {% for user in users %}
+                                <tr data-user-id="{{ user.id }}">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <img src="{{ user.profile_image }}" alt="{{ user.username }}" class="rounded-circle me-2" width="32" height="32">
+                                            <span class="fw-medium">{{ user.username }}</span>
+                                            {% if user.is_subscriber %}
+                                            <span class="badge bg-primary ms-2">Sub</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>{{ user.points }} {{ settings.points_name }}</td>
+                                    <td>{{ user.last_seen }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-action btn-outline-primary modify-points-btn" data-user-id="{{ user.id }}" data-username="{{ user.username }}" data-points="{{ user.points }}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-action btn-outline-danger reset-points-btn" data-user-id="{{ user.id }}" data-username="{{ user.username }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center">Nessun utente ha ancora punti</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <nav aria-label="Navigazione punti utenti">
+                        <ul class="pagination justify-content-center mt-4">
+                            <li class="page-item {% if pagination.current_page == 1 %}disabled{% endif %}">
+                                <a class="page-link" href="#" data-page="{{ pagination.current_page - 1 }}">Precedente</a>
+                            </li>
+                            
+                            {% for page in pagination.pages %}
+                            <li class="page-item {% if pagination.current_page == page %}active{% endif %}">
+                                <a class="page-link" href="#" data-page="{{ page }}">{{ page }}</a>
+                            </li>
+                            {% endfor %}
+                            
+                            <li class="page-item {% if pagination.current_page == pagination.total_pages %}disabled{% endif %}">
+                                <a class="page-link" href="#" data-page="{{ pagination.current_page + 1 }}">Successivo</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Reward Modal -->
+<div class="modal fade" id="addRewardModal" tabindex="-1" aria-labelledby="addRewardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addRewardModalLabel">Aggiungi Nuovo Premio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="add-reward-form">
+                    <div class="mb-3">
+                        <label for="reward-title" class="form-label">Titolo</label>
+                        <input type="text" class="form-control" id="reward-title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reward-description" class="form-label">Descrizione</label>
+                        <textarea class="form-control" id="reward-description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reward-cost" class="form-label">Costo (punti)</label>
+                        <input type="number" class="form-control" id="reward-cost" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reward-color" class="form-label">Colore</label>
+                        <input type="color" class="form-control form-control-color" id="reward-color" value="#9146FF">
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="reward-enabled" checked>
+                        <label class="form-check-label" for="reward-enabled">Abilitato</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="save-reward-btn">Salva</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Reward Modal -->
+<div class="modal fade" id="editRewardModal" tabindex="-1" aria-labelledby="editRewardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editRewardModalLabel">Modifica Premio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-reward-form">
+                    <input type="hidden" id="edit-reward-id">
+                    <div class="mb-3">
+                        <label for="edit-reward-title" class="form-label">Titolo</label>
+                        <input type="text" class="form-control" id="edit-reward-title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-reward-description" class="form-label">Descrizione</label>
+                        <textarea class="form-control" id="edit-reward-description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-reward-cost" class="form-label">Costo (punti)</label>
+                        <input type="number" class="form-control" id="edit-reward-cost" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-reward-color" class="form-label">Colore</label>
+                        <input type="color" class="form-control form-control-color" id="edit-reward-color">
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="edit-reward-enabled">
+                        <label class="form-check-label" for="edit-reward-enabled">Abilitato</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="update-reward-btn">Aggiorna</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modify User Points Modal -->
+<div class="modal fade" id="modifyPointsModal" tabindex="-1" aria-labelledby="modifyPointsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modifyPointsModalLabel">Modifica Punti Utente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="modify-points-form">
+                    <input type="hidden" id="modify-user-id">
+                    <div class="mb-3">
+                        <label for="modify-username" class="form-label">Utente</label>
+                        <input type="text" class="form-control" id="modify-username" placeholder="Nome utente" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modify-action" class="form-label">Azione</label>
+                        <select class="form-select" id="modify-action" required>
+                            <option value="set">Imposta valore specifico</option>
+                            <option value="add">Aggiungi punti</option>
+                            <option value="subtract">Sottrai punti</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modify-points-value" class="form-label">Valore</label>
+                        <input type="number" class="form-control" id="modify-points-value" min="0" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="apply-points-btn">Applica</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Toggle points system
+        const pointsSystemToggle = document.getElementById('points-system-toggle');
+        if (pointsSystemToggle) {
+            pointsSystemToggle.addEventListener('change', function() {
+                fetch('/api/dashboard/channel-points/toggle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        enabled: this.checked
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('Sistema punti ' + (this.checked ? 'attivato' : 'disattivato') + ' con successo!', 'success');
+                    } else {
+                        showAlert(data.message || 'Si è verificato un errore', 'danger');
+                        this.checked = !this.checked; // Revert the toggle
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('Si è verificato un errore durante la comunicazione con il server', 'danger');
+                    this.checked = !this.checked; // Revert the toggle
+                });
+            });
+        }
+
+        // Settings form
+        const settingsForm = document.getElementById('channel-points-settings-form');
+        if (settingsForm) {
+            settingsForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = {
+                    points_name: document.getElementById('points-name').value,
+                    points_per_minute: parseInt(document.getElementById('points-per-minute').value),
+                    subscriber_multiplier: parseFloat(document.getElementById('subscriber-multiplier').value),
+                    bonus_follow: parseInt(document.getElementById('bonus-follow').value),
+                    bonus_sub: parseInt(document.getElementById('bonus-sub').value),
+                    bonus_donation: parseInt(document.getElementById('bonus-donation').value),
+                    bonus_bits: parseInt(document.getElementById('bonus-bits').value)
+                };
+                
+                fetch('/api/dashboard/channel-points/settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('Impostazioni salvate con successo!', 'success');
+                    } else {
+                        showAlert(data.message || 'Si è verificato un errore', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('Si è verificato un errore durante la comunicazione con il server', 'danger');
+                });
+            });
+        }
+
+        // Add reward
+        const saveRewardBtn = document.getElementById('save-reward-btn');
+        if (saveRewardBtn) {
+            saveRewardBtn.addEventListener('click', function() {
+                const rewardData = {
+                    title: document.getElementById('reward-title').value,
+                    description: document.getElementById('reward-description').value,
+                    cost: parseInt(document.getElementById('reward-cost').value),
+                    color: document.getElementById('reward-color').value,
+                    enabled: document.getElementById('reward-enabled').checked
+                };
+                
+                fetch('/api/dashboard/channel-points/rewards', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(rewardData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('Premio aggiunto con successo!', 'success');
+                        // Close the modal and refresh the rewards list
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('addRewardModal'));
+                        modal.hide();
+                        window.location.reload();
+                    } else {
+                        showAlert(data.message || 'Si è verificato un errore', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('Si è verificato un errore durante la comunicazione con il server', 'danger');
+                });
+            });
+        }
+
+        // Edit reward setup
+        const editRewardBtns = document.querySelectorAll('.edit-reward-btn');
+        if (editRewardBtns.length > 0) {
+            editRewardBtns.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const rewardId = this.dataset.rewardId;
+                    
+                    fetch(`/api/dashboard/channel-points/rewards/${rewardId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const reward = data.reward;
+                            document.getElementById('edit-reward-id').value = reward.id;
+                            document.getElementById('edit-reward-title').value = reward.title;
+                            document.getElementById('edit-reward-description').value = reward.description;
+                            document.getElementById('edit-reward-cost').value = reward.cost;
+                            document.getElementById('edit-reward-color').value = reward.color;
+                            document.getElementById('edit-reward-enabled').checked = reward.enabled;
+                            
+                            const modal = new bootstrap.Modal(document.getElementById('editRewardModal'));
+                            modal.show();
+                        } else {
+                            showAlert(data.message || 'Si è verificato un errore', 'danger');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showAlert('Si è verificato un errore durante la comunicazione con il server', 'danger');
+                    });
+                });
+            });
+        }
+
+        // Update reward
+        const updateRewardBtn = document.getElementById('update-reward-btn');
+        if (updateRewardBtn) {
+            updateRewardBtn.addEventListener('click', function() {
+                const rewardId = document.getElementById('edit-reward-id').value;
+                const rewardData = {
+                    title: document.getElementById('edit-reward-title').value,
+                    description: document.getElementById('edit-reward-description').value,
+                    cost: parseInt(document.getElementById('edit-reward-cost').value),
+                    color: document.getElementById('edit-reward-color').value,
+                    enabled: document.getElementById('edit-reward-enabled').checked
+                };
+                
+                fetch(`/api/dashboard/channel-points/rewards/${rewardId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(rewardData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('Premio aggiornato con successo!', 'success');
+                        // Close the modal and refresh the rewards list
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('editRewardModal'));
+                        modal.hide();
+                        window.location.reload();
+                    } else {
+                        showAlert(data.message || 'Si è verificato un errore', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('Si è verificato un errore durante la comunicazione con il server', 'danger');
+                });
+            });
+        }
+
+        // Delete reward
+        const deleteRewardBtns = document.querySelectorAll('.delete-reward-btn');
+        if (deleteRewardBtns.length > 0) {
+            deleteRewardBtns.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (confirm('Sei sicuro di voler eliminare questo premio?')) {
+                        const rewardId = this.dataset.rewardId;
+                        
+                        fetch(`/api/dashboard/channel-points/rewards/${rewardId}`, {
+                            method: 'DELETE'
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                showAlert('Premio eliminato con successo!', 'success');
+                                // Refresh the rewards list
+                                window.location.reload();
+                            } else {
+                                showAlert(data.message || 'Si è verificato un errore', 'danger');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showAlert('Si è verificato un errore durante la comunicazione con il server', 'danger');
+                        });
+                    }
+                });
+            });
+        }
+
+        // Modify points button
+        const modifyPointsBtns = document.querySelectorAll('.modify-points-btn');
+        if (modifyPointsBtns.length > 0) {
+            modifyPointsBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.getElementById('modify-user-id').value = this.dataset.userId;
+                    document.getElementById('modify-username').value = this.dataset.username;
+                    document.getElementById('modify-points-value').value = this.dataset.points;
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('modifyPointsModal'));
+                    modal.show();
+                });
+            });
+        }
+
+        // Apply points modification
+        const applyPointsBtn = document.getElementById('apply-points-btn');
+        if (applyPointsBtn) {
+            applyPointsBtn.addEventListener('click', function() {
+                const userId = document.getElementById('modify-user-id').value;
+                const action = document.getElementById('modify-action').value;
+                const pointsValue = parseInt(document.getElementById('modify-points-value').value);
+                const username = document.getElementById('modify-username').value;
+                
+                const data = {
+                    action: action,
+                    value: pointsValue
+                };
+                
+                // If no user ID but username is provided, search by username
+                const url = userId 
+                    ? `/api/dashboard/channel-points/users/${userId}/points` 
+                    : `/api/dashboard/channel-points/users/by-name/${username}/points`;
+                
+                fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('Punti modificati con successo!', 'success');
+                        // Close the modal and refresh the user points list
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('modifyPointsModal'));
+                        modal.hide();
+                        window.location.reload();
+                    } else {
+                        showAlert(data.message || 'Si è verificato un errore', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('Si è verificato un errore durante la comunicazione con il server', 'danger');
+                });
+            });
+        }
+
+        // Reset user points
+        const resetPointsBtns = document.querySelectorAll('.reset-points-btn');
+        if (resetPointsBtns.length > 0) {
+            resetPointsBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const userId = this.dataset.userId;
+                    const username = this.dataset.username;
+                    
+                    if (confirm(`Sei sicuro di voler azzerare i punti di ${username}?`)) {
+                        fetch(`/api/dashboard/channel-points/users/${userId}/points/reset`, {
+                            method: 'POST'
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                showAlert('Punti azzerati con successo!', 'success');
+                                // Refresh the user points list
+                                window.location.reload();
+                            } else {
+                                showAlert(data.message || 'Si è verificato un errore', 'danger');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showAlert('Si è verificato un errore durante la comunicazione con il server', 'danger');
+                        });
+                    }
+                });
+            });
+        }
+
+        // User search
+        const searchUserBtn = document.getElementById('search-user-btn');
+        const userSearchInput = document.getElementById('user-search');
+        if (searchUserBtn && userSearchInput) {
+            searchUserBtn.addEventListener('click', performUserSearch);
+            userSearchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    performUserSearch();
+                }
+            });
+        }
+
+        function performUserSearch() {
+            const searchTerm = userSearchInput.value.trim();
+            if (searchTerm.length === 0) {
+                window.location.reload(); // Reset to normal view
+                return;
+            }
+            
+            fetch(`/api/dashboard/channel-points/users/search?q=${encodeURIComponent(searchTerm)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateUserTable(data.users);
+                } else {
+                    showAlert(data.message || 'Si è verificato un errore durante la ricerca', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Si è verificato un errore durante la comunicazione con il server', 'danger');
+            });
+        }
+
+        function updateUserTable(users) {
+            const tableBody = document.getElementById('user-points-table');
+            tableBody.innerHTML = '';
+            
+            if (users.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="4" class="text-center">Nessun utente trovato</td>';
+                tableBody.appendChild(row);
+                return;
+            }
+            
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.dataset.userId = user.id;
+                
+                row.innerHTML = `
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <img src="${user.profile_image}" alt="${user.username}" class="rounded-circle me-2" width="32" height="32">
+                            <span class="fw-medium">${user.username}</span>
+                            ${user.is_subscriber ? '<span class="badge bg-primary ms-2">Sub</span>' : ''}
+                        </div>
+                    </td>
+                    <td>${user.points} {{ settings.points_name }}</td>
+                    <td>${user.last_seen}</td>
+                    <td>
+                        <button class="btn btn-sm btn-action btn-outline-primary modify-points-btn" data-user-id="${user.id}" data-username="${user.username}" data-points="${user.points}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-action btn-outline-danger reset-points-btn" data-user-id="${user.id}" data-username="${user.username}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Reattach event listeners to the new buttons
+            document.querySelectorAll('.modify-points-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.getElementById('modify-user-id').value = this.dataset.userId;
+                    document.getElementById('modify-username').value = this.dataset.username;
+                    document.getElementById('modify-points-value').value = this.dataset.points;
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('modifyPointsModal'));
+                    modal.show();
+                });
+            });
+            
+            document.querySelectorAll('.reset-points-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const userId = this.dataset.userId;
+                    const username = this.dataset.username;
+                    
+                    if (confirm(`Sei sicuro di voler azzerare i punti di ${username}?`)) {
+                        fetch(`/api/dashboard/channel-points/users/${userId}/points/reset`, {
+                            method: 'POST'
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                showAlert('Punti azzerati con successo!', 'success');
+                                performUserSearch(); // Refresh the search results
+                            } else {
+                                showAlert(data.message || 'Si è verificato un errore', 'danger');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showAlert('Si è verificato un errore durante la comunicazione con il server', 'danger');
+                        });
+                    }
+                });
+            });
+        }
+
+        // Pagination
+        const pageLinks = document.querySelectorAll('.pagination .page-link');
+        if (pageLinks.length > 0) {
+            pageLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const page = this.dataset.page;
+                    window.location.href = `/dashboard/channel-points?page=${page}`;
+                });
+            });
+        }
+
+        // Show alert function
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alert-container');
+            const alertId = 'alert-' + Date.now();
+            
+            const alertHTML = `
+                <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            
+            alertContainer.insertAdjacentHTML('beforeend', alertHTML);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                const alert = document.getElementById(alertId);
+                if (alert) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }
+            }, 5000);
+        }
+
+        // Reward card click to show details
+        const rewardCards = document.querySelectorAll('.reward-card');
+        if (rewardCards.length > 0) {
+            rewardCards.forEach(card => {
+                card.addEventListener('click', function(e) {
+                    // Only trigger if not clicking on a button
+                    if (!e.target.closest('button')) {
+                        const rewardId = this.dataset.rewardId;
+                        
+                        fetch(`/api/dashboard/channel-points/rewards/${rewardId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                const reward = data.reward;
+                                document.getElementById('edit-reward-id').value = reward.id;
+                                document.getElementById('edit-reward-title').value = reward.title;
+                                document.getElementById('edit-reward-description').value = reward.description;
+                                document.getElementById('edit-reward-cost').value = reward.cost;
+                                document.getElementById('edit-reward-color').value = reward.color;
+                                document.getElementById('edit-reward-enabled').checked = reward.enabled;
+                                
+                                const modal = new bootstrap.Modal(document.getElementById('editRewardModal'));
+                                modal.show();
+                            } else {
+                                showAlert(data.message || 'Si è verificato un errore', 'danger');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showAlert('Si è verificato un errore durante la comunicazione con il server', 'danger');
+                        });
+                    }
+                });
+            });
+        }
+    });
+</script>
+{% endblock %} 

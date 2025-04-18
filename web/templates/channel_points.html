@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/channel_points.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid" id="channel-points-container">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="page-title">Gestione Punti Canale</h1>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row stats-row">
+        <div class="col-md-3 col-sm-6">
+            <div class="stats-card" id="total-points">
+                <div class="stats-icon">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <div class="stats-info">
+                    <h3>Punti Totali</h3>
+                    <h2 class="stats-value">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="stats-card" id="total-users">
+                <div class="stats-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stats-info">
+                    <h3>Utenti Attivi</h3>
+                    <h2 class="stats-value">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="stats-card" id="rewards-claimed">
+                <div class="stats-icon">
+                    <i class="fas fa-gift"></i>
+                </div>
+                <div class="stats-info">
+                    <h3>Premi Riscattati</h3>
+                    <h2 class="stats-value">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="stats-card" id="points-spent">
+                <div class="stats-icon">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <div class="stats-info">
+                    <h3>Punti Spesi</h3>
+                    <h2 class="stats-value">0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Reward Management -->
+        <div class="col-lg-7">
+            <div class="card" id="rewards-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2>Gestione Premi</h2>
+                    <button class="btn btn-primary" id="add-reward-btn">
+                        <i class="fas fa-plus"></i> Nuovo Premio
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="rewards-container" id="rewards-list">
+                        <!-- I premi saranno inseriti dinamicamente qui -->
+                        <div class="loading-container">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Caricamento...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attività Recenti -->
+            <div class="card mt-4" id="recent-activity-card">
+                <div class="card-header">
+                    <h2>Attività Recenti</h2>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="activity-table">
+                            <thead>
+                                <tr>
+                                    <th>Utente</th>
+                                    <th>Azione</th>
+                                    <th>Premio/Punti</th>
+                                    <th>Data</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activity-list">
+                                <!-- Le attività saranno inserite dinamicamente qui -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="activity-pagination" class="d-flex justify-content-center mt-3">
+                        <!-- Paginazione attività -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Points Management -->
+        <div class="col-lg-5">
+            <div class="card" id="users-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2>Utenti e Punti</h2>
+                    <div class="search-container">
+                        <input type="text" id="user-search" class="form-control" placeholder="Cerca utente...">
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="users-table">
+                            <thead>
+                                <tr>
+                                    <th>Utente</th>
+                                    <th>Punti</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Gli utenti saranno inseriti dinamicamente qui -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="pagination" class="d-flex justify-content-center mt-3">
+                        <!-- Paginazione -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card" id="settings-card">
+                <div class="card-header">
+                    <h2>Impostazioni</h2>
+                </div>
+                <div class="card-body">
+                    <form id="settings-form">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="points-name" class="form-label">Nome dei Punti</label>
+                                    <input type="text" class="form-control" id="points-name" placeholder="Punti">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="earning-rate" class="form-label">Tasso di Guadagno (punti per minuto)</label>
+                                    <input type="number" class="form-control" id="earning-rate" min="1" placeholder="10">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="subscriber-multiplier" class="form-label">Moltiplicatore Iscritti</label>
+                                    <input type="number" class="form-control" id="subscriber-multiplier" min="1" step="0.1" placeholder="2.0">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="vip-multiplier" class="form-label">Moltiplicatore VIP</label>
+                                    <input type="number" class="form-control" id="vip-multiplier" min="1" step="0.1" placeholder="1.5">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="mod-multiplier" class="form-label">Moltiplicatore Moderatori</label>
+                                    <input type="number" class="form-control" id="mod-multiplier" min="1" step="0.1" placeholder="1.5">
+                                </div>
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="system-enabled">
+                                    <label class="form-check-label" for="system-enabled">Sistema Attivo</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary" id="save-settings-btn">Salva Impostazioni</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add/Edit Reward Modal -->
+    <div class="modal fade" id="reward-modal" tabindex="-1" aria-labelledby="reward-modal-label" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reward-modal-label">Crea Premio</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="reward-form">
+                        <input type="hidden" id="reward-id">
+                        <div class="mb-3">
+                            <label for="reward-title" class="form-label">Titolo</label>
+                            <input type="text" class="form-control" id="reward-title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reward-description" class="form-label">Descrizione</label>
+                            <textarea class="form-control" id="reward-description" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reward-cost" class="form-label">Costo</label>
+                            <input type="number" class="form-control" id="reward-cost" min="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reward-cooldown" class="form-label">Tempo di Ricarica (secondi)</label>
+                            <input type="number" class="form-control" id="reward-cooldown" min="0">
+                        </div>
+                        <div class="mb-3">
+                            <label for="reward-color" class="form-label">Colore</label>
+                            <input type="color" class="form-control form-control-color" id="reward-color" value="#9146FF">
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="reward-enabled" checked>
+                            <label class="form-check-label" for="reward-enabled">Attivo</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-primary" id="save-reward-btn">Salva</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Points Modal -->
+    <div class="modal fade" id="points-modal" tabindex="-1" aria-labelledby="points-modal-label" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="points-modal-label">Modifica Punti</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="points-form">
+                        <input type="hidden" id="user-id">
+                        <div class="mb-3">
+                            <label for="username-display" class="form-label">Utente</label>
+                            <input type="text" class="form-control" id="username-display" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="current-points" class="form-label">Punti Attuali</label>
+                            <input type="number" class="form-control" id="current-points" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="action-type" class="form-label">Azione</label>
+                            <select class="form-select" id="action-type">
+                                <option value="add">Aggiungi</option>
+                                <option value="remove">Rimuovi</option>
+                                <option value="set">Imposta</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="points-amount" class="form-label">Quantità</label>
+                            <input type="number" class="form-control" id="points-amount" min="0" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-primary" id="save-points-btn">Salva</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="confirm-modal" tabindex="-1" aria-labelledby="confirm-modal-label" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirm-modal-label">Conferma</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirm-message"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-danger" id="confirm-action-btn">Conferma</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/channel_points.js') }}"></script>
+{% endblock %} 

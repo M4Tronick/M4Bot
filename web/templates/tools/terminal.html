@@ -1,0 +1,450 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Terminal SSH | M4Bot Admin{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/terminal.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.1.0/css/xterm.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="m-0">Terminale SSH Remoto</h5>
+                    <div class="terminal-controls">
+                        <select id="host-selector" class="form-select form-select-sm me-2">
+                            {% for host in hosts %}
+                            <option value="{{ host.id }}">{{ host.name }} ({{ host.ip }})</option>
+                            {% endfor %}
+                        </select>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-primary" id="connect-btn">
+                                <i class="fas fa-plug"></i> Connetti
+                            </button>
+                            <button class="btn btn-sm btn-danger" id="disconnect-btn" disabled>
+                                <i class="fas fa-times"></i> Disconnetti
+                            </button>
+                            <button class="btn btn-sm btn-secondary" id="clear-btn">
+                                <i class="fas fa-eraser"></i> Pulisci
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body terminal-container p-0">
+                    <div id="terminal"></div>
+                </div>
+                <div class="card-footer">
+                    <div class="terminal-status d-flex justify-content-between align-items-center">
+                        <span id="connection-status">Disconnesso</span>
+                        <span id="session-info"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="m-0">Comandi Rapidi</h5>
+                </div>
+                <div class="card-body">
+                    <div class="quick-commands">
+                        <button class="btn btn-sm btn-outline-primary me-2 mb-2 quick-cmd" data-cmd="ls -la">ls -la</button>
+                        <button class="btn btn-sm btn-outline-primary me-2 mb-2 quick-cmd" data-cmd="ps aux | grep python">ps aux</button>
+                        <button class="btn btn-sm btn-outline-primary me-2 mb-2 quick-cmd" data-cmd="df -h">df -h</button>
+                        <button class="btn btn-sm btn-outline-primary me-2 mb-2 quick-cmd" data-cmd="free -m">free -m</button>
+                        <button class="btn btn-sm btn-outline-primary me-2 mb-2 quick-cmd" data-cmd="systemctl status m4bot-web">status web</button>
+                        <button class="btn btn-sm btn-outline-primary me-2 mb-2 quick-cmd" data-cmd="systemctl status m4bot-bot">status bot</button>
+                        <button class="btn btn-sm btn-outline-primary me-2 mb-2 quick-cmd" data-cmd="journalctl -u m4bot-web -n 50">logs web</button>
+                        <button class="btn btn-sm btn-outline-primary me-2 mb-2 quick-cmd" data-cmd="journalctl -u m4bot-bot -n 50">logs bot</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="m-0">Sessioni Attive</h5>
+                </div>
+                <div class="card-body">
+                    <div id="active-sessions">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Utente</th>
+                                        <th>Host</th>
+                                        <th>Inizio</th>
+                                        <th>Durata</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sessions-table-body">
+                                    <!-- Le sessioni attive saranno inserite qui via JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modale per la conferma di autenticazione -->
+<div class="modal fade" id="auth-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Autenticazione SSH</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            </div>
+            <div class="modal-body">
+                <form id="ssh-auth-form">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" value="admin">
+                    </div>
+                    <div class="mb-3">
+                        <label for="auth-method" class="form-label">Metodo di autenticazione</label>
+                        <select class="form-select" id="auth-method">
+                            <option value="password">Password</option>
+                            <option value="key">Chiave SSH</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="password-field">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password">
+                    </div>
+                    <div class="mb-3 d-none" id="key-field">
+                        <label for="ssh-key" class="form-label">Chiave Privata SSH</label>
+                        <textarea class="form-control" id="ssh-key" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="auth-confirm">Connetti</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.1.0/lib/xterm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.7.0/lib/xterm-addon-fit.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.8.0/lib/xterm-addon-web-links.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const terminal = new Terminal({
+            cursorBlink: true,
+            theme: {
+                background: '#1e2127',
+                foreground: '#d8dee9',
+                cursor: '#d8dee9',
+                selection: 'rgba(216, 222, 233, 0.3)',
+                black: '#3b4252',
+                red: '#bf616a',
+                green: '#a3be8c',
+                yellow: '#ebcb8b',
+                blue: '#81a1c1',
+                magenta: '#b48ead',
+                cyan: '#88c0d0',
+                white: '#e5e9f0',
+                brightBlack: '#4c566a',
+                brightRed: '#bf616a',
+                brightGreen: '#a3be8c',
+                brightYellow: '#ebcb8b',
+                brightBlue: '#81a1c1',
+                brightMagenta: '#b48ead',
+                brightCyan: '#8fbcbb',
+                brightWhite: '#eceff4'
+            },
+            fontSize: 14,
+            fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+            rows: 24
+        });
+        
+        const fitAddon = new FitAddon.FitAddon();
+        const webLinksAddon = new WebLinksAddon.WebLinksAddon();
+        
+        terminal.loadAddon(fitAddon);
+        terminal.loadAddon(webLinksAddon);
+        
+        // Riferimenti UI
+        const connectBtn = document.getElementById('connect-btn');
+        const disconnectBtn = document.getElementById('disconnect-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const hostSelector = document.getElementById('host-selector');
+        const connectionStatus = document.getElementById('connection-status');
+        const sessionInfo = document.getElementById('session-info');
+        const authModal = new bootstrap.Modal(document.getElementById('auth-modal'));
+        const authMethodSelect = document.getElementById('auth-method');
+        const passwordField = document.getElementById('password-field');
+        const keyField = document.getElementById('key-field');
+        
+        // Stato della connessione
+        let socket = null;
+        let connected = false;
+        let sessionStartTime = null;
+        let sessionTimer = null;
+        
+        // Inizializza il terminale
+        terminal.open(document.getElementById('terminal'));
+        fitAddon.fit();
+        
+        // Resize handler
+        window.addEventListener('resize', () => {
+            fitAddon.fit();
+            if (socket) {
+                socket.send(JSON.stringify({
+                    type: 'resize',
+                    rows: terminal.rows,
+                    cols: terminal.cols
+                }));
+            }
+        });
+        
+        // Cambio metodo autenticazione
+        authMethodSelect.addEventListener('change', function() {
+            if (this.value === 'password') {
+                passwordField.classList.remove('d-none');
+                keyField.classList.add('d-none');
+            } else {
+                passwordField.classList.add('d-none');
+                keyField.classList.remove('d-none');
+            }
+        });
+        
+        // Handler dei pulsanti
+        connectBtn.addEventListener('click', () => {
+            authModal.show();
+        });
+        
+        document.getElementById('auth-confirm').addEventListener('click', () => {
+            const hostId = hostSelector.value;
+            const username = document.getElementById('username').value;
+            const authMethod = authMethodSelect.value;
+            const password = document.getElementById('password').value;
+            const sshKey = document.getElementById('ssh-key').value;
+            
+            authModal.hide();
+            connectToTerminal(hostId, username, authMethod, password, sshKey);
+        });
+        
+        disconnectBtn.addEventListener('click', () => {
+            disconnectTerminal();
+        });
+        
+        clearBtn.addEventListener('click', () => {
+            terminal.clear();
+        });
+        
+        // Handler quick commands
+        document.querySelectorAll('.quick-cmd').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (!connected) return;
+                
+                const cmd = this.getAttribute('data-cmd');
+                sendCommand(cmd + '\n');
+            });
+        });
+        
+        // Connessione al terminale
+        function connectToTerminal(hostId, username, authMethod, password, sshKey) {
+            if (connected) return;
+            
+            terminal.clear();
+            terminal.writeln('Connessione in corso...');
+            
+            // Crea la connessione WebSocket
+            socket = new WebSocket(`wss://${window.location.host}/api/terminal/connect`);
+            
+            socket.onopen = () => {
+                // Invia i parametri di connessione
+                socket.send(JSON.stringify({
+                    type: 'connect',
+                    host_id: hostId,
+                    username: username,
+                    auth_method: authMethod,
+                    password: password,
+                    ssh_key: sshKey,
+                    terminal: {
+                        rows: terminal.rows,
+                        cols: terminal.cols
+                    }
+                }));
+            };
+            
+            socket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'data') {
+                        // Dati dal terminale remoto
+                        terminal.write(data.content);
+                    } else if (data.type === 'connect_success') {
+                        // Connessione riuscita
+                        connected = true;
+                        connectBtn.disabled = true;
+                        disconnectBtn.disabled = false;
+                        connectionStatus.textContent = `Connesso a ${data.host_name} (${data.host_ip})`;
+                        connectionStatus.className = 'text-success';
+                        
+                        sessionStartTime = new Date();
+                        updateSessionTimer();
+                        sessionTimer = setInterval(updateSessionTimer, 1000);
+                        
+                        // Aggiorna la lista delle sessioni
+                        updateSessionsList();
+                    } else if (data.type === 'connect_error') {
+                        // Errore di connessione
+                        terminal.writeln(`\r\nErrore di connessione: ${data.error}`);
+                        disconnectTerminal();
+                    }
+                } catch (e) {
+                    console.error('Errore nella gestione del messaggio', e);
+                }
+            };
+            
+            socket.onclose = () => {
+                terminal.writeln('\r\nConnessione terminata.');
+                disconnectTerminal();
+            };
+            
+            socket.onerror = (error) => {
+                terminal.writeln('\r\nErrore di connessione WebSocket.');
+                console.error('WebSocket error', error);
+                disconnectTerminal();
+            };
+            
+            // Gestione input tastiera
+            terminal.onData(data => {
+                if (connected && socket) {
+                    sendCommand(data);
+                }
+            });
+        }
+        
+        function disconnectTerminal() {
+            if (socket) {
+                socket.close();
+                socket = null;
+            }
+            
+            connected = false;
+            connectBtn.disabled = false;
+            disconnectBtn.disabled = true;
+            connectionStatus.textContent = 'Disconnesso';
+            connectionStatus.className = 'text-muted';
+            
+            if (sessionTimer) {
+                clearInterval(sessionTimer);
+                sessionTimer = null;
+            }
+            sessionInfo.textContent = '';
+        }
+        
+        function sendCommand(data) {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'data',
+                    content: data
+                }));
+            }
+        }
+        
+        function updateSessionTimer() {
+            if (!sessionStartTime) return;
+            
+            const now = new Date();
+            const diff = now - sessionStartTime;
+            const seconds = Math.floor(diff / 1000) % 60;
+            const minutes = Math.floor(diff / 60000) % 60;
+            const hours = Math.floor(diff / 3600000);
+            
+            sessionInfo.textContent = `Durata sessione: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        function updateSessionsList() {
+            fetch('/api/terminal/sessions')
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('sessions-table-body');
+                    tableBody.innerHTML = '';
+                    
+                    if (data.sessions && data.sessions.length > 0) {
+                        data.sessions.forEach(session => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${session.username}</td>
+                                <td>${session.host_name}</td>
+                                <td>${new Date(session.start_time).toLocaleTimeString()}</td>
+                                <td>${session.duration}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger terminate-session" data-session-id="${session.id}">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </td>
+                            `;
+                            tableBody.appendChild(row);
+                        });
+                        
+                        // Aggiungi handler per terminare sessione
+                        document.querySelectorAll('.terminate-session').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const sessionId = this.getAttribute('data-session-id');
+                                terminateSession(sessionId);
+                            });
+                        });
+                    } else {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `<td colspan="5" class="text-center">Nessuna sessione attiva</td>`;
+                        tableBody.appendChild(row);
+                    }
+                })
+                .catch(error => {
+                    console.error('Errore nel caricamento delle sessioni', error);
+                });
+        }
+        
+        function terminateSession(sessionId) {
+            if (confirm('Sei sicuro di voler terminare questa sessione?')) {
+                fetch('/api/terminal/terminate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ session_id: sessionId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateSessionsList();
+                    } else {
+                        alert('Errore nella terminazione della sessione: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Errore nella terminazione della sessione', error);
+                });
+            }
+        }
+        
+        // Aggiornamento automatico della lista sessioni
+        setInterval(updateSessionsList, 30000);
+        
+        // Primo caricamento sessioni
+        updateSessionsList();
+    });
+</script>
+{% endblock %} 
