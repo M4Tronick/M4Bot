@@ -31,47 +31,99 @@ class KickWebSocketClient:
         self.reconnect_task = None
         self.last_pong = 0
         self.socket_key = ""
+        self.ping_interval = 30  # Secondi tra un ping e l'altro
         
     async def connect(self):
         """Stabilisce una connessione WebSocket con Kick."""
         try:
-            # Ottieni un socket_key valido dall'API prima della connessione
-            self.socket_key = await self._get_socket_key()
-            if not self.socket_key:
-                logger.error("Impossibile ottenere una socket_key valida")
-                return False
-                
-            # Connessione al WebSocket
-            self.ws = await websockets.connect(
-                f"{self.WEBSOCKET_URL}?protocol=7&client=js&version=7.4.0&flash=false"
-            )
+            self.ws = await websockets.connect(self.WEBSOCKET_URL)
+            self.connected = True
+            self.last_pong = time.time()
             
-            # Invia il messaggio di connessione con la socket_key
+            # Invia un messaggio di connessione
             await self._send_message({
-                "event": "pusher:subscribe",
-                "data": {
-                    "auth": "",
-                    "channel": "private-app.eb1d5f283081a78b932c"
-                }
+                "event": "pusher:connection",
+                "data": {}
             })
             
-            # Avvia il ping per mantenere viva la connessione
-            self.last_pong = time.time()
-            asyncio.create_task(self._ping_handler())
+            # Avvia il ping periodico
+            asyncio.create_task(self._ping_loop())
             
-            # Avvia il task di ascolto dei messaggi
-            asyncio.create_task(self._message_listener())
+            # Avvia il task di ascolto
+            self.reconnect_task = asyncio.create_task(self._listen())
             
-            self.connected = True
-            logger.info("Connessione WebSocket stabilita con Kick")
-            
-            # Avvia il task di controllo della connessione
-            self.reconnect_task = asyncio.create_task(self._connection_watchdog())
-            
+            logger.info("Connesso al WebSocket di Kick")
             return True
         except Exception as e:
-            logger.error(f"Errore durante la connessione WebSocket: {e}")
+            logger.error(f"Errore nella connessione al WebSocket: {e}")
+            self.connected = False
             return False
+            
+    async def _ping_loop(self):
+        """Invia ping periodici per mantenere attiva la connessione."""
+        try:
+            while self.connected:
+                await asyncio.sleep(self.ping_interval)
+                
+                # Invia un ping solo se connessi
+                if self.ws and self.connected:
+                    await self._send_message({
+                        "event": "pusher:ping",
+                        "data": {}
+                    })
+                    
+                    # Se non riceviamo un pong entro 30 secondi, riconnetti
+                    if time.time() - self.last_pong > 60:
+                        logger.warning("Nessun pong ricevuto, riconnessione...")
+                        asyncio.create_task(self._reconnect())
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.error(f"Errore nel ping loop: {e}")
+            
+    async def _listen(self):
+        """Ascolta i messaggi in arrivo dal WebSocket."""
+        try:
+            while self.connected:
+                try:
+                    message = await self.ws.recv()
+                    await self._handle_message(message)
+                except websockets.exceptions.ConnectionClosed:
+                    logger.warning("Connessione WebSocket chiusa, riconnessione...")
+                    self.connected = False
+                    await self._reconnect()
+                    break
+        except asyncio.CancelledError:
+            logger.info("Task di ascolto WebSocket cancellato")
+        except Exception as e:
+            logger.error(f"Errore nell'ascolto WebSocket: {e}")
+            self.connected = False
+            await self._reconnect()
+            
+    async def _reconnect(self):
+        """Tenta di ristabilire la connessione WebSocket."""
+        # Evita riconnessioni multiple
+        if not self.connected:
+            logger.info("Tentativo di riconnessione al WebSocket...")
+            
+            # Attendi un po' prima di riconnetterti
+            await asyncio.sleep(5)
+            
+            # Riconnetti
+            success = await self.connect()
+            
+            if success:
+                # Rinnova tutte le sottoscrizioni ai canali
+                for channel_name, channel_id in self.channel_subscriptions.items():
+                    handler = self.message_handlers.get(channel_id)
+                    if handler:
+                        await self.subscribe_to_channel_chat(channel_name, handler)
+                        
+                logger.info("Riconnessione al WebSocket riuscita")
+            else:
+                logger.error("Riconnessione al WebSocket fallita, ritentativo tra 30 secondi")
+                await asyncio.sleep(30)
+                asyncio.create_task(self._reconnect())
             
     async def disconnect(self):
         """Chiude la connessione WebSocket."""
@@ -125,118 +177,55 @@ class KickWebSocketClient:
             logger.info(f"Cancellata la sottoscrizione al canale: {channel_name}")
             
     async def _send_message(self, message: Dict):
-        """Invia un messaggio attraverso la connessione WebSocket."""
-        if not self.ws:
-            logger.error("Tentativo di invio messaggio senza connessione WebSocket")
-            return False
-            
+        """Invia un messaggio tramite la connessione WebSocket."""
+        if self.ws and self.connected:
         try:
             await self.ws.send(json.dumps(message))
             return True
         except Exception as e:
             logger.error(f"Errore nell'invio del messaggio WebSocket: {e}")
             self.connected = False
+                await self._reconnect()
+                return False
+        else:
+            logger.warning("Tentativo di invio di un messaggio senza una connessione WebSocket attiva")
             return False
             
-    async def _message_listener(self):
-        """Ascolta i messaggi in arrivo dalla connessione WebSocket."""
-        if not self.ws:
-            return
-            
+    async def _handle_message(self, message_str: str):
+        """Gestisce i messaggi ricevuti dal WebSocket."""
         try:
-            async for message in self.ws:
-                try:
-                    data = json.loads(message)
-                    
-                    # Gestisci i pong per mantenere viva la connessione
-                    if data.get("event") == "pusher:pong":
-                        self.last_pong = time.time()
-                        continue
-                        
-                    # Gestisci le risposte alle sottoscrizioni
-                    if data.get("event") == "pusher_internal:subscription_succeeded":
-                        channel = data.get("channel", "")
-                        logger.info(f"Sottoscrizione completata per il canale: {channel}")
-                        continue
-                        
-                    # Gestisci i messaggi degli eventi
-                    channel = data.get("channel", "")
-                    event = data.get("event", "")
-                    
-                    if channel and event and channel in self.message_handlers:
-                        # Estrai i dati dell'evento
-                        try:
-                            event_data = json.loads(data.get("data", "{}"))
-                            
-                            # Chiama il callback registrato per questo canale
-                            handler = self.message_handlers[channel]
-                            asyncio.create_task(handler(event, event_data))
-                        except json.JSONDecodeError:
-                            logger.error(f"Errore nel parsing dei dati dell'evento: {data.get('data')}")
-                    
-                except json.JSONDecodeError:
-                    logger.error(f"Messaggio WebSocket non valido: {message}")
-                except Exception as e:
-                    logger.error(f"Errore nella gestione del messaggio WebSocket: {e}")
-        except websockets.exceptions.ConnectionClosed:
-            logger.warning("Connessione WebSocket chiusa")
-            self.connected = False
-        except Exception as e:
-            logger.error(f"Errore nell'ascolto dei messaggi WebSocket: {e}")
-            self.connected = False
+            message = json.loads(message_str)
+            event = message.get("event", "")
+            channel = message.get("channel", "")
             
-    async def _ping_handler(self):
-        """Invia ping periodici per mantenere viva la connessione."""
-        while self.ws and not self.ws.closed:
-            try:
-                await self._send_message({
-                    "event": "pusher:ping",
-                    "data": {}
-                })
-                await asyncio.sleep(30)  # Invia un ping ogni 30 secondi
-            except Exception as e:
-                logger.error(f"Errore nell'invio del ping: {e}")
-                break
+            # Gestisce i messaggi di sistema
+            if event == "pusher:connection_established":
+                # Salva la chiave del socket
+                data = json.loads(message.get("data", "{}"))
+                self.socket_key = data.get("socket_id", "")
+                logger.info(f"Connessione WebSocket stabilita, socket_id: {self.socket_key}")
                 
-    async def _connection_watchdog(self):
-        """Monitora la connessione e riconnette se necessario."""
-        while True:
-            await asyncio.sleep(60)  # Controlla ogni minuto
-            
-            # Se non siamo connessi, prova a riconnetterti
-            if not self.connected or (self.ws and self.ws.closed):
-                logger.warning("Connessione WebSocket persa, tentativo di riconnessione...")
-                await self.connect()
+            elif event == "pusher:pong":
+                self.last_pong = time.time()
                 
-                # Se la riconnessione ha avuto successo, ristabilisci le sottoscrizioni
-                if self.connected:
-                    for channel_name in list(self.channel_subscriptions.keys()):
-                        channel_id = self.channel_subscriptions[channel_name]
-                        callback = self.message_handlers.get(channel_id)
-                        if callback:
-                            await self.subscribe_to_channel_chat(channel_name, callback)
-                            
-            # Controlla se abbiamo ricevuto un pong negli ultimi 2 minuti
-            if time.time() - self.last_pong > 120:
-                logger.warning("Nessun pong ricevuto di recente, reconnessione...")
-                await self.disconnect()
-                await self.connect()
+            # Gestisce eventi di chat
+            elif event == "App\\Events\\ChatMessageSentEvent" and channel in self.message_handlers:
+                callback = self.message_handlers[channel]
+                data = json.loads(message.get("data", "{}"))
+                await callback(channel, data)
                 
-    async def _get_socket_key(self):
-        """Ottiene una socket_key dall'API di Kick."""
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get("https://kick.com/api/v2/channels") as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        # La socket_key dovrebbe essere inclusa nella risposta
-                        # Questa è una semplificazione, potrebbe essere necessario estrarre 
-                        # la chiave da un'altra chiamata API
-                        return data.get("socket_key", "")
-            return ""
+            # Gestisce eventi di sottoscrizione
+            elif event == "pusher_internal:subscription_succeeded":
+                logger.info(f"Sottoscrizione al canale {channel} riuscita")
+                
+            # Altri tipi di eventi
+            elif event and event != "pusher:pong":
+                logger.debug(f"Ricevuto evento: {event} dal canale: {channel}")
+                
+        except json.JSONDecodeError:
+            logger.error(f"Errore nel parsing del messaggio JSON: {message_str}")
         except Exception as e:
-            logger.error(f"Errore nell'ottenimento della socket_key: {e}")
-            return ""
+            logger.error(f"Errore nella gestione del messaggio: {e}")
             
     async def handle_chat_message(self, channel_name: str, message_data: Dict):
         """Gestisce un messaggio di chat ricevuto dal WebSocket."""
@@ -246,7 +235,8 @@ class KickWebSocketClient:
                 "id": message_data.get("sender", {}).get("id"),
                 "username": message_data.get("sender", {}).get("username"),
                 "is_moderator": message_data.get("sender", {}).get("is_moderator", False),
-                "is_subscriber": message_data.get("sender", {}).get("is_subscriber", False)
+                "is_subscriber": message_data.get("sender", {}).get("is_subscriber", False),
+                "is_vip": "VIP" in message_data.get("sender", {}).get("follower_badges", [])
             }
             
             content = message_data.get("content", "")
@@ -270,18 +260,137 @@ class KickWebSocketClient:
                     VALUES ($1, $2, $3, $4, $5, NOW())
                 ''', channel_id, user["id"], user["username"], content, content.startswith("!"))
                 
+            # Gestisci i punti canale per l'utente
+            if hasattr(self.bot, "kick_channel_points") and self.bot.kick_channel_points:
+                await self.bot.kick_channel_points.handle_chat_message(
+                    channel_id, 
+                    int(user["id"]), 
+                    user["username"],
+                    user["is_subscriber"],
+                    user["is_moderator"],
+                    user["is_vip"]
+                )
+                
             # Se è un comando, passalo al gestore comandi
             if content.startswith("!"):
+                command_parts = content.split(" ", 1)
+                command = command_parts[0][1:].lower()  # Rimuovi il ! e converti in minuscolo
+                
+                # Gestisci i comandi del sistema di punti canale
+                if command in ["punti", "points"]:
+                    # Ottieni i punti dell'utente
+                    points = await self.bot.point_system.get_user_points(channel_id, int(user["id"]))
+                    points_name = self.bot.kick_channel_points.config.points_name
+                    
+                    # Invia un messaggio con i punti dell'utente
+                    message = f"{user['username']}, hai {points} {points_name}!"
+                    await self.bot.api.send_chat_message(channel_id, channel_name, message)
+                    return
+                    
+                elif command in ["classifica", "leaderboard", "top"]:
+                    # Ottieni la classifica dei punti
+                    top_users = await self.bot.point_system.get_top_points(channel_id, 5)
+                    points_name = self.bot.kick_channel_points.config.points_name
+                    
+                    # Formatta la classifica
+                    message = f"Classifica {points_name}:\n"
+                    for i, user_data in enumerate(top_users):
+                        message += f"{i+1}. {user_data['username']}: {user_data['points']} {points_name}\n"
+                    
+                    # Invia la classifica in chat
+                    await self.bot.api.send_chat_message(channel_id, channel_name, message)
+                    return
+                    
+                elif command in ["premi", "rewards"]:
+                    # Ottieni la lista dei premi disponibili
+                    rewards = await self.bot.kick_channel_points.get_rewards(channel_id)
+                    
+                    if not rewards:
+                        await self.bot.api.send_chat_message(channel_id, channel_name, "Nessun premio disponibile al momento.")
+                        return
+                    
+                    # Formatta la lista dei premi
+                    message = "Premi disponibili:\n"
+                    for reward in rewards:
+                        if reward.get("enabled", True):
+                            message += f"{reward.get('title')}: {reward.get('cost')} punti - {reward.get('description')}\n"
+                    
+                    # Invia la lista in chat
+                    await self.bot.api.send_chat_message(channel_id, channel_name, message)
+                    return
+                
+                # Gestisci altri comandi standard
                 await self.bot.command_handler.handle_command(
                     channel_id, 
                     channel_name, 
                     user, 
                     content
                 )
-                
-            # Se c'è un gioco attivo, passa il messaggio al gestore del gioco
-            if channel_id in self.bot.active_games and self.bot.active_games[channel_id].active:
-                await self.bot.active_games[channel_id].handle_message(user, content)
-                
         except Exception as e:
             logger.error(f"Errore nella gestione del messaggio di chat: {e}")
+            
+    async def handle_subscription_event(self, channel_name: str, message_data: Dict):
+        """Gestisce un evento di abbonamento."""
+        try:
+            # Estrai le informazioni sull'abbonamento
+            user_id = message_data.get("user_id")
+            username = message_data.get("username")
+            
+            if not user_id or not username:
+                logger.warning(f"Dati incompleti per l'evento di abbonamento: {message_data}")
+                return
+                
+            # Trova il canale nel database
+            async with self.bot.db.pool.acquire() as conn:
+                channel = await conn.fetchrow('''
+                    SELECT id FROM channels WHERE name = $1
+                ''', channel_name)
+                
+                if not channel:
+                    logger.warning(f"Ricevuto evento di abbonamento per canale non registrato: {channel_name}")
+                    return
+                    
+                channel_id = channel["id"]
+            
+            # Gestisci i punti canale per l'abbonamento
+            if hasattr(self.bot, "kick_channel_points") and self.bot.kick_channel_points:
+                await self.bot.kick_channel_points.handle_subscription(channel_id, int(user_id), username)
+                
+            # Registro dell'evento
+            await self.bot.log_event(channel_id, "subscription", int(user_id), message_data)
+            
+        except Exception as e:
+            logger.error(f"Errore nella gestione dell'evento di abbonamento: {e}")
+            
+    async def handle_follow_event(self, channel_name: str, message_data: Dict):
+        """Gestisce un evento di nuovo follower."""
+        try:
+            # Estrai le informazioni sul follow
+            user_id = message_data.get("user_id")
+            username = message_data.get("username")
+            
+            if not user_id or not username:
+                logger.warning(f"Dati incompleti per l'evento di follow: {message_data}")
+                return
+                
+            # Trova il canale nel database
+            async with self.bot.db.pool.acquire() as conn:
+                channel = await conn.fetchrow('''
+                    SELECT id FROM channels WHERE name = $1
+                ''', channel_name)
+                
+                if not channel:
+                    logger.warning(f"Ricevuto evento di follow per canale non registrato: {channel_name}")
+                    return
+                    
+                channel_id = channel["id"]
+            
+            # Gestisci i punti canale per il follow
+            if hasattr(self.bot, "kick_channel_points") and self.bot.kick_channel_points:
+                await self.bot.kick_channel_points.handle_follow(channel_id, int(user_id), username)
+                
+            # Registro dell'evento
+            await self.bot.log_event(channel_id, "follow", int(user_id), message_data)
+            
+        except Exception as e:
+            logger.error(f"Errore nella gestione dell'evento di follow: {e}")

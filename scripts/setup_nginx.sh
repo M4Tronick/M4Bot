@@ -42,7 +42,7 @@ fi
 nginx -t
 
 if [ $? -ne 0 ]; then
-    print_error "La configurazione di Nginx non è valida" 1
+    print_error "La configurazione di Nginx non Ã¨ valida" 1
 fi
 
 # Riavvia Nginx
@@ -58,7 +58,7 @@ print_success "Nginx configurato correttamente"
 if [ "$4" == "--ssl" ]; then
     print_message "Configurazione SSL con Certbot..."
     
-    # Installa certbot se non è installato
+    # Installa certbot se non Ã¨ installato
     if ! command -v certbot &> /dev/null; then
         print_message "Installazione di Certbot..."
         apt-get update

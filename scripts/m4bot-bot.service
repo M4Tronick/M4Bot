@@ -1,16 +1,17 @@
 [Unit]
 Description=M4Bot Bot Service
-After=network.target postgresql.service
+After=network.target postgresql.service redis.service
+Wants=postgresql.service redis.service
 
 [Service]
 User=m4bot
 Group=m4bot
-WorkingDirectory=/opt/m4bot/bot
-ExecStart=/opt/m4bot/venv/bin/python m4bot.py
+WorkingDirectory=/opt/m4bot
+ExecStart=/opt/m4bot/venv/bin/python -m bot.main
 Restart=on-failure
-RestartSec=10
+RestartSec=20
+Environment="PYTHONPATH=/opt/m4bot"
 Environment="PYTHONUNBUFFERED=1"
-Environment="PYTHONIOENCODING=utf-8"
 
 [Install]
 WantedBy=multi-user.target 

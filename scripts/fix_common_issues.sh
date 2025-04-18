@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script per risolvere i problemi più comuni di M4Bot
+# Script per risolvere i problemi piÃ¹ comuni di M4Bot
 
 # Carica le funzioni comuni
 source "$(dirname "$0")/common.sh"
@@ -8,7 +8,7 @@ source "$(dirname "$0")/common.sh"
 check_root
 
 print_message "=== RIPARAZIONE M4BOT ==="
-print_message "Questo script tenterà di risolvere i problemi più comuni di M4Bot"
+print_message "Questo script tenterÃ  di risolvere i problemi piÃ¹ comuni di M4Bot"
 
 # Configurazione
 M4BOT_DIR="/opt/m4bot"
@@ -25,7 +25,7 @@ if [ ! -f "/usr/local/bin/common.sh" ] && [ -f "$(dirname "$0")/common.sh" ]; th
     chmod +x /usr/local/bin/common.sh
     print_success "File common.sh copiato in /usr/local/bin/"
 else
-    print_message "File common.sh già presente"
+    print_message "File common.sh giÃ  presente"
 fi
 
 # 2. Riparazione directory dei log
@@ -65,7 +65,7 @@ EOF
     
     print_success "Database creato con successo"
 else
-    print_message "Database $DB_NAME già esistente"
+    print_message "Database $DB_NAME giÃ  esistente"
 fi
 
 # 5. Verifica dei file principali
@@ -110,7 +110,7 @@ fi
 # 6. Riparazione porte
 print_message "6. Verifica delle porte..."
 if ! netstat -tuln | grep -q ":5000 "; then
-    print_warning "La porta 5000 non è in ascolto, tentativo di riavvio dei servizi..."
+    print_warning "La porta 5000 non Ã¨ in ascolto, tentativo di riavvio dei servizi..."
     
     # Verifica se l'app utilizza una porta diversa
     if [ -f "$WEB_DIR/app.py" ]; then

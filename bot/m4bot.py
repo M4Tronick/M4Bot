@@ -29,6 +29,9 @@ from cryptography.fernet import Fernet
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from bot.config import *
 
+# Importazione dei moduli
+from bot.kick_channel_points import KickChannelPoints
+
 # Assicurati che tutte le directory necessarie esistano
 directories_to_check = [
     os.path.dirname(LOG_FILE),  # Directory principale dei log
@@ -59,43 +62,50 @@ class Database:
     """Gestisce la connessione e le operazioni del database."""
     
     def __init__(self):
+        """Inizializza il gestore del database."""
         self.pool = None
+        self.connection_string = os.environ.get(
+            "DATABASE_URL", 
+            "postgresql://postgres:postgres@localhost/m4bot"
+        )
         
     async def connect(self):
-        """Crea un pool di connessioni al database PostgreSQL."""
+        """Connette al database PostgreSQL."""
         retry_count = 0
         max_retries = 5
-        retry_delay = 3  # secondi
+        retry_delay = 2  # secondi
         
         while retry_count < max_retries:
             try:
+                logger.info(f"Tentativo di connessione al database: {retry_count + 1}")
+                
                 self.pool = await asyncpg.create_pool(
-                    user=DB_USER,
-                    password=DB_PASS,
-                    database=DB_NAME,
-                    host=DB_HOST,
-                    command_timeout=60.0,
-                    min_size=2,
+                    dsn=self.connection_string,
+                    min_size=1,
                     max_size=10
                 )
-                logger.info("Connessione al database stabilita")
                 
-                # Inizializza le tabelle se non esistono
+                # Verifica la connessione eseguendo una query semplice
+                async with self.pool.acquire() as conn:
+                    version = await conn.fetchval("SELECT version()")
+                    logger.info(f"Connesso al database: {version}")
+                
+                # Inizializza le tabelle necessarie
                 await self._initialize_tables()
+                
                 return True
-            except asyncpg.exceptions.PostgresError as e:
+            except Exception as e:
                 retry_count += 1
-                logger.error(f"Errore nella connessione al database (tentativo {retry_count}/{max_retries}): {e}")
+                logger.error(f"Errore nella connessione al database: {e}")
                 
                 if retry_count < max_retries:
-                    logger.info(f"Nuovo tentativo tra {retry_delay} secondi...")
+                    logger.info(f"Ritentativo tra {retry_delay} secondi...")
                     await asyncio.sleep(retry_delay)
-                    retry_delay *= 2  # Aumenta il ritardo ad ogni tentativo
+                    # Aumenta il ritardo per i prossimi tentativi
+                    retry_delay *= 2
                 else:
-                    logger.critical("Impossibile connettersi al database dopo multipli tentativi")
-            except Exception as e:
-                logger.critical(f"Errore critico nella connessione al database: {e}")
-                raise
+                    logger.critical("Numero massimo di tentativi di connessione raggiunto")
+                    break
         
         # Se arriviamo qui, non siamo riusciti a connetterci dopo tutti i tentativi
         logger.critical("Impossibile avviare il bot senza connessione al database")
@@ -182,6 +192,32 @@ class Database:
                     event_type VARCHAR(255) NOT NULL,
                     user_id INTEGER REFERENCES users(id),
                     data JSONB,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                )
+            ''')
+            
+            # Tabella ruoli utente
+            await conn.execute('''
+                CREATE TABLE IF NOT EXISTS user_roles (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id),
+                    channel_id INTEGER REFERENCES channels(id),
+                    role VARCHAR(50) NOT NULL,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    UNIQUE(user_id, channel_id)
+                )
+            ''')
+            
+            # Tabella messaggi chat
+            await conn.execute('''
+                CREATE TABLE IF NOT EXISTS chat_messages (
+                    id SERIAL PRIMARY KEY,
+                    channel_id INTEGER REFERENCES channels(id),
+                    user_id VARCHAR(255) NOT NULL,
+                    username VARCHAR(255) NOT NULL,
+                    content TEXT NOT NULL,
+                    is_command BOOLEAN DEFAULT FALSE,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
                 )
             ''')
@@ -753,6 +789,7 @@ class M4Bot:
         self.api = None
         self.command_handler = None
         self.point_system = None
+        self.kick_channel_points = None  # Nuovo sistema di punti canale di Kick
         self.active_games = {}
         self.timed_tasks = {}
         self.start_time = time.time()
@@ -774,6 +811,10 @@ class M4Bot:
             # Inizializzazione del sistema punti
             self.point_system = PointSystem(self)
             
+            # Inizializzazione del sistema di punti canale di Kick
+            self.kick_channel_points = KickChannelPoints(self)
+            await self.kick_channel_points.setup_database()
+            
             logger.info("Inizializzazione del bot completata")
             return True
         except Exception as e:
@@ -790,12 +831,24 @@ class M4Bot:
             if not task.done():
                 task.cancel()
                 
+        # Ferma tutti i tracker dei punti canale
+        if self.kick_channel_points:
+            for channel_id in list(self.kick_channel_points.update_tasks.keys()):
+                await self.kick_channel_points.stop_points_tracker(channel_id)
+                
         logger.info("Shutdown del bot completato")
         
     async def connect_to_channel(self, channel_id: int, channel_name: str):
         """Connette il bot a un canale e inizia ad ascoltare i messaggi."""
         # Carica i comandi per questo canale
         await self.command_handler.load_commands(channel_id)
+        
+        # Carica la configurazione dei punti canale e avvia il tracker
+        if self.kick_channel_points:
+            await self.kick_channel_points.load_channel_config(channel_id)
+            await self.kick_channel_points.start_points_tracker(channel_id)
+            # Reset dei limiti dei premi per un nuovo stream
+            await self.kick_channel_points.reset_reward_limits(channel_id)
         
         # Registra il canale nella lista dei canali connessi
         self.channels[channel_id] = {

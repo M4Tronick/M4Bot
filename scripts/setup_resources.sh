@@ -53,7 +53,7 @@ fi
 
 # Verifica se utilizzare base_offline.html
 if [ -f "web/templates/base_offline.html" ]; then
-    echo -e "${YELLOW}È stato trovato il template base_offline.html${NC}"
+    echo -e "${YELLOW}Ãˆ stato trovato il template base_offline.html${NC}"
     echo -e "${YELLOW}Vuoi sostituire il template base.html con la versione offline? (s/n)${NC}"
     read -r response
     if [[ "$response" =~ ^([sS])$ ]]; then
@@ -65,9 +65,9 @@ if [ -f "web/templates/base_offline.html" ]; then
         
         # Sostituzione del file
         cp web/templates/base_offline.html web/templates/base.html
-        echo -e "${GREEN}Il template base.html è stato sostituito con la versione offline${NC}"
+        echo -e "${GREEN}Il template base.html Ã¨ stato sostituito con la versione offline${NC}"
     else
-        echo -e "${YELLOW}Il template base.html non è stato modificato${NC}"
+        echo -e "${YELLOW}Il template base.html non Ã¨ stato modificato${NC}"
     fi
 fi
 

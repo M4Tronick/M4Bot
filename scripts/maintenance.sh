@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script per attivare/disattivare la modalità di manutenzione di M4Bot
+# Script per attivare/disattivare la modalitÃ  di manutenzione di M4Bot
 
 # Carica le funzioni comuni
 source "$(dirname "$0")/common.sh"
@@ -15,25 +15,25 @@ MAINTENANCE_FLAG="/opt/m4bot/.maintenance"
 # Funzione per mostrare l'help
 show_help() {
     echo "Utilizzo: $0 [OPZIONE]"
-    echo "Attiva o disattiva la modalità di manutenzione per M4Bot."
+    echo "Attiva o disattiva la modalitÃ  di manutenzione per M4Bot."
     echo ""
     echo "Opzioni:"
-    echo "  --enable, -e    Attiva la modalità di manutenzione"
-    echo "  --disable, -d   Disattiva la modalità di manutenzione"
-    echo "  --status, -s    Mostra lo stato della modalità di manutenzione"
+    echo "  --enable, -e    Attiva la modalitÃ  di manutenzione"
+    echo "  --disable, -d   Disattiva la modalitÃ  di manutenzione"
+    echo "  --status, -s    Mostra lo stato della modalitÃ  di manutenzione"
     echo "  --help, -h      Mostra questo messaggio di aiuto"
     echo ""
     echo "Esempio:"
-    echo "  $0 --enable     Attiva la modalità di manutenzione"
+    echo "  $0 --enable     Attiva la modalitÃ  di manutenzione"
 }
 
-# Funzione per attivare la modalità di manutenzione
+# Funzione per attivare la modalitÃ  di manutenzione
 enable_maintenance() {
-    print_message "Attivazione della modalità di manutenzione..."
+    print_message "Attivazione della modalitÃ  di manutenzione..."
     
-    # Controlla se la modalità di manutenzione è già attiva
+    # Controlla se la modalitÃ  di manutenzione Ã¨ giÃ  attiva
     if [ -f "$MAINTENANCE_FLAG" ]; then
-        print_warning "La modalità di manutenzione è già attiva"
+        print_warning "La modalitÃ  di manutenzione Ã¨ giÃ  attiva"
         return 0
     fi
     
@@ -57,13 +57,13 @@ enable_maintenance() {
             # Crea una configurazione temporanea
             cat > "${NGINX_CONFIG}.temp" << EOF
 # Configurazione Nginx per M4Bot
-# Modificata per modalità di manutenzione
+# Modificata per modalitÃ  di manutenzione
 
 server {
     listen 80;
     server_name _;
 
-    # Modalità di manutenzione
+    # ModalitÃ  di manutenzione
     set \$maintenance_mode 1;
 
     # Consenti solo alcuni indirizzi IP durante la manutenzione
@@ -72,7 +72,7 @@ server {
     #     set \$maintenance_mode 0;
     # }
 
-    # Se in modalità di manutenzione, serve la pagina statica
+    # Se in modalitÃ  di manutenzione, serve la pagina statica
     if (\$maintenance_mode = 1) {
         return 503;
     }
@@ -96,7 +96,7 @@ EOF
             # Sostituisci la configurazione originale
             mv "${NGINX_CONFIG}.temp" "$NGINX_CONFIG" || print_error "Impossibile aggiornare la configurazione Nginx" 1
         else
-            # La configurazione di manutenzione è già presente, attivala
+            # La configurazione di manutenzione Ã¨ giÃ  presente, attivala
             sed -i 's/set \$maintenance_mode 0;/set \$maintenance_mode 1;/' "$NGINX_CONFIG"
         fi
         
@@ -104,7 +104,7 @@ EOF
         nginx -t
         if [ $? -eq 0 ]; then
             systemctl reload nginx || print_error "Impossibile ricaricare Nginx" 1
-            print_success "Nginx configurato per la modalità di manutenzione"
+            print_success "Nginx configurato per la modalitÃ  di manutenzione"
         else
             print_error "Configurazione di Nginx non valida, ripristino dal backup"
             cp "${NGINX_CONFIG}.backup" "$NGINX_CONFIG"
@@ -116,28 +116,28 @@ EOF
         print_error "File di configurazione Nginx non trovato: $NGINX_CONFIG" 1
     fi
     
-    print_success "Modalità di manutenzione attivata"
+    print_success "ModalitÃ  di manutenzione attivata"
     print_message "L'applicazione ora mostra la pagina di manutenzione agli utenti"
-    print_message "Per disabilitare la modalità di manutenzione, esegui: $0 --disable"
+    print_message "Per disabilitare la modalitÃ  di manutenzione, esegui: $0 --disable"
 }
 
-# Funzione per disattivare la modalità di manutenzione
+# Funzione per disattivare la modalitÃ  di manutenzione
 disable_maintenance() {
-    print_message "Disattivazione della modalità di manutenzione..."
+    print_message "Disattivazione della modalitÃ  di manutenzione..."
     
-    # Controlla se la modalità di manutenzione è attiva
+    # Controlla se la modalitÃ  di manutenzione Ã¨ attiva
     if [ ! -f "$MAINTENANCE_FLAG" ]; then
-        print_warning "La modalità di manutenzione non è attiva"
+        print_warning "La modalitÃ  di manutenzione non Ã¨ attiva"
         return 0
     fi
     
     # Rimuovi il file flag
     rm "$MAINTENANCE_FLAG" || print_error "Impossibile rimuovere il file flag di manutenzione" 1
     
-    # Modifica la configurazione Nginx per disattivare la modalità di manutenzione
+    # Modifica la configurazione Nginx per disattivare la modalitÃ  di manutenzione
     if [ -f "$NGINX_CONFIG" ]; then
         if grep -q "maintenance_mode" "$NGINX_CONFIG"; then
-            # Disattiva la modalità di manutenzione cambiando la variabile
+            # Disattiva la modalitÃ  di manutenzione cambiando la variabile
             sed -i 's/set \$maintenance_mode 1;/set \$maintenance_mode 0;/' "$NGINX_CONFIG"
         fi
         
@@ -154,22 +154,22 @@ disable_maintenance() {
         print_error "File di configurazione Nginx non trovato: $NGINX_CONFIG" 1
     fi
     
-    print_success "Modalità di manutenzione disattivata"
-    print_message "L'applicazione è ora accessibile normalmente"
+    print_success "ModalitÃ  di manutenzione disattivata"
+    print_message "L'applicazione Ã¨ ora accessibile normalmente"
 }
 
 # Funzione per mostrare lo stato
 show_status() {
-    print_message "Controllo dello stato della modalità di manutenzione..."
+    print_message "Controllo dello stato della modalitÃ  di manutenzione..."
     
     if [ -f "$MAINTENANCE_FLAG" ]; then
         print_message "Stato: ATTIVA"
-        print_message "La modalità di manutenzione è attualmente attiva"
+        print_message "La modalitÃ  di manutenzione Ã¨ attualmente attiva"
         print_message "Gli utenti stanno visualizzando la pagina di manutenzione"
     else
         print_message "Stato: DISATTIVA"
-        print_message "La modalità di manutenzione non è attiva"
-        print_message "L'applicazione è accessibile normalmente"
+        print_message "La modalitÃ  di manutenzione non Ã¨ attiva"
+        print_message "L'applicazione Ã¨ accessibile normalmente"
     fi
 }
 

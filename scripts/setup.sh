@@ -8,7 +8,7 @@ source "$(dirname "$0")/common.sh"
 check_root
 
 print_message "Benvenuto nello script di configurazione di M4Bot"
-print_message "Questo script guiderà l'installazione passo-passo"
+print_message "Questo script guiderÃ  l'installazione passo-passo"
 
 # Funzione per eseguire una fase e controllare se ha avuto successo
 execute_step() {

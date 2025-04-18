@@ -33,7 +33,7 @@ send_alert() {
 check_service() {
     local service_name="$1"
     if ! systemctl is-active --quiet "$service_name"; then
-        send_alert "Servizio $service_name non attivo" "Il servizio $service_name non è in esecuzione sul server M4Bot. Tentativo di riavvio in corso..."
+        send_alert "Servizio $service_name non attivo" "Il servizio $service_name non Ã¨ in esecuzione sul server M4Bot. Tentativo di riavvio in corso..."
         systemctl restart "$service_name"
     fi
 }
@@ -85,7 +85,7 @@ fi
 # Controlla i file di log per evitare che diventino troppo grandi
 LOG_SIZE=$(du -m /var/log | sort -nr | head -n 1 | cut -f1)
 if [ "$LOG_SIZE" -gt 1000 ]; then  # Se i log superano 1GB
-    send_alert "Dimensione log eccessiva" "I file di log stanno occupando più di 1GB di spazio. Considera una rotazione o pulizia."
+    send_alert "Dimensione log eccessiva" "I file di log stanno occupando piÃ¹ di 1GB di spazio. Considera una rotazione o pulizia."
 fi
 
 echo "Monitoraggio completato." 

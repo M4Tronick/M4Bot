@@ -8,7 +8,7 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Funzioni di utilità
+# Funzioni di utilitÃ 
 print_message() {
     echo -e "${BLUE}[M4Bot]${NC} $1"
 }
@@ -66,7 +66,7 @@ async def route_by_subdomain():
     """Gestisce il routing in base al sottodominio."""
     subdomain = get_subdomain()
     
-    # Se non è un sottodominio, continua normalmente
+    # Se non Ã¨ un sottodominio, continua normalmente
     if not subdomain or subdomain == 'www':
         return None
         
@@ -118,9 +118,9 @@ else
 fi
 
 print_message "====================================================="
-print_message "L'APPLICAZIONE WEB È STATA AGGIORNATA"
+print_message "L'APPLICAZIONE WEB Ãˆ STATA AGGIORNATA"
 print_message "====================================================="
 print_message "Ora i sottodomini saranno gestiti correttamente:"
-print_message "- dashboard.dominio.it → accesso diretto alla dashboard"
-print_message "- control.dominio.it → accesso diretto al pannello di controllo"
+print_message "- dashboard.dominio.it â†’ accesso diretto alla dashboard"
+print_message "- control.dominio.it â†’ accesso diretto al pannello di controllo"
 print_message "=====================================================" 

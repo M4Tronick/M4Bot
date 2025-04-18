@@ -1,16 +1,18 @@
 [Unit]
-Description=M4Bot Web Service
-After=network.target postgresql.service
+Description=M4Bot Web Server
+After=network.target postgresql.service redis.service
+Wants=postgresql.service redis.service
 
 [Service]
 User=m4bot
 Group=m4bot
-WorkingDirectory=/opt/m4bot/web
-ExecStart=/opt/m4bot/venv/bin/python app.py
+WorkingDirectory=/opt/m4bot
+ExecStart=/opt/m4bot/venv/bin/python -m gunicorn "web.app:app" -k uvicorn.workers.UvicornWorker -b 0.0.0.0:5000 --log-level info
 Restart=on-failure
-RestartSec=10
+Environment="PYTHONPATH=/opt/m4bot"
+Environment="QUART_APP=web.app:app"
+Environment="QUART_ENV=production"
 Environment="PYTHONUNBUFFERED=1"
-Environment="PYTHONIOENCODING=utf-8"
 
 [Install]
 WantedBy=multi-user.target 

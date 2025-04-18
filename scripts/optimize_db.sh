@@ -12,9 +12,9 @@ check_root
 
 print_message "Avvio ottimizzazione del database PostgreSQL..."
 
-# Verifica se PostgreSQL è in esecuzione
+# Verifica se PostgreSQL Ã¨ in esecuzione
 if ! systemctl is-active --quiet postgresql; then
-    print_error "PostgreSQL non è in esecuzione" 1
+    print_error "PostgreSQL non Ã¨ in esecuzione" 1
 fi
 
 # Esegue un backup prima dell'ottimizzazione

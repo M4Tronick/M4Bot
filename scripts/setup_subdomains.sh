@@ -8,7 +8,7 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Funzioni di utilità
+# Funzioni di utilitÃ 
 check_root() {
     if [ "$(id -u)" != "0" ]; then
         echo -e "${RED}Errore: Questo script deve essere eseguito come root${NC}"
@@ -39,14 +39,14 @@ print_warning() {
 check_prerequisites() {
     print_message "Verificando i prerequisiti..."
     
-    # Verifica se Nginx è installato
+    # Verifica se Nginx Ã¨ installato
     if ! command -v nginx &> /dev/null; then
-        print_error "Nginx non è installato" 1
+        print_error "Nginx non Ã¨ installato" 1
     fi
     
-    # Verifica se Certbot è installato
+    # Verifica se Certbot Ã¨ installato
     if ! command -v certbot &> /dev/null; then
-        print_error "Certbot non è installato" 1
+        print_error "Certbot non Ã¨ installato" 1
     fi
     
     # Verifica se il file di configurazione di M4Bot esiste
@@ -80,7 +80,7 @@ main() {
     # Raccolta delle informazioni
     read -p "Inserisci il dominio principale (es. m4bot.it): " MAIN_DOMAIN
     if [ -z "$MAIN_DOMAIN" ]; then
-        print_error "Il dominio principale è obbligatorio" 1
+        print_error "Il dominio principale Ã¨ obbligatorio" 1
     fi
     
     read -p "Inserisci un indirizzo email per Let's Encrypt (default: admin@$MAIN_DOMAIN): " EMAIL
@@ -166,7 +166,7 @@ main() {
     cp "$ENV_FILE" "${ENV_FILE}.backup.$(date +%Y%m%d)"
     print_message "Backup creato: ${ENV_FILE}.backup.$(date +%Y%m%d)"
     
-    # Verifica se le variabili dei sottodomini esistono già nel file .env
+    # Verifica se le variabili dei sottodomini esistono giÃ  nel file .env
     if grep -q "DASHBOARD_DOMAIN" "$ENV_FILE"; then
         # Aggiorna i valori esistenti
         sed -i "s/DASHBOARD_DOMAIN=.*/DASHBOARD_DOMAIN=$DASHBOARD_DOMAIN/" "$ENV_FILE"
@@ -211,7 +211,7 @@ async def route_by_subdomain():
     """Gestisce il routing in base al sottodominio."""
     subdomain = get_subdomain()
     
-    # Se non è un sottodominio, continua normalmente
+    # Se non Ã¨ un sottodominio, continua normalmente
     if not subdomain or subdomain == 'www':
         return None
         
@@ -229,9 +229,9 @@ async def route_by_subdomain():
 EOF
 )
     
-    # Controlla se il codice è già presente
+    # Controlla se il codice Ã¨ giÃ  presente
     if grep -q "def get_subdomain" "$APP_FILE"; then
-        print_warning "Il codice per i sottodomini sembra essere già presente, salto questo passaggio"
+        print_warning "Il codice per i sottodomini sembra essere giÃ  presente, salto questo passaggio"
     else
         # Cerca la riga dove viene importato request
         REQUEST_LINE=$(grep -n "from quart import" "$APP_FILE" | head -1 | cut -d':' -f1)
@@ -262,12 +262,12 @@ EOF
     print_message "CONFIGURAZIONE DEI SOTTODOMINI COMPLETATA"
     print_message "====================================================="
     print_message "I sottodomini sono stati configurati con successo:"
-    print_message "- $MAIN_DOMAIN → sito principale"
-    print_message "- $DASHBOARD_DOMAIN → accesso diretto alla dashboard"
-    print_message "- $CONTROL_DOMAIN → accesso diretto al pannello di controllo"
+    print_message "- $MAIN_DOMAIN â†’ sito principale"
+    print_message "- $DASHBOARD_DOMAIN â†’ accesso diretto alla dashboard"
+    print_message "- $CONTROL_DOMAIN â†’ accesso diretto al pannello di controllo"
     print_message "====================================================="
     print_message "NOTA: Potrebbe essere necessario attendere qualche minuto"
-    print_message "      affinché i DNS si aggiornino completamente."
+    print_message "      affinchÃ© i DNS si aggiornino completamente."
     print_message "====================================================="
 }
 

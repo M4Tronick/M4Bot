@@ -21,9 +21,9 @@ fi
 # Verifica che PostgreSQL e Nginx siano in esecuzione
 check_services
 
-# Controllo se i servizi sono già in esecuzione
+# Controllo se i servizi sono giÃ  in esecuzione
 if systemctl is-active --quiet m4bot-bot.service; then
-    print_warning "Il servizio bot è già in esecuzione"
+    print_warning "Il servizio bot Ã¨ giÃ  in esecuzione"
 else
     systemctl start m4bot-bot.service
     if [ $? -eq 0 ]; then
@@ -34,7 +34,7 @@ else
 fi
 
 if systemctl is-active --quiet m4bot-web.service; then
-    print_warning "Il servizio web è già in esecuzione"
+    print_warning "Il servizio web Ã¨ giÃ  in esecuzione"
 else
     systemctl start m4bot-web.service
     if [ $? -eq 0 ]; then
@@ -50,5 +50,5 @@ systemctl status m4bot-web.service --no-pager | grep Active
 systemctl status nginx --no-pager | grep Active
 systemctl status postgresql --no-pager | grep Active
 
-print_message "M4Bot è ora disponibile all'indirizzo https://m4bot.it"
+print_message "M4Bot Ã¨ ora disponibile all'indirizzo https://m4bot.it"
 print_message "Per fermare M4Bot, esegui: m4bot-stop"

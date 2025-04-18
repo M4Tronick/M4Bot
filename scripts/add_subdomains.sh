@@ -8,7 +8,7 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Funzioni di utilità
+# Funzioni di utilitÃ 
 check_root() {
     if [ "$(id -u)" != "0" ]; then
         echo -e "${RED}Errore: Questo script deve essere eseguito come root${NC}"
@@ -39,14 +39,14 @@ print_warning() {
 check_prerequisites() {
     print_message "Verificando i prerequisiti..."
     
-    # Verifica se Nginx è installato
+    # Verifica se Nginx Ã¨ installato
     if ! command -v nginx &> /dev/null; then
-        print_error "Nginx non è installato" 1
+        print_error "Nginx non Ã¨ installato" 1
     fi
     
-    # Verifica se Certbot è installato
+    # Verifica se Certbot Ã¨ installato
     if ! command -v certbot &> /dev/null; then
-        print_error "Certbot non è installato" 1
+        print_error "Certbot non Ã¨ installato" 1
     fi
     
     # Verifica se il file di configurazione di M4Bot esiste
@@ -69,7 +69,7 @@ main() {
     # Ottieni il dominio principale
     read -p "Inserisci il dominio principale (es. m4bot.it): " MAIN_DOMAIN
     if [ -z "$MAIN_DOMAIN" ]; then
-        print_error "Il dominio principale è obbligatorio" 1
+        print_error "Il dominio principale Ã¨ obbligatorio" 1
     fi
     
     # Email per Let's Encrypt

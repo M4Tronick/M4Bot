@@ -72,7 +72,7 @@ fi
 print_message "5. Verifica del database PostgreSQL..."
 # Verifica che PostgreSQL sia in esecuzione
 if systemctl is-active --quiet postgresql; then
-    print_success "PostgreSQL è in esecuzione"
+    print_success "PostgreSQL Ã¨ in esecuzione"
     
     # Verifica che il database esista
     if sudo -u postgres psql -lqt | grep -q "$DB_NAME"; then
@@ -84,21 +84,21 @@ if systemctl is-active --quiet postgresql; then
         print_error "Database $DB_NAME NON esiste"
     fi
 else
-    print_error "PostgreSQL NON è in esecuzione"
+    print_error "PostgreSQL NON Ã¨ in esecuzione"
 fi
 
 # Controllo 6: Verifica di Nginx
 print_message "6. Verifica di Nginx..."
 # Verifica che Nginx sia in esecuzione
 if systemctl is-active --quiet nginx; then
-    print_success "Nginx è in esecuzione"
+    print_success "Nginx Ã¨ in esecuzione"
     # Verifica la configurazione
     nginx -t
     # Verifica i siti attivi
     echo "Siti abilitati:"
     ls -la /etc/nginx/sites-enabled/
 else
-    print_error "Nginx NON è in esecuzione"
+    print_error "Nginx NON Ã¨ in esecuzione"
 fi
 
 # Controllo 7: Verifica dei log
@@ -111,9 +111,9 @@ journalctl -u m4bot-bot.service -u m4bot-web.service --since "1 hour ago" | grep
 print_message "8. Verifica delle porte..."
 # Verifica che la porta 5000 sia in ascolto
 if netstat -tuln | grep -q ":5000 "; then
-    print_success "La porta 5000 è in ascolto"
+    print_success "La porta 5000 Ã¨ in ascolto"
 else
-    print_error "La porta 5000 NON è in ascolto"
+    print_error "La porta 5000 NON Ã¨ in ascolto"
     echo "Porte in ascolto:"
     netstat -tuln | grep "LISTEN"
 fi

@@ -9,9 +9,9 @@ NC='\033[0m' # No Color
 
 echo -e "${GREEN}Creazione favicon per M4Bot...${NC}"
 
-# Verifica se ImageMagick è installato
+# Verifica se ImageMagick Ã¨ installato
 if ! command -v convert &> /dev/null; then
-    echo -e "${RED}ImageMagick non è installato. Installalo con 'apt-get install imagemagick'${NC}"
+    echo -e "${RED}ImageMagick non Ã¨ installato. Installalo con 'apt-get install imagemagick'${NC}"
     exit 1
 fi
 

@@ -43,7 +43,7 @@ check_root() {
 # Verifica che PostgreSQL sia in esecuzione
 check_postgres() {
     if ! systemctl is-active --quiet postgresql; then
-        print_error "PostgreSQL non è in esecuzione. Avvialo con: systemctl start postgresql" 1
+        print_error "PostgreSQL non Ã¨ in esecuzione. Avvialo con: systemctl start postgresql" 1
     fi
 }
 
@@ -51,7 +51,7 @@ check_postgres() {
 check_services() {
     # Verifica PostgreSQL
     if ! systemctl is-active --quiet postgresql; then
-        print_warning "PostgreSQL non è in esecuzione. Avvio in corso..."
+        print_warning "PostgreSQL non Ã¨ in esecuzione. Avvio in corso..."
         systemctl start postgresql
         if [ $? -ne 0 ]; then
             print_error "Impossibile avviare PostgreSQL" 1
@@ -62,7 +62,7 @@ check_services() {
 
     # Verifica Nginx
     if ! systemctl is-active --quiet nginx; then
-        print_warning "Nginx non è in esecuzione. Avvio in corso..."
+        print_warning "Nginx non Ã¨ in esecuzione. Avvio in corso..."
         systemctl start nginx
         if [ $? -ne 0 ]; then
             print_error "Impossibile avviare Nginx" 1
@@ -267,7 +267,7 @@ EOF
     nginx -t
 
     if [ $? -ne 0 ]; then
-        print_error "La configurazione di Nginx non è valida" 1
+        print_error "La configurazione di Nginx non Ã¨ valida" 1
     fi
 
     # Riavvia Nginx
@@ -283,7 +283,7 @@ EOF
     if [ "$4" == "--ssl" ]; then
         print_message "Configurazione SSL con Certbot..."
 
-        # Installa certbot se non è installato
+        # Installa certbot se non Ã¨ installato
         if ! command -v certbot &> /dev/null; then
             print_message "Installazione di Certbot..."
             apt-get update
@@ -431,7 +431,7 @@ EOF
 
     # Configura il firewall UFW
     print_message "Configurazione del firewall UFW..."
-    apt-get install -y ufw || print_warning "UFW già installato o impossibile installare"
+    apt-get install -y ufw || print_warning "UFW giÃ  installato o impossibile installare"
 
     # Configura le regole UFW
     ufw default deny incoming
@@ -496,9 +496,9 @@ start_bot() {
     # Verifica che PostgreSQL e Nginx siano in esecuzione
     check_services
 
-    # Controllo se i servizi sono già in esecuzione
+    # Controllo se i servizi sono giÃ  in esecuzione
     if systemctl is-active --quiet m4bot-bot.service; then
-        print_warning "Il servizio bot è già in esecuzione"
+        print_warning "Il servizio bot Ã¨ giÃ  in esecuzione"
     else
         systemctl start m4bot-bot.service
         if [ $? -eq 0 ]; then
@@ -509,7 +509,7 @@ start_bot() {
     fi
 
     if systemctl is-active --quiet m4bot-web.service; then
-        print_warning "Il servizio web è già in esecuzione"
+        print_warning "Il servizio web Ã¨ giÃ  in esecuzione"
     else
         systemctl start m4bot-web.service
         if [ $? -eq 0 ]; then
@@ -525,7 +525,7 @@ start_bot() {
     systemctl status nginx --no-pager | grep Active
     systemctl status postgresql --no-pager | grep Active
 
-    print_message "M4Bot è ora disponibile all'indirizzo https://m4bot.it"
+    print_message "M4Bot Ã¨ ora disponibile all'indirizzo https://m4bot.it"
     print_message "Dashboard: https://dashboard.m4bot.it"
     print_message "Pannello di controllo: https://control.m4bot.it"
 }
@@ -543,7 +543,7 @@ stop_bot() {
             print_error "Impossibile arrestare il bot" 1
         fi
     else
-        print_warning "Il servizio bot non è in esecuzione"
+        print_warning "Il servizio bot non Ã¨ in esecuzione"
     fi
 
     if systemctl is-active --quiet m4bot-web.service; then
@@ -554,7 +554,7 @@ stop_bot() {
             print_error "Impossibile arrestare la web app" 1
         fi
     else
-        print_warning "Il servizio web non è in esecuzione"
+        print_warning "Il servizio web non Ã¨ in esecuzione"
     fi
 
     print_message "Tutti i servizi di M4Bot sono stati arrestati"
@@ -602,7 +602,7 @@ restart_bot() {
     # Controlla i servizi
     check_services
 
-    print_message "M4Bot è stato riavviato con successo"
+    print_message "M4Bot Ã¨ stato riavviato con successo"
 }
 
 # Controlla lo stato di M4Bot
@@ -630,12 +630,12 @@ status_bot() {
         echo ""
         print_success "Tutti i servizi di M4Bot sono attivi e funzionanti"
         echo ""
-        print_message "M4Bot è disponibile all'indirizzo https://m4bot.it"
+        print_message "M4Bot Ã¨ disponibile all'indirizzo https://m4bot.it"
         print_message "Dashboard: https://dashboard.m4bot.it"
         print_message "Pannello di controllo: https://control.m4bot.it"
     else
         echo ""
-        print_error "Uno o più servizi di M4Bot non sono attivi" 0
+        print_error "Uno o piÃ¹ servizi di M4Bot non sono attivi" 0
     fi
 
     # Controlla l'utilizzo delle risorse

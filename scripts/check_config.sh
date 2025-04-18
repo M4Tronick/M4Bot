@@ -14,7 +14,7 @@ declare -a PROBLEMS
 check_path() {
     local path="$1"
     local type="$2"  # file o directory
-    local critical="$3"  # true/false se è critico
+    local critical="$3"  # true/false se Ã¨ critico
     
     if [ "$type" = "file" ] && [ ! -f "$path" ]; then
         if [ "$critical" = "true" ]; then
@@ -116,8 +116,8 @@ fi
 # Verifica del database PostgreSQL
 print_message "Controllo del database PostgreSQL..."
 if ! systemctl is-active --quiet postgresql; then
-    print_error "PostgreSQL non è in esecuzione"
-    PROBLEMS+=("PostgreSQL non è in esecuzione")
+    print_error "PostgreSQL non Ã¨ in esecuzione"
+    PROBLEMS+=("PostgreSQL non Ã¨ in esecuzione")
 else
     # Controlla se esiste il database
     if ! sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw m4bot_db; then
@@ -146,15 +146,15 @@ if [ -d "/opt/m4bot" ]; then
         PROBLEMS+=("Permessi file non corretti")
     fi
     
-    # Controlla se m4bot.py è eseguibile
+    # Controlla se m4bot.py Ã¨ eseguibile
     if [ -f "/opt/m4bot/bot/m4bot.py" ] && [ ! -x "/opt/m4bot/bot/m4bot.py" ]; then
-        print_warning "Il file m4bot.py non è eseguibile"
+        print_warning "Il file m4bot.py non Ã¨ eseguibile"
         PROBLEMS+=("m4bot.py non eseguibile")
     fi
     
-    # Controlla se app.py è eseguibile
+    # Controlla se app.py Ã¨ eseguibile
     if [ -f "/opt/m4bot/web/app.py" ] && [ ! -x "/opt/m4bot/web/app.py" ]; then
-        print_warning "Il file app.py non è eseguibile"
+        print_warning "Il file app.py non Ã¨ eseguibile"
         PROBLEMS+=("app.py non eseguibile")
     fi
     
@@ -223,8 +223,8 @@ else
     fi
 fi
 
-# Verifica della connettività di rete
-print_message "Controllo della connettività di rete..."
+# Verifica della connettivitÃ  di rete
+print_message "Controllo della connettivitÃ  di rete..."
 if command -v curl &> /dev/null; then
     # Controlla se il server web risponde
     HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost)
@@ -235,7 +235,7 @@ if command -v curl &> /dev/null; then
         PROBLEMS+=("Server web non risponde (HTTP code: $HTTP_CODE)")
     fi
 else
-    print_warning "curl non disponibile, saltando il controllo della connettività HTTP"
+    print_warning "curl non disponibile, saltando il controllo della connettivitÃ  HTTP"
 fi
 
 # Mostra il risultato complessivo

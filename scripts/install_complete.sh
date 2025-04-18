@@ -20,10 +20,10 @@ setup_permissions() {
     chmod +x /usr/local/bin/m4bot-* 2>/dev/null || print_warning "Impossibile impostare i permessi su script di gestione"
     
     # Assicurati che le directory abbiano i permessi corretti
-    chown -R m4bot:m4bot "$INSTALL_DIR" || print_warning "Impossibile impostare la proprietà delle directory"
+    chown -R m4bot:m4bot "$INSTALL_DIR" || print_warning "Impossibile impostare la proprietÃ  delle directory"
     chmod -R 755 "$BOT_DIR" "$WEB_DIR" || print_warning "Impossibile impostare i permessi sulle directory"
     
-    # Imposta permessi più restrittivi su file sensibili
+    # Imposta permessi piÃ¹ restrittivi su file sensibili
     if [ -f "$INSTALL_DIR/.env" ]; then
         chmod 600 "$INSTALL_DIR/.env" || print_warning "Impossibile impostare i permessi sul file .env"
     fi
@@ -197,7 +197,7 @@ EOF
     # Creazione e configurazione favicon
     print_message "Creazione e configurazione favicon..."
     
-    # Verifica se ImageMagick è installato
+    # Verifica se ImageMagick Ã¨ installato
     if command -v convert &> /dev/null; then
         # Crea un'icona semplice con un robot
         print_message "Creazione del favicon..."
@@ -224,8 +224,8 @@ EOF
         
         print_success "Favicon creato con successo"
     else
-        # Creazione di un favicon SVG semplice se ImageMagick non è disponibile
-        print_message "ImageMagick non è disponibile, creazione di un favicon SVG semplice..."
+        # Creazione di un favicon SVG semplice se ImageMagick non Ã¨ disponibile
+        print_message "ImageMagick non Ã¨ disponibile, creazione di un favicon SVG semplice..."
         
         mkdir -p "$STATIC_DIR/img"
         cat > "$STATIC_DIR/img/favicon.svg" << EOF
@@ -323,7 +323,7 @@ EOF
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'features' %}active{% endif %}" href="{{ url_for('features') }}">
-                            <i class="fas fa-star nav-icon"></i>Funzionalità
+                            <i class="fas fa-star nav-icon"></i>FunzionalitÃ 
                         </a>
                     </li>
                     {% if current_user.is_authenticated %}
@@ -398,13 +398,13 @@ EOF
             <div class="row">
                 <div class="col-md-4">
                     <h5><i class="fas fa-robot me-2"></i>M4Bot</h5>
-                    <p>Il bot più completo e personalizzabile per Kick.com</p>
+                    <p>Il bot piÃ¹ completo e personalizzabile per Kick.com</p>
                 </div>
                 <div class="col-md-4">
                     <h5><i class="fas fa-link me-2"></i>Link Utili</h5>
                     <ul class="list-unstyled">
                         <li><a href="{{ url_for('index') }}" class="text-decoration-none text-white-50"><i class="fas fa-home me-2"></i>Home</a></li>
-                        <li><a href="{{ url_for('features') }}" class="text-decoration-none text-white-50"><i class="fas fa-star me-2"></i>Funzionalità</a></li>
+                        <li><a href="{{ url_for('features') }}" class="text-decoration-none text-white-50"><i class="fas fa-star me-2"></i>FunzionalitÃ </a></li>
                         <li><a href="#" class="text-decoration-none text-white-50"><i class="fas fa-book me-2"></i>Documentazione</a></li>
                         <li><a href="#" class="text-decoration-none text-white-50"><i class="fas fa-headset me-2"></i>Contatti</a></li>
                     </ul>

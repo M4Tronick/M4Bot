@@ -8,7 +8,7 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Funzioni di utilità
+# Funzioni di utilitÃ 
 print_message() {
     echo -e "${BLUE}[M4Bot]${NC} $1"
 }
@@ -41,7 +41,7 @@ print_message "====================================================="
 
 read -p "Inserisci il dominio principale (es. m4bot.it): " MAIN_DOMAIN
 if [ -z "$MAIN_DOMAIN" ]; then
-    print_error "Il dominio principale è obbligatorio" 1
+    print_error "Il dominio principale Ã¨ obbligatorio" 1
 fi
 
 # Prepara i sottodomini
@@ -54,7 +54,7 @@ print_message "Aggiunta dei sottodomini nel file .env: $DASHBOARD_DOMAIN e $CONT
 cp "$ENV_FILE" "${ENV_FILE}.backup"
 print_message "Backup creato: ${ENV_FILE}.backup"
 
-# Verifica se le variabili dei sottodomini esistono già nel file .env
+# Verifica se le variabili dei sottodomini esistono giÃ  nel file .env
 if grep -q "DASHBOARD_DOMAIN" "$ENV_FILE"; then
     # Aggiorna i valori esistenti
     sed -i "s/DASHBOARD_DOMAIN=.*/DASHBOARD_DOMAIN=$DASHBOARD_DOMAIN/" "$ENV_FILE"

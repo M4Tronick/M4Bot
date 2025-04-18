@@ -47,5 +47,5 @@ fi
 # Controlla i servizi
 check_services
 
-print_message "M4Bot è stato riavviato con successo"
-print_message "M4Bot è ora disponibile all'indirizzo https://m4bot.it" 
+print_message "M4Bot Ã¨ stato riavviato con successo"
+print_message "M4Bot Ã¨ ora disponibile all'indirizzo https://m4bot.it" 

@@ -39,7 +39,7 @@ else
     print_error "Errore durante il backup dei file di configurazione" 1
 fi
 
-# Elimina backup più vecchi di 7 giorni
+# Elimina backup piÃ¹ vecchi di 7 giorni
 print_message "Pulizia dei backup precedenti..."
 find $BACKUP_DIR -name "db_backup_*.sql" -type f -mtime +7 -delete
 find $BACKUP_DIR -name "config_backup_*.tar.gz" -type f -mtime +7 -delete

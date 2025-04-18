@@ -18,7 +18,7 @@ if systemctl is-active --quiet m4bot-bot.service; then
         print_error "Impossibile arrestare il bot" 1
     fi
 else
-    print_warning "Il servizio bot non è in esecuzione"
+    print_warning "Il servizio bot non Ã¨ in esecuzione"
 fi
 
 if systemctl is-active --quiet m4bot-web.service; then
@@ -29,7 +29,7 @@ if systemctl is-active --quiet m4bot-web.service; then
         print_error "Impossibile arrestare la web app" 1
     fi
 else
-    print_warning "Il servizio web non è in esecuzione"
+    print_warning "Il servizio web non Ã¨ in esecuzione"
 fi
 
 print_message "Tutti i servizi di M4Bot sono stati arrestati"

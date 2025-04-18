@@ -37,7 +37,7 @@ EOF
 
 # Configura il firewall UFW
 print_message "Configurazione del firewall UFW..."
-apt-get install -y ufw || print_warning "UFW già installato o impossibile installare"
+apt-get install -y ufw || print_warning "UFW giÃ  installato o impossibile installare"
 
 # Configura le regole UFW
 ufw default deny incoming
@@ -72,7 +72,7 @@ EOF
 
 # Aggiorna il sito Nginx per includere i parametri SSL rafforzati
 if [ -f /etc/nginx/sites-available/m4bot ]; then
-    # Cerca se è già configurato SSL
+    # Cerca se Ã¨ giÃ  configurato SSL
     if grep -q "ssl_certificate" /etc/nginx/sites-available/m4bot; then
         print_message "Aggiornamento della configurazione SSL di Nginx..."
         # Aggiunge l'inclusione dei parametri SSL se non presente
@@ -119,7 +119,7 @@ print_message "Riavvio dei servizi di sicurezza..."
 systemctl restart fail2ban
 
 print_success "Configurazione di sicurezza completata!"
-print_message "Il server è ora protetto con:"
+print_message "Il server Ã¨ ora protetto con:"
 print_message "- Firewall UFW"
 print_message "- Fail2ban per prevenire attacchi brute force"
 print_message "- Configurazione SSL rafforzata"
