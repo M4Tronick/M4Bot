@@ -20,6 +20,7 @@ import re
 import random
 import functools
 import uuid
+import platform
 
 import aiohttp
 from quart import Quart, render_template, request, redirect, url_for, session, jsonify, flash, websocket
@@ -27,8 +28,33 @@ from quart_cors import cors
 import asyncpg
 import bcrypt
 from dotenv import load_dotenv
-from flask_babel import Babel, gettext as _
-from babel_compat import *
+
+# Aggiungi la directory principale al path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Carica le variabili d'ambiente dal file .env
+env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+load_dotenv(env_path)
+
+# Verifica se siamo su Linux
+IS_LINUX = platform.system() == 'Linux'
+
+# Importazione di flask-babel e compatibilità
+try:
+    # Prima importa babel_compat per applicare i patch necessari
+    from babel_compat import Babel, logger as babel_logger
+    # Ora importa gettext da flask_babel
+    from flask_babel import gettext as _
+    babel_available = True
+    babel_logger.info("Flask-Babel importato correttamente")
+except ImportError as e:
+    # Fallback se flask-babel non è disponibile
+    babel_available = False
+    # Funzione fittizia per gettext
+    def _(text):
+        return text
+    logging.warning(f"Impossibile importare Flask-Babel: {e}")
+    
 import redis.asyncio as redis
 
 # Aggiungi la directory principale al path
@@ -88,8 +114,26 @@ app.secret_key = ENCRYPTION_KEY
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(16))
 app.config['BABEL_DEFAULT_LOCALE'] = 'it'
-app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations'
-babel = Babel(app)
+app.config['BABEL_DEFAULT_TIMEZONE'] = 'Europe/Rome'
+
+# Configurazione per VPS Linux - assicura percorsi assoluti
+if IS_LINUX:
+    # Correzione percorsi per traduzioni
+    translations_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'translations')
+    app.config['BABEL_TRANSLATION_DIRECTORIES'] = translations_path
+    logger.info(f"Percorso traduzioni impostato per Linux: {translations_path}")
+else:
+    app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations'
+
+# Inizializzazione di Babel con il nuovo modulo di compatibilità
+if babel_available:
+    babel = Babel(app)
+    logger.info("Babel inizializzato correttamente")
+else:
+    # Fallback se non disponibile (già definito in babel_compat)
+    from babel_compat import Babel
+    babel = Babel(app)
+    logger.warning("Flask-Babel non disponibile, utilizzando stub")
 
 # Pool di connessioni al database
 db_pool = None
@@ -353,32 +397,37 @@ def generate_state():
 
 @babel.localeselector
 async def get_locale():
-    # Aggiungi log per debug
-    logger.info(f"Richiesta lingua: parametro URL={request.args.get('lang')}, sessione={session.get('preferred_language')}")
-    
-    # Priorità: 1. Parametro URL, 2. Cookie, 3. Preferenza browser, 4. Default (it)
-    lang = request.args.get('lang')
-    if lang and lang in ['it', 'en', 'es', 'fr', 'de']:
-        # Salva la preferenza nella sessione
-        session['preferred_language'] = lang
-        logger.info(f"Lingua impostata da parametro URL: {lang}")
-        return lang
-    
-    # Verifica cookie/sessione
-    saved_lang = session.get('preferred_language')
-    if saved_lang and saved_lang in ['it', 'en', 'es', 'fr', 'de']:
-        logger.info(f"Lingua impostata da sessione: {saved_lang}")
-        return saved_lang
+    # Funzione per ottenere la lingua dell'utente
+    try:
+        # Aggiungi log per debug
+        logger.info(f"Richiesta lingua: parametro URL={request.args.get('lang')}, sessione={session.get('preferred_language')}")
         
-    # Verifica header Accept-Language
-    best_match = request.accept_languages.best_match(['it', 'en', 'es', 'fr', 'de'])
-    if best_match:
-        logger.info(f"Lingua impostata da header: {best_match}")
-        return best_match
-    
-    # Default
-    logger.info("Lingua impostata a default: it")
-    return 'it'
+        # Priorità: 1. Parametro URL, 2. Cookie, 3. Preferenza browser, 4. Default (it)
+        lang = request.args.get('lang')
+        if lang and lang in ['it', 'en', 'es', 'fr', 'de']:
+            # Salva la preferenza nella sessione
+            session['preferred_language'] = lang
+            logger.info(f"Lingua impostata da parametro URL: {lang}")
+            return lang
+        
+        # Verifica cookie/sessione
+        saved_lang = session.get('preferred_language')
+        if saved_lang and saved_lang in ['it', 'en', 'es', 'fr', 'de']:
+            logger.info(f"Lingua impostata da sessione: {saved_lang}")
+            return saved_lang
+            
+        # Verifica header Accept-Language
+        best_match = request.accept_languages.best_match(['it', 'en', 'es', 'fr', 'de'])
+        if best_match:
+            logger.info(f"Lingua impostata da header: {best_match}")
+            return best_match
+        
+        # Default
+        logger.info("Lingua impostata a default: it")
+        return 'it'
+    except Exception as e:
+        logger.error(f"Errore nella selezione della lingua: {e}")
+        return 'it'
 
 @app.context_processor
 async def inject_language_info():
@@ -1843,21 +1892,29 @@ async def server_error(e):
 
 @app.before_serving
 async def before_serving():
-    """Eseguito prima di avviare il server."""
-    # Verifica le chiavi di sicurezza
+    """Inizializzazioni prima dell'avvio del server."""
+    logger.info("Avvio delle inizializzazioni del server...")
+    
+    # Verifiche e inizializzazioni di sicurezza
     verify_security_keys()
     
-    # Inizializza le connessioni
+    # Inizializza il pool di connessioni al database
     await setup_db_pool()
+    
+    # Inizializza il client HTTP per la comunicazione con il bot
     await setup_bot_client()
+    
+    # Inizializza la connessione Redis
     await setup_redis_client()
     
-    # Avvia il task di ascolto per le notifiche Redis (WebSocket)
-    if redis_pubsub:
-        asyncio.create_task(listen_redis_messages())
+    # Avvia listener per messaggi Redis in background
+    asyncio.create_task(listen_redis_messages())
     
-    # Inizializza i plugin
-    setup_plugins(app)
+    # Inizializza il modulo di monitoraggio del sistema
+    from web.routes import system_monitoring
+    system_monitoring.init_app(app)
+    
+    logger.info("Inizializzazioni del server completate")
 
 def verify_security_keys():
     """Verifica che le chiavi di sicurezza siano correttamente impostate."""

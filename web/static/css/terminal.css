@@ -1,0 +1,109 @@
+/* Stile per il terminale SSH */
+
+.terminal-container {
+    background-color: #1e2127;
+    border-radius: 0 0 4px 4px;
+    min-height: 400px;
+    overflow: hidden;
+}
+
+#terminal {
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+}
+
+.terminal-status {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.terminal-controls {
+    display: flex;
+    align-items: center;
+}
+
+.quick-commands {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+/* Stili per le metriche di sessione */
+.session-metrics {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+    padding: 10px;
+}
+
+.session-metric {
+    text-align: center;
+}
+
+.session-metric-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-bottom: 2px;
+}
+
+.session-metric-value {
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+/* Stile per la tabella delle sessioni */
+#active-sessions .table {
+    font-size: 0.9rem;
+}
+
+/* Stile per i tooltip */
+.terminal-tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.terminal-tooltip .tooltip-text {
+    visibility: hidden;
+    width: 120px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 4px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -60px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.terminal-tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .terminal-controls {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    #host-selector {
+        margin-bottom: 10px;
+        width: 100%;
+    }
+    
+    .btn-group {
+        width: 100%;
+        display: flex;
+    }
+    
+    .btn-group .btn {
+        flex: 1;
+    }
+} 

@@ -1,859 +1,1167 @@
 /**
- * M4Bot - Main JavaScript file
- * Versione ottimizzata con transizioni fluide e miglioramenti grafici
+ * M4Bot - Main JavaScript
+ * Versione 2.0 con supporto avanzato per animazioni, interattività e
+ * migliore gestione degli eventi utente e della reattività.
  */
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Inizializzazione hardware-accelerated per elementi animati
-    document.querySelectorAll('.animated, .transition-element').forEach(el => {
-        el.classList.add('hardware-accelerated');
-    });
-
-    // Enable tooltips with improved animation
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl, {
-            animation: true,
-            delay: { show: 200, hide: 100 }
-        });
-    });
-
-    // Enable popovers with improved animation
-    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
-    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
-        return new bootstrap.Popover(popoverTriggerEl, {
-            animation: true,
-            delay: { show: 200, hide: 100 }
-        });
-    });
-
-    // Auto-hide alerts after 5 seconds with smooth fade
-    setTimeout(function() {
-        var alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
-        alerts.forEach(function(alert) {
-            alert.classList.add('fade-out');
-            setTimeout(() => {
-                var bsAlert = new bootstrap.Alert(alert);
-                bsAlert.close();
-            }, 500);
-        });
-    }, 5000);
-
-    // Command edit functionality with smooth scroll
-    const editButtons = document.querySelectorAll('.edit-command');
-    if (editButtons) {
-        editButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const id = this.getAttribute('data-id');
-                const name = this.getAttribute('data-name');
-                const response = this.getAttribute('data-response');
-                const cooldown = this.getAttribute('data-cooldown');
-                const userLevel = this.getAttribute('data-user-level');
-                
-                // Update form fields with subtle animation
-                const nameField = document.getElementById('name');
-                const responseField = document.getElementById('response');
-                const cooldownField = document.getElementById('cooldown');
-                
-                if (nameField && responseField && cooldownField) {
-                    nameField.value = name;
-                    responseField.value = response;
-                    cooldownField.value = cooldown;
-                    
-                    // Apply highlight effect
-                    [nameField, responseField, cooldownField].forEach(field => {
-                        field.classList.add('highlight-update');
-                        setTimeout(() => field.classList.remove('highlight-update'), 1000);
-                    });
-                }
-                
-                const userLevelSelect = document.getElementById('user_level');
-                if (userLevelSelect) {
-                    userLevelSelect.value = userLevel;
-                }
-                
-                // Scroll to form with improved smoothness
-                const commandForm = document.querySelector('.card-header');
-                if (commandForm) {
-                    commandForm.scrollIntoView({ 
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
-    }
-
-    // Helper function to make standardized API calls with improved error handling
-    async function callApi(endpoint, method = 'GET', data = null, showLoader = true) {
-        try {
-            if (showLoader) {
-                showLoader();
-            }
-            
-            const options = {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                credentials: 'same-origin'
-            };
-            
-            if (data) {
-                options.body = JSON.stringify(data);
-            }
-            
-            const response = await fetch(endpoint, options);
-            
-            // Handle non-JSON responses
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                const responseData = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(responseData.error || 'Si è verificato un errore nella richiesta');
-                }
-                
-                return responseData;
-            } else {
-                // Handle non-JSON responses
-                if (!response.ok) {
-                    throw new Error('Si è verificato un errore nella richiesta');
-                }
-                
-                return { success: true, message: 'Operazione completata' };
-            }
-        } catch (error) {
-            console.error('API Error:', error);
-            showToast('Errore', error.message, 'danger');
-            throw error;
-        } finally {
-            if (showLoader) {
-                hideLoader();
-            }
+// IIFE per incapsulare il codice
+(function() {
+    // Costanti configurabili
+    const CONFIG = {
+        animations: {
+            enabled: true,
+            duration: {
+                short: 150,
+                medium: 300,
+                long: 500
+            },
+            timing: 'cubic-bezier(0.4, 0, 0.2, 1)'
+        },
+        sidebar: {
+            collapseBreakpoint: 992, // Breakpoint per collassare sidebar (px)
+            swipeThreshold: 50      // Soglia per swipe gesture (px)
+        },
+        scrolling: {
+            smoothScroll: true,
+            scrollOffset: 70,      // Offset per evitare che header copra il contenuto
+            scrollSmoothing: 'smooth'
+        },
+        feedback: {
+            enabled: true,
+            haptic: true          // Vibrazione per feedback tattile
+        },
+        performance: {
+            idleTimeout: 90000,    // 1.5 minuti in ms
+            lazyLoadThreshold: 200 // Distanza in px per lazy loading 
         }
-    }
+    };
 
-    // Handle API calls for bot start/stop with improved feedback
-    const apiButtons = document.querySelectorAll('.api-action');
-    if (apiButtons) {
-        apiButtons.forEach(button => {
-            button.addEventListener('click', async function() {
-                const action = this.getAttribute('data-action');
-                const channelId = this.getAttribute('data-channel');
-                const endpoint = `/api/bot/${action}`;
-                
-                // Check if button is already in progress
-                if (this.classList.contains('in-progress')) {
-                    return;
-                }
-                
-                try {
-                    // Show spinner and prevent double-clicks
-                    this.classList.add('in-progress');
-                    this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> In corso...';
-                    this.disabled = true;
-                    
-                    const data = await callApi(endpoint, 'POST', { channel_id: channelId }, false);
-                    
-                    // Show success message
-                    showToast('Successo', data.message, 'success');
-                    
-                    // Update UI status indicators if present
-                    const statusIndicator = document.querySelector(`.status-indicator[data-channel="${channelId}"]`);
-                    if (statusIndicator) {
-                        if (action === 'start') {
-                            statusIndicator.className = 'status-indicator active';
-                            statusIndicator.innerHTML = '<i class="fas fa-circle text-success"></i> Attivo';
-                        } else {
-                            statusIndicator.className = 'status-indicator inactive';
-                            statusIndicator.innerHTML = '<i class="fas fa-circle text-danger"></i> Inattivo';
-                        }
-                        
-                        // Animate status change
-                        statusIndicator.classList.add('status-changed');
-                        setTimeout(() => statusIndicator.classList.remove('status-changed'), 1000);
-                    }
-                } catch (error) {
-                    // Error handling is done in the callApi function
-                } finally {
-                    // Reset button state
-                    this.classList.remove('in-progress');
-                    this.disabled = false;
-                    if (action === 'start') {
-                        this.innerHTML = '<i class="fas fa-play-circle me-2"></i>Avvia Bot';
-                    } else {
-                        this.innerHTML = '<i class="fas fa-stop-circle me-2"></i>Ferma Bot';
+    // Cache per gli elementi DOM frequentemente utilizzati
+    const DOM = {
+        body: document.body,
+        sidebar: document.querySelector('.sidebar'),
+        sidebarToggle: document.querySelector('.sidebar-toggle'),
+        toTopButton: document.getElementById('to-top-button'),
+        loadingOverlay: document.getElementById('loading-overlay'),
+        actionFeedback: document.getElementById('action-feedback'),
+        scrollElements: document.querySelectorAll('[data-scroll]'),
+        parallaxElements: document.querySelectorAll('.parallax-element'),
+        staggeredElements: document.querySelectorAll('.stagger-items'),
+        revealElements: document.querySelectorAll('.reveal-on-scroll'),
+        root: document.documentElement
+    };
+
+    // Stato dell'applicazione
+    const state = {
+        sidebarOpen: window.innerWidth >= CONFIG.sidebar.collapseBreakpoint,
+        serverPingMs: null,
+        isOnline: navigator.onLine,
+        touchStartX: 0,
+        touchEndX: 0,
+        isIdle: false,
+        isPageVisible: true,
+        scrollPosition: 0,
+        hasFocus: true
+    };
+
+    /**
+     * Classe principale per gestire l'app
+     */
+    class AppManager {
+        constructor() {
+            this.initializeApp();
+            this.setupEventListeners();
+        }
+
+        /**
+         * Inizializza l'applicazione
+         */
+        initializeApp() {
+            // Imposta lo stato iniziale della sidebar
+            this.updateSidebarState(state.sidebarOpen, false);
+
+            // Inizializza i componenti UI principali
+            this.initializeUIComponents();
+
+            // Controlla connettività
+            this.updateConnectionStatus();
+
+            // Verifica compatibilità browser avanzate
+            this.checkBrowserCapabilities();
+
+            // Polling del server ping (heartbeat)
+            this.startServerPing();
+
+            // Imposta stato responsivo
+            this.handleResponsiveLayout();
+
+            // Rimuovi loading overlay
+            this.hideLoadingOverlay();
+
+            // Inizializza lazy loading
+            this.initializeLazyLoading();
+
+            // Aggiungi detector idle
+            this.setupIdleDetection();
+
+            console.log('M4Bot App initialized successfully');
+        }
+
+        /**
+         * Nasconde l'overlay di caricamento con animazione
+         */
+        hideLoadingOverlay() {
+            if (!DOM.loadingOverlay) return;
+
+            // Aggiungi classe per attivare animazione
+            DOM.loadingOverlay.classList.add('fade-out');
+
+            // Rimuovi dopo animazione
+            setTimeout(() => {
+                DOM.loadingOverlay.style.display = 'none';
+                DOM.loadingOverlay.classList.remove('fade-out');
+            }, CONFIG.animations.duration.medium);
+        }
+
+        /**
+         * Inizializza componenti UI principali
+         */
+        initializeUIComponents() {
+            // Inizializza tooltip bootstrap
+            const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            if (tooltips.length > 0) {
+                [...tooltips].map(tooltip => new bootstrap.Tooltip(tooltip));
+            }
+
+            // Inizializza popovers bootstrap
+            const popovers = document.querySelectorAll('[data-bs-toggle="popover"]');
+            if (popovers.length > 0) {
+                [...popovers].map(popover => new bootstrap.Popover(popover));
+            }
+
+            // Attiva animazioni elementi 
+            this.setupAnimations();
+        }
+
+        /**
+         * Configura gestori degli eventi
+         */
+        setupEventListeners() {
+            // Toggle sidebar
+            if (DOM.sidebarToggle) {
+                DOM.sidebarToggle.addEventListener('click', () => {
+                    this.toggleSidebar();
+                });
+            }
+
+            // Chiusura sidebar con click fuori
+            document.addEventListener('click', (e) => {
+                if (state.sidebarOpen && window.innerWidth < CONFIG.sidebar.collapseBreakpoint) {
+                    if (DOM.sidebar && !DOM.sidebar.contains(e.target) && 
+                        DOM.sidebarToggle && !DOM.sidebarToggle.contains(e.target)) {
+                        this.updateSidebarState(false);
                     }
                 }
             });
-        });
-    }
 
-    // Dark mode toggle with smooth transition
-    const darkModeToggle = document.getElementById('darkModeToggle');
-    if (darkModeToggle) {
-        // Check if dark mode is enabled in localStorage
-        const isDarkMode = localStorage.getItem('darkMode') === 'true';
-        
-        // Set initial theme
-        if (isDarkMode) {
-            document.documentElement.setAttribute('data-bs-theme', 'dark');
-            darkModeToggle.checked = true;
-        }
-        
-        // Add transition class to body for smooth theme change
-        document.body.classList.add('theme-transition');
-        
-        // Handle theme toggle
-        darkModeToggle.addEventListener('change', function() {
-            // Add transition class for animation
-            document.body.classList.add('theme-changing');
-            
-            if (this.checked) {
-                document.documentElement.setAttribute('data-bs-theme', 'dark');
-                localStorage.setItem('darkMode', 'true');
-            } else {
-                document.documentElement.setAttribute('data-bs-theme', 'light');
-                localStorage.setItem('darkMode', 'false');
+            // Pulsante torna in cima
+            if (DOM.toTopButton) {
+                DOM.toTopButton.addEventListener('click', () => {
+                    this.scrollToTop();
+                });
             }
-            
-            // Remove transition class after animation completes
-            setTimeout(() => {
-                document.body.classList.remove('theme-changing');
-            }, 500);
+
+            // Scroll handler
+            window.addEventListener('scroll', this.handleScroll.bind(this), { passive: true });
+
+            // Resize handler
+            window.addEventListener('resize', this.debounce(() => {
+                this.handleResponsiveLayout();
+            }, 250));
+
+            // Touch handlers
+            document.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: true });
+            document.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: true });
+
+            // Connection status handlers
+            window.addEventListener('online', this.updateConnectionStatus.bind(this));
+            window.addEventListener('offline', this.updateConnectionStatus.bind(this));
+
+            // Gestione visibilità pagina e focus
+            document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
+            window.addEventListener('focus', this.handleFocus.bind(this));
+            window.addEventListener('blur', this.handleBlur.bind(this));
+
+            // Rileva stili preferiti dall'utente
+            this.detectUserPreferences();
+
+            // Event handlers per link con hash
+            document.querySelectorAll('a[href^="#"]:not([href="#"])').forEach(anchor => {
+                anchor.addEventListener('click', (e) => {
+                    this.handleHashLinkClick(e);
+            });
         });
-    }
 
-    // Function to show loader during API requests with improved animation
-    function showLoader() {
-        // Create overlay element for the loader
-        const overlay = document.createElement('div');
-        overlay.className = 'spinner-overlay hardware-accelerated';
-        overlay.id = 'loadingSpinner';
-        
-        // Create spinner container
-        const spinnerContainer = document.createElement('div');
-        spinnerContainer.className = 'spinner-container';
-        
-        // Create spinner
-        const spinner = document.createElement('div');
-        spinner.className = 'spinner-border text-primary';
-        spinner.setAttribute('role', 'status');
-        
-        // Create text
-        const spinnerText = document.createElement('span');
-        spinnerText.className = 'visually-hidden';
-        spinnerText.textContent = 'Caricamento...';
-        
-        // Add message below spinner
-        const message = document.createElement('p');
-        message.className = 'mt-2';
-        message.textContent = 'Caricamento in corso...';
-        
-        // Assemble elements
-        spinner.appendChild(spinnerText);
-        spinnerContainer.appendChild(spinner);
-        spinnerContainer.appendChild(message);
-        overlay.appendChild(spinnerContainer);
-        
-        // Add overlay to body with fade-in effect
-        document.body.appendChild(overlay);
-        
-        // Trigger animation
-        setTimeout(() => overlay.classList.add('visible'), 10);
-    }
+            // Click handler per pulsanti azione
+            document.querySelectorAll('[data-action]').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    this.handleActionButton(e);
+                });
+            });
 
-    // Function to hide loader with fade out effect
-    function hideLoader() {
-        const loader = document.getElementById('loadingSpinner');
-        if (loader) {
-            // Add fade-out class
-            loader.classList.remove('visible');
-            
-            // Remove element after animation completes
-            setTimeout(() => {
-                if (loader.parentNode) {
-                    loader.parentNode.removeChild(loader);
-                }
-            }, 300);
+            // Intercetta submit forms per validation
+            document.querySelectorAll('form:not([data-novalidate])').forEach(form => {
+                form.addEventListener('submit', (e) => {
+                    this.handleFormSubmit(e);
+                });
+            });
         }
-    }
 
-    // Form validation for command form with improved user feedback
-    const commandForm = document.getElementById('commandForm');
-    if (commandForm) {
-        commandForm.addEventListener('submit', function(e) {
-            // Validate form
-            const commandName = document.getElementById('commandName');
+        /**
+         * Gestione click su link con hash
+         */
+        handleHashLinkClick(e) {
+            const href = e.currentTarget.getAttribute('href');
+            const targetElement = document.querySelector(href);
             
-            if (commandName && !commandName.value.startsWith('!')) {
+            if (targetElement) {
                 e.preventDefault();
                 
-                // Highlight field with error
-                commandName.classList.add('is-invalid');
+                // Calcola offset per scorrimento
+                const headerOffset = CONFIG.scrolling.scrollOffset;
+                const elementPosition = targetElement.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.scrollY - headerOffset;
                 
-                // Add error message
-                let feedbackElement = commandName.nextElementSibling;
-                if (!feedbackElement || !feedbackElement.classList.contains('invalid-feedback')) {
-                    feedbackElement = document.createElement('div');
-                    feedbackElement.className = 'invalid-feedback';
-                    commandName.parentNode.insertBefore(feedbackElement, commandName.nextSibling);
-                }
-                feedbackElement.textContent = 'Il nome del comando deve iniziare con !';
-                
-                // Show toast with shake animation
-                showToast('Errore', 'Il nome del comando deve iniziare con !', 'danger');
-                
-                // Focus field
-                commandName.focus();
-                
-                return false;
-            }
-            
-            // Show loader
-            showLoader();
-            return true;
-        });
-    }
-
-    // Function to confirm deletion with improved modal
-    function confirmDelete(event, message) {
-        event.preventDefault();
-        
-        // Use custom modal instead of browser confirm
-        const modalId = 'confirmDeleteModal';
-        let modal = document.getElementById(modalId);
-        
-        // Create modal if it doesn't exist
-        if (!modal) {
-            const modalHTML = `
-            <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-header bg-danger text-white">
-                            <h5 class="modal-title" id="confirmDeleteModalLabel">Conferma eliminazione</h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <p id="confirmDeleteModalMessage"></p>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
-                            <button type="button" class="btn btn-danger" id="confirmDeleteButton">Elimina</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            `;
-            
-            document.body.insertAdjacentHTML('beforeend', modalHTML);
-            modal = document.getElementById(modalId);
-        }
-        
-        // Set message
-        document.getElementById('confirmDeleteModalMessage').textContent = message || 'Sei sicuro di voler eliminare questo elemento? Questa azione non può essere annullata.';
-        
-        // Store the source element for later use
-        const sourceElement = event.currentTarget;
-        
-        // Get original form action or link href
-        let originalAction;
-        if (sourceElement.tagName === 'A') {
-            originalAction = sourceElement.getAttribute('href');
-        } else if (sourceElement.closest('form')) {
-            originalAction = sourceElement.closest('form').getAttribute('action');
-        }
-        
-        // Open modal
-        const modalInstance = new bootstrap.Modal(modal);
-        modalInstance.show();
-        
-        // Handle confirm button
-        const confirmButton = document.getElementById('confirmDeleteButton');
-        
-        // Remove existing event listeners
-        const newConfirmButton = confirmButton.cloneNode(true);
-        confirmButton.parentNode.replaceChild(newConfirmButton, confirmButton);
-        
-        // Add new event listener
-        newConfirmButton.addEventListener('click', function() {
-            if (sourceElement.tagName === 'A') {
-                window.location.href = originalAction;
-            } else if (sourceElement.closest('form')) {
-                sourceElement.closest('form').submit();
-            }
-            modalInstance.hide();
-        });
-        
-        return false;
-    }
-
-    // Add listeners to all delete buttons
-    const deleteButtons = document.querySelectorAll('.delete-btn');
-    deleteButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            return confirmDelete(e, 'Sei sicuro di voler eliminare questo elemento? Questa azione non può essere annullata.');
-        });
-    });
-
-    // Initialize statistics charts with smooth animations
-    const statisticsCharts = document.querySelectorAll('.statistics-chart');
-    statisticsCharts.forEach(chartCanvas => {
-        const ctx = chartCanvas.getContext('2d');
-        
-        // Get data from data-attribute
-        const chartData = JSON.parse(chartCanvas.dataset.chartData || '{}');
-        const chartType = chartCanvas.dataset.chartType || 'line';
-        
-        // Chart configuration with improved animation
-        const chartConfig = {
-            type: chartType,
-            data: {
-                labels: chartData.labels || [],
-                datasets: [{
-                    label: chartData.label || 'Data',
-                    data: chartData.data || [],
-                    backgroundColor: 'rgba(138, 67, 204, 0.2)',
-                    borderColor: 'rgba(138, 67, 204, 1)',
-                    borderWidth: 1,
-                    tension: 0.4, // Smoother curves for line charts
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: {
-                    duration: 1000,
-                    easing: 'easeOutQuart'
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            drawBorder: false
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        labels: {
-                            usePointStyle: true,
-                            padding: 20
-                        }
-                    },
-                    tooltip: {
-                        enabled: true,
-                        mode: 'index',
-                        intersect: false,
-                        animation: {
-                            duration: 100
-                        },
-                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                        padding: 10,
-                        cornerRadius: 4
-                    }
-                },
-                interaction: {
-                    mode: 'nearest',
-                    axis: 'x',
-                    intersect: false
-                }
-            }
-        };
-        
-        // Create chart
-        new Chart(ctx, chartConfig);
-    });
-    
-    // Command toggle switch handler with improved feedback
-    const commandToggleSwitches = document.querySelectorAll('.command-toggle');
-    commandToggleSwitches.forEach(toggle => {
-        toggle.addEventListener('change', function() {
-            const commandId = this.dataset.commandId;
-            const commandName = this.dataset.commandName || 'Comando';
-            const form = document.getElementById(`toggleForm_${commandId}`);
-            
-            // Apply visual feedback
-            const label = this.closest('label');
-            if (label) {
-                label.classList.add('toggle-animate');
-                setTimeout(() => label.classList.remove('toggle-animate'), 500);
-            }
-            
-            if (form) {
-                // Show micro-loader
-                const loaderElement = document.createElement('span');
-                loaderElement.className = 'toggle-loader';
-                loaderElement.innerHTML = '<span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>';
-                
-                this.parentNode.appendChild(loaderElement);
-                
-                // Submit form
-                form.submit();
-                
-                // Show toast
-                const status = this.checked ? 'attivato' : 'disattivato';
-                showToast('Comando aggiornato', `${commandName} è stato ${status}`, 'info');
-            }
-        });
-    });
-    
-    // Copy to clipboard function with better feedback
-    function copyToClipboard(text) {
-        // Use modern clipboard API if available
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            return navigator.clipboard.writeText(text)
-                .catch(error => {
-                    console.error('Clipboard API error:', error);
-                    // Fallback to older method
-                    fallbackCopyToClipboard(text);
+                // Scorri alla posizione
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: CONFIG.scrolling.scrollSmoothing
                 });
-        } else {
-            // Fallback for browsers that don't support clipboard API
-            fallbackCopyToClipboard(text);
-        }
-    }
-    
-    // Fallback copy method
-    function fallbackCopyToClipboard(text) {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-    }
-    
-    // Add listeners to copy buttons with improved feedback
-    const copyButtons = document.querySelectorAll('.copy-btn');
-    copyButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const textToCopy = this.dataset.copyText;
-            copyToClipboard(textToCopy);
-            
-            // User feedback with animation
-            const originalText = this.innerHTML;
-            const originalClass = this.className;
-            
-            this.innerHTML = '<i class="fas fa-check"></i> Copiato!';
-            this.className = originalClass + ' copy-success pulse-effect';
-            
-            setTimeout(() => {
-                this.innerHTML = originalText;
-                this.className = originalClass;
-            }, 2000);
-        });
-    });
-    
-    // Initialize sidebar collapse with smooth transition
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    const sidebarElement = document.querySelector('.sidebar');
-    
-    if (sidebarToggle && sidebarElement) {
-        // Add smooth transition class
-        sidebarElement.classList.add('transition-enabled');
-        
-        sidebarToggle.addEventListener('click', function() {
-            document.body.classList.toggle('sidebar-collapsed');
-            
-            // Save state in localStorage
-            const isCollapsed = document.body.classList.contains('sidebar-collapsed');
-            localStorage.setItem('sidebarCollapsed', isCollapsed);
-            
-            // Add animation class
-            sidebarElement.classList.add('animating');
-            setTimeout(() => sidebarElement.classList.remove('animating'), 300);
-        });
-        
-        // Restore sidebar state from localStorage
-        const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-        if (isCollapsed) {
-            document.body.classList.add('sidebar-collapsed');
-        }
-    }
-    
-    // Fix navigation links - ensure all links are valid
-    document.querySelectorAll('a[href]:not([href^="#"]):not([href^="mailto:"]):not([href^="tel:"]):not([href^="http"]):not([href^="https"])').forEach(link => {
-        // Check for links missing leading slash
-        if (link.getAttribute('href') && !link.getAttribute('href').startsWith('/') && !link.getAttribute('href').startsWith('./')) {
-            link.setAttribute('href', '/' + link.getAttribute('href'));
-        }
-        
-        // Add active class to current page links
-        if (link.getAttribute('href') === window.location.pathname || 
-            link.getAttribute('href') === window.location.pathname + window.location.search) {
-            link.classList.add('active');
-            
-            // Also add active class to parent list item if in a navbar
-            const parentLi = link.closest('li');
-            if (parentLi) {
-                parentLi.classList.add('active');
                 
-                // If in a dropdown, also activate the dropdown toggle
-                const dropdownMenu = parentLi.closest('.dropdown-menu');
-                if (dropdownMenu) {
-                    const dropdownToggle = document.querySelector(`[data-bs-toggle="dropdown"][aria-expanded="false"][data-bs-auto-close]`);
-                    if (dropdownToggle) {
-                        dropdownToggle.classList.add('active');
+                // Focus su elemento per a11y
+                targetElement.setAttribute('tabindex', '-1');
+                targetElement.focus({ preventScroll: true });
+                
+                // Aggiorna URL con hash
+                history.pushState(null, null, href);
+            }
+        }
+
+        /**
+         * Gestisce il submit dei form
+         */
+        handleFormSubmit(e) {
+            const form = e.currentTarget;
+            
+            // Se il form non è valido, impediamo submit
+            if (!form.checkValidity()) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Aggiungi classe per attivare stile validazione
+                form.classList.add('was-validated');
+                
+                // Trova primo elemento non valido e fai focus
+                const invalidField = form.querySelector(':invalid');
+                if (invalidField) {
+                    invalidField.focus();
+                    
+                    // Feedback visivo
+                    this.showFeedback('error', 'Verifica i campi evidenziati');
+                }
+            } else {
+                if (form.hasAttribute('data-confirm')) {
+                    const confirmMsg = form.getAttribute('data-confirm') || 'Sei sicuro di voler procedere?';
+                    
+                    if (!confirm(confirmMsg)) {
+                        e.preventDefault();
+                    }
+                }
+                
+                // Disabilita form durante submit per evitare multi-submit
+                if (!form.hasAttribute('data-no-disable')) {
+                    const submitBtn = form.querySelector('[type="submit"]');
+                    if (submitBtn) {
+                        const originalText = submitBtn.innerText;
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Elaborazione...';
+                        
+                        // Riabilita dopo timeout (fallback se AJAX non completa)
+            setTimeout(() => {
+                            submitBtn.disabled = false;
+                            submitBtn.innerText = originalText;
+                        }, 5000);
                     }
                 }
             }
         }
-    });
-    
-    // Initialize page transitions
-    document.addEventListener('click', function(e) {
-        // Only process links that navigate within the site
-        const link = e.target.closest('a');
-        if (link && link.getAttribute('href') && 
-            !link.getAttribute('href').startsWith('#') && 
-            !link.getAttribute('href').startsWith('http') && 
-            !link.getAttribute('href').startsWith('mailto:') &&
-            !link.getAttribute('href').startsWith('tel:') &&
-            !link.hasAttribute('download') &&
-            !link.hasAttribute('target') &&
-            !e.ctrlKey && !e.metaKey) {
+
+        /**
+         * Gestisce click sui pulsanti azione
+         */
+        handleActionButton(e) {
+            const button = e.currentTarget;
+            const action = button.getAttribute('data-action');
             
-            e.preventDefault();
+            if (!action) return;
             
-            // Add page transition effect
-            document.body.classList.add('page-transition-out');
+            // Feedback visivo
+            this.showClickFeedback(e);
             
-            // Navigate after transition
-            setTimeout(() => {
-                window.location.href = link.href;
-            }, 300);
+            // Esegui azione corrispondente
+            switch (action) {
+                case 'toggle-sidebar':
+                    this.toggleSidebar();
+                    break;
+                    
+                case 'toggle-theme':
+                    if (window.toggleTheme) window.toggleTheme();
+                    break;
+                    
+                case 'refresh':
+                    this.refreshCurrentContent();
+                    break;
+                    
+                case 'back':
+                    history.back();
+                    break;
+                    
+                case 'toggle-notifications':
+                    this.toggleNotificationsPanel();
+                    break;
+                    
+                default:
+                    // Azioni personalizzate - emetti un evento personalizzato
+                    const customEvent = new CustomEvent('actionTriggered', {
+                        detail: { action, element: button }
+                    });
+                    document.dispatchEvent(customEvent);
+                    break;
+            }
         }
-    });
-    
-    // Add page-in transition class on load
-    document.body.classList.add('page-transition-in');
-    
-    // Remove transition class after animation completes
-    setTimeout(() => {
-        document.body.classList.remove('page-transition-in');
-    }, 500);
 
-    registerNotificationHandlers();
-});
+        /**
+         * Rileva preferenze utente
+         */
+        detectUserPreferences() {
+            // Rileva preference per riduzione movimento
+            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+            
+            const handleMotionPreference = (e) => {
+                CONFIG.animations.enabled = !e.matches;
+                document.documentElement.classList.toggle('reduced-motion', e.matches);
+            };
+            
+            // Imposta valore iniziale
+            handleMotionPreference(prefersReducedMotion);
+            
+            // Aggiungi listener per cambiamenti
+            prefersReducedMotion.addEventListener('change', handleMotionPreference);
+            
+            // Rileva preferenza contrasto
+            const prefersHighContrast = window.matchMedia('(prefers-contrast: more)');
+            
+            const handleContrastPreference = (e) => {
+                document.documentElement.classList.toggle('high-contrast', e.matches);
+            };
+            
+            // Imposta valore iniziale
+            handleContrastPreference(prefersHighContrast);
+            
+            // Aggiungi listener per cambiamenti
+            prefersHighContrast.addEventListener('change', handleContrastPreference);
+        }
 
-// Helper function to show toasts with improved animations
-function showToast(title, message, type) {
-    const toastContainer = document.getElementById('toast-container');
-    if (!toastContainer) {
-        // Create toast container if it doesn't exist
-        const container = document.createElement('div');
-        container.id = 'toast-container';
-        container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-        document.body.appendChild(container);
-    }
-    
-    const toastId = 'toast-' + Date.now();
-    const typeIcon = {
-        'success': '<i class="fas fa-check-circle me-2"></i>',
-        'danger': '<i class="fas fa-exclamation-circle me-2"></i>',
-        'warning': '<i class="fas fa-exclamation-triangle me-2"></i>',
-        'info': '<i class="fas fa-info-circle me-2"></i>'
-    };
-    
-    const icon = typeIcon[type] || '';
-    
-    const html = `
-    <div id="${toastId}" class="toast hardware-accelerated" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header bg-${type} text-white">
-            <strong class="me-auto">${icon}${title}</strong>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
+        /**
+         * Gestisce cambio stato visibilità pagina
+         */
+        handleVisibilityChange() {
+            state.isPageVisible = document.visibilityState === 'visible';
+            
+            if (state.isPageVisible) {
+                // Ripristina polling per dati in tempo reale
+                this.resumePolling();
+            } else {
+                // Sospendi polling 
+                this.pausePolling();
+            }
+        }
+
+        /**
+         * Gestisce focus sulla finestra
+         */
+        handleFocus() {
+            state.hasFocus = true;
+            // Riprendi attività in background
+            this.resumeBackgroundTasks();
+        }
+
+        /**
+         * Gestisce perdita focus sulla finestra
+         */
+        handleBlur() {
+            state.hasFocus = false;
+            // Sospendi attività pesanti per risparmiare batteria
+            this.pauseBackgroundTasks();
+        }
+
+        /**
+         * Pausa task in background
+         */
+        pauseBackgroundTasks() {
+            if (window.pollingIntervals) {
+                Object.keys(window.pollingIntervals).forEach(key => {
+                    clearInterval(window.pollingIntervals[key]);
+                });
+            }
+        }
+
+        /**
+         * Riprende task in background
+         */
+        resumeBackgroundTasks() {
+            // Implementazione specifica per attività da ripristinare
+            this.startServerPing();
+        }
+
+        /**
+         * Pausa polling dati
+         */
+        pausePolling() {
+            if (window.pingInterval) {
+                clearInterval(window.pingInterval);
+            }
+        }
+
+        /**
+         * Riprende polling dati
+         */
+        resumePolling() {
+            this.startServerPing();
+        }
+
+        /**
+         * Imposta detection per stato idle
+         */
+        setupIdleDetection() {
+            // Lista eventi che resettano lo stato idle
+            const resetEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+            
+            // Timer per stato idle
+            let idleTimer = null;
+            
+            // Funzione per resettare timer idle
+            const resetIdleTimer = () => {
+                if (idleTimer) {
+                    clearTimeout(idleTimer);
+                }
+                
+                // Se era in stato idle, ripristina
+                if (state.isIdle) {
+                    state.isIdle = false;
+                    this.handleActiveStateChange(true);
+                }
+                
+                // Imposta nuovo timer
+                idleTimer = setTimeout(() => {
+                    state.isIdle = true;
+                    this.handleActiveStateChange(false);
+                }, CONFIG.performance.idleTimeout);
+            };
+            
+            // Aggiungi listener per ogni evento che resetta lo stato idle
+            resetEvents.forEach(eventName => {
+                document.addEventListener(eventName, resetIdleTimer, { passive: true });
+            });
+            
+            // Inizializza timer
+            resetIdleTimer();
+        }
+
+        /**
+         * Gestisce cambio di stato attivo/idle
+         */
+        handleActiveStateChange(isActive) {
+            if (isActive) {
+                // L'utente è tornato attivo
+                DOM.body.classList.remove('user-idle');
+                
+                // Riprendi attività intensive
+                this.resumeIntensiveTasks();
+            } else {
+                // L'utente è diventato idle
+                DOM.body.classList.add('user-idle');
+                
+                // Sospendi attività intensive per preservare CPU e batteria
+                this.suspendIntensiveTasks();
+            }
+        }
+
+        /**
+         * Sospende attività intensive
+         */
+        suspendIntensiveTasks() {
+            // Sospendi animazioni e polling frequente
+            document.documentElement.classList.add('reduce-animations');
+            
+            // Sospendi worker e task di background
+            if (window.backgroundWorkers) {
+                Object.values(window.backgroundWorkers).forEach(worker => {
+                    worker.postMessage({ action: 'suspend' });
+                });
+            }
+        }
+
+        /**
+         * Riprende attività intensive
+         */
+        resumeIntensiveTasks() {
+            // Ripristina animazioni
+            document.documentElement.classList.remove('reduce-animations');
+            
+            // Ripristina worker e task di background
+            if (window.backgroundWorkers) {
+                Object.values(window.backgroundWorkers).forEach(worker => {
+                    worker.postMessage({ action: 'resume' });
+                });
+            }
+        }
+
+        /**
+         * Inizializza lazy loading per immagini e contenuti
+         */
+        initializeLazyLoading() {
+            // Utilizza IntersectionObserver se disponibile
+            if (!('IntersectionObserver' in window)) return;
+            
+            // Osserva immagini con attributo data-src
+            const lazyImages = document.querySelectorAll('img[data-src], video[data-src]');
+            if (lazyImages.length > 0) {
+                const imageObserver = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const element = entry.target;
+                            
+                            element.src = element.getAttribute('data-src');
+                            
+                            if (element.getAttribute('data-srcset')) {
+                                element.srcset = element.getAttribute('data-srcset');
+                            }
+                            
+                            element.classList.add('loaded');
+                            imageObserver.unobserve(element);
+                        }
+                    });
+                }, {
+                    rootMargin: `${CONFIG.performance.lazyLoadThreshold}px 0px`,
+                    threshold: 0.01
+                });
+                
+                lazyImages.forEach(image => {
+                    imageObserver.observe(image);
+                });
+            }
+            
+            // Osserva elementi con contenuto lazy (iframes, componenti pesanti)
+            const lazyContents = document.querySelectorAll('[data-lazy-load]');
+            if (lazyContents.length > 0) {
+                const contentObserver = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const element = entry.target;
+                            const contentType = element.getAttribute('data-lazy-load');
+                            
+                            switch(contentType) {
+                                case 'iframe':
+                                    this.loadLazyIframe(element);
+                                    break;
+                                case 'component':
+                                    this.loadLazyComponent(element);
+                                    break;
+                                default:
+                                    console.warn('Unknown lazy load type:', contentType);
+                            }
+                            
+                            contentObserver.unobserve(element);
+                        }
+                    });
+                }, {
+                    rootMargin: `${CONFIG.performance.lazyLoadThreshold}px 0px`,
+                    threshold: 0.01
+                });
+                
+                lazyContents.forEach(content => {
+                    contentObserver.observe(content);
+                });
+            }
+        }
+
+        /**
+         * Carica iframe in modo lazy
+         */
+        loadLazyIframe(container) {
+            const src = container.getAttribute('data-src');
+            if (!src) return;
+            
+            const iframe = document.createElement('iframe');
+            
+            // Copia attributi
+            const attributes = container.getAttributeNames()
+                .filter(name => name.startsWith('data-iframe-'))
+                .map(name => ({
+                    key: name.replace('data-iframe-', ''),
+                    value: container.getAttribute(name)
+                }));
+            
+            // Imposta src e altri attributi
+            iframe.src = src;
+            attributes.forEach(attr => {
+                iframe.setAttribute(attr.key, attr.value);
+            });
+            
+            // Sostituisci placeholder
+            container.innerHTML = '';
+            container.appendChild(iframe);
+            container.classList.add('loaded');
+        }
+
+        /**
+         * Carica componente in modo lazy
+         */
+        loadLazyComponent(container) {
+            const component = container.getAttribute('data-component');
+            if (!component) return;
+            
+            // Carica contenuto 
+            fetch(`/api/components/${component}`)
+                .then(response => response.text())
+                .then(html => {
+                    container.innerHTML = html;
+                    container.classList.add('loaded');
+                    
+                    // Inizializza eventuali script
+                    const scripts = container.querySelectorAll('script');
+                    scripts.forEach(oldScript => {
+                        const newScript = document.createElement('script');
+                        
+                        // Copia attributi
+                        Array.from(oldScript.attributes)
+                            .forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                        
+                        // Copia contenuto
+                        newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                        
+                        // Sostituisci vecchio script
+                        oldScript.parentNode.replaceChild(newScript, oldScript);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading component:', error);
+                    container.innerHTML = `<div class="alert alert-danger">Errore nel caricamento del componente</div>`;
+                });
+        }
+
+        /**
+         * Controlla capacità del browser
+         */
+        checkBrowserCapabilities() {
+            const capabilities = {
+                webP: false,
+                webGL: false,
+                webWorkers: !!window.Worker,
+                localStorage: !!window.localStorage,
+                serviceWorker: !!navigator.serviceWorker,
+                intersection: !!window.IntersectionObserver,
+                touch: ('ontouchstart' in window) || (navigator.maxTouchPoints > 0),
+                battery: !!navigator.getBattery,
+                permissions: !!navigator.permissions,
+                bluetooth: !!navigator.bluetooth,
+                vibration: !!navigator.vibrate,
+                share: !!navigator.share
+            };
+            
+            // Controlla supporto WebP
+            const webP = new Image();
+            webP.onload = function() { capabilities.webP = (webP.width > 0) && (webP.height > 0); };
+            webP.onerror = function() { capabilities.webP = false; };
+            webP.src = 'data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vlAAA==';
+            
+            // Controlla supporto WebGL
+            try {
+                const canvas = document.createElement('canvas');
+                capabilities.webGL = !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
+            } catch (e) {
+                capabilities.webGL = false;
+            }
+            
+            // Aggiungi classi CSS per feature detection
+            Object.keys(capabilities).forEach(feature => {
+                if (capabilities[feature]) {
+                    document.documentElement.classList.add(`has-${feature}`);
+                } else {
+                    document.documentElement.classList.add(`no-${feature}`);
+                }
+            });
+            
+            // Salva per utilizzo futuro
+            window.browserCapabilities = capabilities;
+        }
+
+        /**
+         * Gestisce touch start
+         */
+        handleTouchStart(e) {
+            state.touchStartX = e.changedTouches[0].screenX;
+        }
+
+        /**
+         * Gestisce touch end
+         */
+        handleTouchEnd(e) {
+            state.touchEndX = e.changedTouches[0].screenX;
+            this.handleSwipeGesture();
+        }
+
+        /**
+         * Interpreta gesture di swipe
+         */
+        handleSwipeGesture() {
+            const distance = state.touchEndX - state.touchStartX;
+            const threshold = CONFIG.sidebar.swipeThreshold;
+            
+            // Se siamo in modalità mobile
+            if (window.innerWidth < CONFIG.sidebar.collapseBreakpoint) {
+                if (distance > threshold) {
+                    // Swipe da sinistra a destra -> apri sidebar
+                    this.updateSidebarState(true);
+                } else if (distance < -threshold && state.sidebarOpen) {
+                    // Swipe da destra a sinistra -> chiudi sidebar
+                    this.updateSidebarState(false);
+                }
+            }
+        }
+
+        /**
+         * Aggiorna stato connessione
+         */
+        updateConnectionStatus() {
+            const connectionStatus = document.querySelector('.connection-status');
+            const statusIndicator = document.querySelector('.status-indicator');
+            const statusText = document.querySelector('.status-text');
+            
+            if (!connectionStatus || !statusIndicator || !statusText) return;
+            
+            state.isOnline = navigator.onLine;
+            
+            if (state.isOnline) {
+                statusIndicator.classList.remove('disconnected');
+                statusIndicator.classList.add('connected');
+                statusText.textContent = 'Online';
+                DOM.body.classList.remove('offline-mode');
+            } else {
+                statusIndicator.classList.remove('connected');
+                statusIndicator.classList.add('disconnected');
+                statusText.textContent = 'Offline';
+                DOM.body.classList.add('offline-mode');
+                
+                this.showFeedback('error', 'Connessione assente. Alcune funzionalità potrebbero non essere disponibili.');
+            }
+        }
+
+        /**
+         * Mostra feedback con toast
+         */
+        showFeedback(type, message) {
+            // Crea elemento toast per feedback
+            const toastContainer = document.querySelector('.toast-container');
+            if (!toastContainer) return;
+            
+            const iconMap = {
+                'success': 'fa-check-circle',
+                'error': 'fa-exclamation-circle',
+                'warning': 'fa-exclamation-triangle',
+                'info': 'fa-info-circle'
+            };
+            
+            const typeMap = {
+                'success': 'bg-success',
+                'error': 'bg-danger',
+                'warning': 'bg-warning text-dark',
+                'info': 'bg-info text-dark'
+            };
+            
+            const toastElement = document.createElement('div');
+            toastElement.className = `toast align-items-center text-white ${typeMap[type] || 'bg-primary'} border-0`;
+            toastElement.setAttribute('role', 'alert');
+            toastElement.setAttribute('aria-live', 'assertive');
+            toastElement.setAttribute('aria-atomic', 'true');
+            
+            toastElement.innerHTML = `
+                <div class="d-flex">
         <div class="toast-body">
+                        <i class="fas ${iconMap[type] || 'fa-circle'} me-2"></i>
             ${message}
         </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
     </div>
     `;
     
-    document.getElementById('toast-container').insertAdjacentHTML('beforeend', html);
-    const toastElement = document.getElementById(toastId);
-    
-    // Apply entrance animation
-    toastElement.classList.add('toast-enter');
-    
+            toastContainer.appendChild(toastElement);
     const toast = new bootstrap.Toast(toastElement, {
         animation: true,
         autohide: true,
-        delay: 5000
+                delay: 3000
     });
     
     toast.show();
     
-    // Remove entrance animation after it completes
-    setTimeout(() => {
-        if (toastElement) {
-            toastElement.classList.remove('toast-enter');
+            // Rimuovi elemento dopo che è nascosto
+            toastElement.addEventListener('hidden.bs.toast', () => {
+                toastElement.remove();
+            });
+            
+            // Feedback haptic se supportato e abilitato
+            if (CONFIG.feedback.haptic && 'vibrate' in navigator && type !== 'info') {
+                switch (type) {
+                    case 'error':
+                        navigator.vibrate([100, 50, 100]);
+                        break;
+                    case 'warning':
+                        navigator.vibrate(100);
+                        break;
+                    case 'success':
+                        navigator.vibrate(50);
+                        break;
+                }
+            }
         }
-    }, 300);
-    
-    // Add exit animation before hiding
-    toastElement.addEventListener('hide.bs.toast', function() {
-        this.classList.add('toast-exit');
+
+        /**
+         * Mostra feedback visivo per click
+         */
+        showClickFeedback(e) {
+            if (!CONFIG.feedback.enabled || !DOM.actionFeedback) return;
+            
+            const x = e.clientX;
+            const y = e.clientY;
+            
+            // Posiziona feedback
+            DOM.actionFeedback.style.left = `${x}px`;
+            DOM.actionFeedback.style.top = `${y}px`;
+            
+            // Rimuovi classe precedente
+            DOM.actionFeedback.classList.remove('animate');
+            
+            // Force reflow
+            void DOM.actionFeedback.offsetWidth;
+            
+            // Attiva animazione
+            DOM.actionFeedback.classList.add('animate');
+        }
+
+        /**
+         * Avvia ping periodico al server
+         */
+        startServerPing() {
+            // Cancella eventuale interval precedente
+            if (window.pingInterval) {
+                clearInterval(window.pingInterval);
+            }
+            
+            // Funzione per eseguire ping
+            const pingServer = async () => {
+                if (!state.isOnline || !state.isPageVisible) return;
+                
+                try {
+                    const startTime = performance.now();
+                    const response = await fetch('/api/ping', { 
+                        method: 'GET',
+                        headers: { 'Cache-Control': 'no-cache' },
+                        credentials: 'same-origin'
+                    });
+                    
+                    if (response.ok) {
+                        const endTime = performance.now();
+                        state.serverPingMs = Math.round(endTime - startTime);
+                        
+                        // Aggiorna UI
+                        this.updatePingDisplay(state.serverPingMs);
+                    } else {
+                        // Server error
+                        this.updatePingDisplay(null);
+                    }
+                } catch (error) {
+                    // Connessione fallita
+                    this.updatePingDisplay(null);
+                }
+            };
+            
+            // Primo ping immediato
+            pingServer();
+            
+            // Imposta interval per ping periodico (ogni 30s)
+            window.pingInterval = setInterval(pingServer, 30000);
+            
+            // Salva in pollingIntervals
+            if (!window.pollingIntervals) {
+                window.pollingIntervals = {};
+            }
+            window.pollingIntervals.ping = window.pingInterval;
+        }
+
+        /**
+         * Aggiorna display del ping
+         */
+        updatePingDisplay(ping) {
+            const pingElement = document.getElementById('server-ping-value');
+            if (!pingElement) return;
+            
+            if (ping === null) {
+                pingElement.textContent = '--';
+                pingElement.parentElement.classList.add('text-danger');
+            } else {
+                pingElement.textContent = ping;
+                pingElement.parentElement.classList.remove('text-danger');
+                
+                // Colore basato sulla latenza
+                if (ping < 100) {
+                    pingElement.parentElement.className = 'server-ping text-success';
+                } else if (ping < 300) {
+                    pingElement.parentElement.className = 'server-ping text-warning';
+                } else {
+                    pingElement.parentElement.className = 'server-ping text-danger';
+                }
+            }
+        }
+
+        /**
+         * Gestisce scroll
+         */
+        handleScroll() {
+            // Memorizza posizione
+            state.scrollPosition = window.scrollY;
+            
+            // Gestisce pulsante torna in alto
+            this.updateToTopButton();
+            
+            // Gestisce animazioni al scroll
+            this.handleScrollAnimations();
+            
+            // Header hide/show
+            this.handleDynamicHeader();
+        }
+
+        /**
+         * Gestione header dinamico (nascondi durante scroll down)
+         */
+        handleDynamicHeader() {
+            const header = document.querySelector('.app-status-bar');
+            if (!header) return;
+            
+            const currentScroll = window.scrollY;
+            const scrollDelta = currentScroll - (this.lastScroll || 0);
+            
+            // Memorizza ultima posizione
+            this.lastScroll = currentScroll;
+            
+            // Se lo scroll è significativo
+            if (Math.abs(scrollDelta) < 10) return;
+            
+            if (scrollDelta > 0 && currentScroll > 100) {
+                // Scrolling down - nascondi header
+                header.classList.add('header-hidden');
+            } else {
+                // Scrolling up - mostra header
+                header.classList.remove('header-hidden');
+            }
+        }
+
+        /**
+         * Aggiorna pulsante torna in cima
+         */
+        updateToTopButton() {
+            if (!DOM.toTopButton) return;
+            
+            if (window.scrollY > 300) {
+                DOM.toTopButton.classList.add('visible');
+            } else {
+                DOM.toTopButton.classList.remove('visible');
+            }
+        }
+
+        /**
+         * Gestisce animazioni al scroll
+         */
+        handleScrollAnimations() {
+            if (!CONFIG.animations.enabled) return;
+            
+            // Gestisci elementi reveal-on-scroll
+            this.animateRevealElements();
+        }
+
+        /**
+         * Anima elementi reveal
+         */
+        animateRevealElements() {
+            if (!DOM.revealElements || !('IntersectionObserver' in window)) return;
+            
+            // Lazy initialize observer
+            if (!this.revealObserver) {
+                this.revealObserver = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                            this.revealObserver.unobserve(entry.target);
+                        }
+                    });
+                }, { 
+                    threshold: 0.1 
+                });
+                
+                // Osserva tutti gli elementi
+                DOM.revealElements.forEach(el => {
+                    this.revealObserver.observe(el);
+                });
+            }
+        }
+
+        /**
+         * Imposta effetto parallax su elementi
+         */
+        setupParallaxElements() {
+            if (!CONFIG.animations.enabled || !DOM.parallaxElements) return;
+            
+            const handleMouseMove = (e) => {
+                const mouseX = e.clientX / window.innerWidth;
+                const mouseY = e.clientY / window.innerHeight;
+                
+                DOM.parallaxElements.forEach(el => {
+                    const speed = parseFloat(el.getAttribute('data-parallax-speed')) || 0.05;
+                    const moveX = (mouseX - 0.5) * speed * 100;
+                    const moveY = (mouseY - 0.5) * speed * 100;
+                    
+                    el.style.transform = `translate(${moveX}px, ${moveY}px)`;
+                });
+            };
+            
+            // Use debounced version for better performance
+            document.addEventListener('mousemove', this.debounce(handleMouseMove, 5));
+        }
+
+        /**
+         * Funzione debounce per limitare chiamate frequenti
+         */
+        debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        /**
+         * Configura animazioni
+         */
+        setupAnimations() {
+            // Parallax
+            this.setupParallaxElements();
+            
+            // Inizializza animazioni stagger
+            if (DOM.staggeredElements) {
+                setTimeout(() => {
+                    DOM.staggeredElements.forEach(el => el.classList.add('animate'));
+                }, 100);
+    }
+}
+
+/**
+         * Aggiorna stato sidebar
+         */
+        updateSidebarState(isOpen, animate = true) {
+            if (!DOM.sidebar) return;
+            
+            state.sidebarOpen = isOpen;
+            
+            if (isOpen) {
+                if (animate) {
+                    DOM.sidebar.classList.add('opening');
+                }
+                DOM.sidebar.classList.add('open');
+                document.body.classList.add('sidebar-open');
+            } else {
+                if (animate) {
+                    DOM.sidebar.classList.add('closing');
+                }
+                DOM.sidebar.classList.remove('open');
+                document.body.classList.remove('sidebar-open');
+            }
+            
+            // Rimuovi classi transizione dopo l'animazione
+            if (animate) {
+                setTimeout(() => {
+                    DOM.sidebar.classList.remove('opening', 'closing');
+                }, CONFIG.animations.duration.medium);
+            }
+        }
+
+        /**
+         * Toggle stato sidebar
+         */
+        toggleSidebar() {
+            this.updateSidebarState(!state.sidebarOpen);
+        }
+
+        /**
+         * Gestisce layout responsivo
+         */
+        handleResponsiveLayout() {
+            const isDesktop = window.innerWidth >= CONFIG.sidebar.collapseBreakpoint;
+            
+            // Aggiorna stato sidebar basato su breakpoint
+            if (isDesktop) {
+                // Su desktop, sidebar è aperta di default
+                this.updateSidebarState(true, false);
+                document.body.classList.remove('mobile-view');
+                document.body.classList.add('desktop-view');
+            } else {
+                // Su mobile, sidebar è chiusa di default
+                this.updateSidebarState(false, false);
+                document.body.classList.remove('desktop-view');
+                document.body.classList.add('mobile-view');
+            }
+        }
+
+        /**
+         * Scroll alla cima della pagina
+         */
+        scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: CONFIG.scrolling.smoothScroll ? 'smooth' : 'auto'
+            });
+        }
+
+        /**
+         * Aggiorna contenuto corrente
+         */
+        refreshCurrentContent() {
+            // Mostra overlay loading
+            if (DOM.loadingOverlay) {
+                DOM.loadingOverlay.style.display = 'flex';
+            }
+            
+            // Refresh page
+            window.location.reload();
+        }
+    }
+
+    // Inizializza quando DOM è pronto
+    document.addEventListener('DOMContentLoaded', () => {
+        window.appManager = new AppManager();
     });
-    
-    // Auto-remove toast from DOM after it's hidden
-    toastElement.addEventListener('hidden.bs.toast', function() {
-        this.remove();
-    });
-}
-
-/**
- * Mostra un feedback visuale per un'azione
- * @param {string} type - Tipo di feedback: success, error, warning, info
- * @param {string} message - Messaggio da mostrare
- * @param {number} duration - Durata in millisecondi
- */
-function showActionFeedback(type = 'success', message, duration = 3000) {
-    // Rimuovi qualsiasi feedback esistente
-    const existingFeedback = document.querySelector('.action-feedback');
-    if (existingFeedback) {
-        existingFeedback.remove();
-    }
-    
-    // Crea elemento feedback
-    const feedback = document.createElement('div');
-    feedback.className = `action-feedback ${type}`;
-    
-    // Icona appropriata per il tipo
-    let icon;
-    switch (type) {
-        case 'success': icon = 'check-circle'; break;
-        case 'error': icon = 'times-circle'; break;
-        case 'warning': icon = 'exclamation-triangle'; break;
-        default: icon = 'info-circle';
-    }
-    
-    feedback.innerHTML = `
-        <i class="fas fa-${icon} me-2"></i>
-        <span>${message}</span>
-    `;
-    
-    // Aggiungi al DOM
-    document.body.appendChild(feedback);
-    
-    // Trigger animazione
-    setTimeout(() => feedback.classList.add('show'), 10);
-    
-    // Rimuovi dopo durata specificata
-    setTimeout(() => {
-        feedback.classList.remove('show');
-        setTimeout(() => feedback.remove(), 300);
-    }, duration);
-    
-    return feedback;
-}
-
-/**
- * Registra gli handler per le notifiche nell'applicazione
- * Gestisce notifiche push, notifiche in-app e feedback
- */
-function registerNotificationHandlers() {
-    // Verifica supporto per notifiche
-    if ('Notification' in window) {
-        // Gestisce il click sul pulsante di richiesta permessi
-        const notificationPermissionBtn = document.getElementById('request-notification-permission');
-        if (notificationPermissionBtn) {
-            notificationPermissionBtn.addEventListener('click', requestNotificationPermission);
-        }
-        
-        // Aggiorna UI in base allo stato attuale
-        updateNotificationUI();
-    }
-    
-    // Gestione notifiche in-app (toast)
-    const notificationToasts = document.querySelectorAll('[data-notification]');
-    notificationToasts.forEach(toast => {
-        const type = toast.dataset.notificationType || 'info';
-        const message = toast.dataset.notification;
-        const duration = parseInt(toast.dataset.notificationDuration || '5000', 10);
-        
-        if (message) {
-            setTimeout(() => {
-                showActionFeedback(type, message, duration);
-                toast.remove(); // Rimuovi dopo averlo mostrato
-            }, 500);
-        }
-    });
-}
-
-/**
- * Richiede il permesso per le notifiche
- */
-async function requestNotificationPermission() {
-    try {
-        const permission = await Notification.requestPermission();
-        
-        if (permission === 'granted') {
-            showActionFeedback('success', 'Permesso notifiche accordato!', 3000);
-        } else if (permission === 'denied') {
-            showActionFeedback('warning', 'Permesso notifiche negato. Modifica le impostazioni del browser.', 5000);
-        }
-        
-        updateNotificationUI();
-        return permission;
-    } catch (error) {
-        console.error('Errore nella richiesta permesso notifiche:', error);
-        showActionFeedback('error', 'Errore nella richiesta permesso notifiche', 3000);
-        return null;
-    }
-}
-
-/**
- * Aggiorna l'interfaccia utente in base allo stato delle notifiche
- */
-function updateNotificationUI() {
-    const permission = Notification.permission;
-    const notificationStatus = document.getElementById('notification-permission-status');
-    const notificationToggle = document.getElementById('notification-toggle');
-    const permissionBtn = document.getElementById('request-notification-permission');
-    
-    if (!notificationStatus && !notificationToggle && !permissionBtn) return;
-    
-    // Aggiorna stato testo
-    if (notificationStatus) {
-        let statusText = '';
-        let statusClass = '';
-        
-        switch (permission) {
-            case 'granted':
-                statusText = 'Accordato';
-                statusClass = 'text-success';
-                break;
-            case 'denied':
-                statusText = 'Negato';
-                statusClass = 'text-danger';
-                break;
-            default:
-                statusText = 'Non richiesto';
-                statusClass = 'text-warning';
-        }
-        
-        notificationStatus.textContent = statusText;
-        notificationStatus.className = statusClass;
-    }
-    
-    // Aggiorna toggle
-    if (notificationToggle) {
-        notificationToggle.disabled = permission !== 'granted';
-    }
-    
-    // Aggiorna pulsante permesso
-    if (permissionBtn) {
-        permissionBtn.style.display = permission === 'default' ? 'block' : 'none';
-    }
-}
+})();
