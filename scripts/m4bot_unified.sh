@@ -43,7 +43,7 @@ check_root() {
 # Verifica che PostgreSQL sia in esecuzione
 check_postgres() {
     if ! systemctl is-active --quiet postgresql; then
-        print_error "PostgreSQL non Ã¨ in esecuzione. Avvialo con: systemctl start postgresql" 1
+        print_error "PostgreSQL non è in esecuzione. Avvialo con: systemctl start postgresql" 1
     fi
 }
 
@@ -51,7 +51,7 @@ check_postgres() {
 check_services() {
     # Verifica PostgreSQL
     if ! systemctl is-active --quiet postgresql; then
-        print_warning "PostgreSQL non Ã¨ in esecuzione. Avvio in corso..."
+        print_warning "PostgreSQL non è in esecuzione. Avvio in corso..."
         systemctl start postgresql
         if [ $? -ne 0 ]; then
             print_error "Impossibile avviare PostgreSQL" 1
@@ -62,7 +62,7 @@ check_services() {
 
     # Verifica Nginx
     if ! systemctl is-active --quiet nginx; then
-        print_warning "Nginx non Ã¨ in esecuzione. Avvio in corso..."
+        print_warning "Nginx non è in esecuzione. Avvio in corso..."
         systemctl start nginx
         if [ $? -ne 0 ]; then
             print_error "Impossibile avviare Nginx" 1
@@ -76,302 +76,202 @@ check_services() {
 execute_step() {
     local step_name="$1"
     local command="$2"
-
-    print_message "[PASSO] $step_name..."
-
+    
+    print_message "Esecuzione: $step_name"
+    
     eval "$command"
-
-    if [ $? -eq 0 ]; then
-        print_success "Completato: $step_name"
+    local exit_code=$?
+    
+    if [ $exit_code -eq 0 ]; then
+        print_success "$step_name completato con successo"
         return 0
     else
-        print_error "Errore durante: $step_name" 0
-        read -p "Vuoi riprovare questo passaggio? (s/n): " retry
-        if [ "$retry" == "s" ]; then
-            execute_step "$step_name" "$command"
+        print_error "$step_name fallito (codice errore: $exit_code)"
+        read -p "Vuoi continuare comunque? [S/n] " answer
+        if [[ $answer =~ ^[Nn] ]]; then
+            exit 1
+        fi
+        return $exit_code
+    fi
+}
+
+# Configurazione iniziale
+INSTALL_DIR="/opt/m4bot"
+LOGS_DIR="$INSTALL_DIR/logs"
+BOT_DIR="$INSTALL_DIR/bot"
+WEB_DIR="$INSTALL_DIR/web"
+NGINX_CONF="/etc/nginx/sites-available/m4bot"
+SERVICE_BOT="/etc/systemd/system/m4bot-bot.service"
+SERVICE_WEB="/etc/systemd/system/m4bot-web.service"
+INSTALL_NGINX=true
+INSTALL_POSTGRESQL=true
+INSTALL_REDIS=true
+CONFIGURE_SSL=true
+DOMAIN="m4bot.localhost"
+
+# Funzione per mostrare un menu sì/no
+yes_no_menu() {
+    local prompt="$1"
+    local default="$2"  # true o false
+    
+    if $default; then
+        read -p "$prompt [S/n]: " response
+        if [[ $response =~ ^[Nn] ]]; then
+            return 1
+        else
+            return 0
+        fi
+    else
+        read -p "$prompt [s/N]: " response
+        if [[ $response =~ ^[Ss] ]]; then
+            return 0
         else
             return 1
         fi
     fi
 }
 
-### FUNZIONI DI INSTALLAZIONE ###
-
-# Configura il database PostgreSQL
-setup_postgres() {
-    print_message "Configurazione del database PostgreSQL..."
-
-    # Verifica che PostgreSQL sia in esecuzione
-    if ! systemctl is-active --quiet postgresql; then
-        print_message "Avvio PostgreSQL..."
-        systemctl start postgresql
-        sleep 2
-    fi
-
-    # Parametri del database
-    DB_NAME=${1:-"m4bot_db"}
-    DB_USER=${2:-"m4bot_user"}
-    DB_PASSWORD=${3:-"m4bot_password"}
-
-    # Creiamo l'utente e il database PostgreSQL
-    print_message "Creazione dell'utente database $DB_USER..."
-    su - postgres -c "psql -c \"CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';\""
-
-    print_message "Creazione del database $DB_NAME..."
-    su - postgres -c "psql -c \"CREATE DATABASE $DB_NAME OWNER $DB_USER;\""
-
-    print_message "Configurazione dei privilegi..."
-    su - postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;\""
-
-    print_success "Database configurato con successo!"
-}
-
-# Inizializza il database con lo schema iniziale
-init_database() {
-    print_message "Inizializzazione del database..."
-
-    # Parametri
-    DB_NAME=${1:-"m4bot_db"}
-    DB_USER=${2:-"m4bot_user"}
-    DB_PASSWORD=${3:-"m4bot_password"}
-    INSTALL_DIR=${4:-"/opt/m4bot"}
-
-    # Schema di base per il database (versione semplificata)
-    SCHEMA_SQL="
-    -- Tabella utenti
-    CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        username VARCHAR(50) UNIQUE NOT NULL,
-        password_hash VARCHAR(255) NOT NULL,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        is_admin BOOLEAN DEFAULT FALSE
-    );
-
-    -- Tabella per i log degli eventi
-    CREATE TABLE IF NOT EXISTS event_logs (
-        id SERIAL PRIMARY KEY,
-        event_type VARCHAR(50) NOT NULL,
-        description TEXT,
-        user_id INTEGER REFERENCES users(id),
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        severity VARCHAR(20) DEFAULT 'info'
-    );
-
-    -- Tabella configurazioni
-    CREATE TABLE IF NOT EXISTS config (
-        key VARCHAR(100) PRIMARY KEY,
-        value TEXT,
-        description TEXT,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-
-    -- Inserimento utente admin iniziale
-    INSERT INTO users (username, password_hash, email, is_admin)
-    VALUES ('M4Tronick', '\$2b\$12\$K8etytZvB6HM5XnNgzyu8eSXqmZdWRFX5HGGHmYg0adXRjBCBu1Hm', 'admin@m4bot.it', TRUE)
-    ON CONFLICT (username) DO NOTHING;
-
-    -- Configurazioni iniziali
-    INSERT INTO config (key, value, description)
-    VALUES 
-        ('dashboard_url', 'dashboard.m4bot.it', 'URL della dashboard utente'),
-        ('control_url', 'control.m4bot.it', 'URL del pannello di controllo admin'),
-        ('version', '1.0.0', 'Versione di M4Bot')
-    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
-    "
-
-    # Crea una directory temporanea per lo schema
-    mkdir -p "$INSTALL_DIR/tmp"
-    echo "$SCHEMA_SQL" > "$INSTALL_DIR/tmp/schema.sql"
-
-    # Esegui lo schema SQL
-    export PGPASSWORD="$DB_PASSWORD"
-    psql -h localhost -U "$DB_USER" -d "$DB_NAME" -f "$INSTALL_DIR/tmp/schema.sql"
+# Funzione per l'installazione completa
+install_m4bot() {
+    print_message "Avvio installazione completa di M4Bot"
+    check_root
     
-    # Pulisci
-    rm -f "$INSTALL_DIR/tmp/schema.sql"
-
-    print_success "Database inizializzato con successo!"
-}
-
-# Configurare Nginx con dashboard e control panel
-setup_nginx() {
-    print_message "Configurazione di Nginx..."
-
-    # Parametri
-    DOMAIN=${1:-"m4bot.it"}
-    DASHBOARD_DOMAIN="dashboard.$DOMAIN"
-    CONTROL_DOMAIN="control.$DOMAIN"
-    EMAIL=${2:-"admin@m4bot.it"}
-    PORT=${3:-"8000"}
-
-    # Crea il file di configurazione principale
-    cat > /etc/nginx/sites-available/m4bot.conf << EOF
+    # Verifica spazio disco
+    DISK_SPACE=$(df -m / | awk 'NR==2 {print $4}')
+    if [ "$DISK_SPACE" -lt 1000 ]; then
+        print_warning "Spazio disco limitato: ${DISK_SPACE}MB. Si raccomandano almeno 1GB"
+        yes_no_menu "Vuoi continuare comunque?" true || exit 1
+    fi
+    
+    # Aggiorna repository
+    execute_step "Aggiornamento repository" "apt-get update"
+    
+    # Installa dipendenze
+    execute_step "Installazione dipendenze" "apt-get install -y python3 python3-pip python3-venv git curl wget"
+    
+    # Installa PostgreSQL
+    if $INSTALL_POSTGRESQL; then
+        execute_step "Installazione PostgreSQL" "apt-get install -y postgresql postgresql-contrib"
+        systemctl enable postgresql
+        systemctl start postgresql
+    fi
+    
+    # Installa Nginx
+    if $INSTALL_NGINX; then
+        execute_step "Installazione Nginx" "apt-get install -y nginx"
+        systemctl enable nginx
+        systemctl start nginx
+    fi
+    
+    # Installa Redis
+    if $INSTALL_REDIS; then
+        execute_step "Installazione Redis" "apt-get install -y redis-server"
+        systemctl enable redis-server
+        systemctl start redis-server
+    fi
+    
+    # Crea utente m4bot
+    if ! id -u m4bot &>/dev/null; then
+        execute_step "Creazione utente m4bot" "useradd -m -s /bin/bash m4bot"
+    fi
+    
+    # Crea directory
+    execute_step "Creazione directory di installazione" "mkdir -p $INSTALL_DIR $LOGS_DIR $BOT_DIR $WEB_DIR"
+    
+    # Clona repository (esempio)
+    # execute_step "Clonazione repository" "git clone https://github.com/yourusername/m4bot.git /tmp/m4bot && cp -r /tmp/m4bot/* $INSTALL_DIR/ && rm -rf /tmp/m4bot"
+    
+    # Crea ambiente virtuale
+    execute_step "Creazione ambiente virtuale Python" "python3 -m venv $INSTALL_DIR/venv"
+    
+    # Installa dipendenze Python
+    execute_step "Installazione dipendenze Python" "$INSTALL_DIR/venv/bin/pip install flask flask-babel psycopg2-binary redis requests python-dotenv"
+    
+    # Configurazione Nginx
+    if $INSTALL_NGINX; then
+        cat > "$NGINX_CONF" << EOF
 server {
     listen 80;
-    server_name $DOMAIN www.$DOMAIN;
+    server_name $DOMAIN;
 
     location / {
-        proxy_pass http://127.0.0.1:$PORT;
+        proxy_pass http://localhost:5000;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
-}
-EOF
 
-    # Crea il file di configurazione per la dashboard
-    cat > /etc/nginx/sites-available/dashboard.conf << EOF
-server {
-    listen 80;
-    server_name $DASHBOARD_DOMAIN;
-
-    location / {
-        proxy_pass http://127.0.0.1:$PORT/dashboard;
+    location /api {
+        proxy_pass http://localhost:5001;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
-}
-EOF
 
-    # Crea il file di configurazione per il pannello di controllo
-    cat > /etc/nginx/sites-available/control.conf << EOF
-server {
-    listen 80;
-    server_name $CONTROL_DOMAIN;
-
-    location / {
-        proxy_pass http://127.0.0.1:$PORT/control;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
+    location /static {
+        alias $WEB_DIR/static;
     }
 }
 EOF
-
-    # Abilita i siti
-    ln -sf /etc/nginx/sites-available/m4bot.conf /etc/nginx/sites-enabled/
-    ln -sf /etc/nginx/sites-available/dashboard.conf /etc/nginx/sites-enabled/
-    ln -sf /etc/nginx/sites-available/control.conf /etc/nginx/sites-enabled/
-
-    # Rimuovi la configurazione di default
-    if [ -f /etc/nginx/sites-enabled/default ]; then
-        rm -f /etc/nginx/sites-enabled/default
-    fi
-
-    # Verifica la configurazione di Nginx
-    nginx -t
-
-    if [ $? -ne 0 ]; then
-        print_error "La configurazione di Nginx non Ã¨ valida" 1
-    fi
-
-    # Riavvia Nginx
-    systemctl restart nginx
-
-    if [ $? -ne 0 ]; then
-        print_error "Impossibile riavviare Nginx" 1
-    fi
-
-    print_success "Nginx configurato correttamente"
-
-    # Configurazione SSL
-    if [ "$4" == "--ssl" ]; then
-        print_message "Configurazione SSL con Certbot..."
-
-        # Installa certbot se non Ã¨ installato
-        if ! command -v certbot &> /dev/null; then
-            print_message "Installazione di Certbot..."
-            apt-get update
-            apt-get install -y certbot python3-certbot-nginx
+        
+        # Verifica la configurazione di Nginx
+        if ! nginx -t; then
+            print_error "La configurazione di Nginx non è valida" 1
         fi
-
-        # Ottieni i certificati SSL per tutti i domini
-        certbot --nginx -d $DOMAIN -d www.$DOMAIN -d $DASHBOARD_DOMAIN -d $CONTROL_DOMAIN --non-interactive --agree-tos --email $EMAIL
-
-        if [ $? -ne 0 ]; then
-            print_error "Impossibile configurare SSL con Certbot" 0
-        else
-            print_success "SSL configurato correttamente per tutti i domini"
+        
+        # Abilita il sito
+        if [ ! -L "/etc/nginx/sites-enabled/m4bot" ]; then
+            ln -sf "$NGINX_CONF" "/etc/nginx/sites-enabled/"
         fi
+        
+        systemctl reload nginx
     fi
-}
-
-# Configurazione dei servizi systemd
-setup_services() {
-    print_message "Configurazione dei servizi systemd..."
-
-    # Parametri
-    INSTALL_DIR=${1:-"/opt/m4bot"}
-    BOT_DIR=${2:-"$INSTALL_DIR/bot"}
-    WEB_DIR=${3:-"$INSTALL_DIR/web"}
-    USER=${4:-"m4bot"}
-    GROUP=${5:-"m4bot"}
-
-    # Verifica che le directory esistano
-    if [ ! -d "$INSTALL_DIR" ]; then
-        print_message "Creazione della directory di installazione $INSTALL_DIR..."
-        mkdir -p $INSTALL_DIR
+    
+    # Configura SSL con Let's Encrypt
+    if $CONFIGURE_SSL && [ "$DOMAIN" != "localhost" ] && [ "$DOMAIN" != "m4bot.localhost" ]; then
+        # Installa certbot se non è installato
+        if ! command -v certbot &>/dev/null; then
+            execute_step "Installazione Certbot" "apt-get install -y certbot python3-certbot-nginx"
+        fi
+        
+        # Ottieni certificato
+        execute_step "Configurazione SSL" "certbot --nginx -d $DOMAIN --non-interactive --agree-tos --email admin@$DOMAIN --redirect"
     fi
-
-    if [ ! -d "$BOT_DIR" ]; then
-        print_message "Creazione della directory del bot $BOT_DIR..."
-        mkdir -p $BOT_DIR
-    fi
-
-    if [ ! -d "$WEB_DIR" ]; then
-        print_message "Creazione della directory web $WEB_DIR..."
-        mkdir -p $WEB_DIR
-    fi
-
-    # Verifica che l'utente e il gruppo esistano
-    if ! id -u $USER &>/dev/null; then
-        print_message "Creazione dell'utente $USER..."
-        useradd -m -s /bin/bash $USER
-        print_success "Utente $USER creato"
-    fi
-
-    # Crea il servizio systemd per il bot
-    print_message "Creazione del servizio systemd per il bot..."
-    cat > /etc/systemd/system/m4bot-bot.service << EOF
+    
+    # Configura servizi systemd
+    cat > "$SERVICE_BOT" << EOF
 [Unit]
 Description=M4Bot Bot Service
-After=network.target postgresql.service
+After=network.target postgresql.service redis-server.service
+Requires=postgresql.service redis-server.service
 
 [Service]
-User=$USER
-Group=$GROUP
+User=m4bot
+Group=m4bot
 WorkingDirectory=$BOT_DIR
-ExecStart=/usr/bin/python3 $BOT_DIR/m4bot.py
+ExecStart=$INSTALL_DIR/venv/bin/python $BOT_DIR/m4bot.py
 Restart=on-failure
 RestartSec=5
-StandardOutput=journal
-StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-    # Crea il servizio systemd per l'applicazione web
-    print_message "Creazione del servizio systemd per l'applicazione web..."
-    cat > /etc/systemd/system/m4bot-web.service << EOF
+    cat > "$SERVICE_WEB" << EOF
 [Unit]
 Description=M4Bot Web Service
-After=network.target postgresql.service
+After=network.target postgresql.service redis-server.service
+Requires=postgresql.service redis-server.service
 
 [Service]
-User=$USER
-Group=$GROUP
+User=m4bot
+Group=m4bot
 WorkingDirectory=$WEB_DIR
-ExecStart=/usr/bin/python3 $WEB_DIR/app.py
+ExecStart=$INSTALL_DIR/venv/bin/python $WEB_DIR/app.py
 Restart=on-failure
 RestartSec=5
-StandardOutput=journal
-StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
@@ -379,280 +279,253 @@ EOF
 
     # Ricarica systemd
     systemctl daemon-reload
-
-    # Imposta i permessi corretti
-    print_message "Impostazione dei permessi..."
-    chown -R $USER:$GROUP $INSTALL_DIR
-
-    if [ -f "$BOT_DIR/m4bot.py" ]; then
-        chmod +x $BOT_DIR/m4bot.py
-    fi
-
-    if [ -f "$WEB_DIR/app.py" ]; then
-        chmod +x $WEB_DIR/app.py
-    fi
-
-    # Avvio automatico dei servizi
-    print_message "Configurazione dell'avvio automatico dei servizi..."
+    
+    # Abilita servizi
     systemctl enable m4bot-bot.service
     systemctl enable m4bot-web.service
-
-    print_success "Servizi configurati correttamente"
+    
+    # Imposta proprietario
+    chown -R m4bot:m4bot "$INSTALL_DIR"
+    
+    # Avvia servizi
+    systemctl start m4bot-bot.service
+    systemctl start m4bot-web.service
+    
+    print_success "Installazione di M4Bot completata con successo!"
+    print_message "Visita http://$DOMAIN per accedere all'interfaccia web"
 }
 
-# Configura la sicurezza del server
-setup_security() {
-    print_message "Configurazione delle impostazioni di sicurezza per M4Bot..."
-
-    # Installa fail2ban per proteggere da tentativi di accesso non autorizzati
-    print_message "Installazione di fail2ban..."
-    apt-get install -y fail2ban || print_error "Impossibile installare fail2ban" 1
-
-    # Configura fail2ban per Nginx
-    cat > /etc/fail2ban/jail.d/nginx.conf << EOF
-[nginx-http-auth]
-enabled = true
-port = http,https
-filter = nginx-http-auth
-logpath = /var/log/nginx/error.log
-maxretry = 5
-bantime = 3600
-findtime = 600
-
-[nginx-login]
-enabled = true
-port = http,https
-filter = nginx-login
-logpath = /var/log/nginx/access.log
-maxretry = 5
-bantime = 3600
-findtime = 600
-EOF
-
-    # Configura il firewall UFW
-    print_message "Configurazione del firewall UFW..."
-    apt-get install -y ufw || print_warning "UFW giÃ  installato o impossibile installare"
-
-    # Configura le regole UFW
-    ufw default deny incoming
-    ufw default allow outgoing
-    ufw allow ssh
-    ufw allow http
-    ufw allow https
-    ufw allow 5432/tcp comment 'PostgreSQL'
-
-    # Abilita UFW in modo non interattivo
-    print_message "Abilitazione di UFW..."
-    echo "y" | ufw enable
-
-    # Hardening della configurazione SSL di Nginx
-    print_message "Hardening della configurazione SSL di Nginx..."
-    cat > /etc/nginx/snippets/ssl-params.conf << EOF
-ssl_protocols TLSv1.2 TLSv1.3;
-ssl_prefer_server_ciphers on;
-ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
-ssl_session_timeout 1d;
-ssl_session_cache shared:SSL:10m;
-ssl_session_tickets off;
-ssl_stapling on;
-ssl_stapling_verify on;
-resolver 8.8.8.8 8.8.4.4 valid=300s;
-resolver_timeout 5s;
-add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload";
-add_header X-Frame-Options SAMEORIGIN;
-add_header X-Content-Type-Options nosniff;
-add_header X-XSS-Protection "1; mode=block";
-EOF
-
-    # Configurazione della protezione DDoS di base in Nginx
-    print_message "Configurazione della protezione DDoS di base in Nginx..."
-    cat > /etc/nginx/conf.d/rate-limit.conf << EOF
-limit_req_zone \$binary_remote_addr zone=m4bot_limit:10m rate=10r/s;
-EOF
-
-    # Riavvio dei servizi di sicurezza
-    print_message "Riavvio dei servizi di sicurezza..."
-    systemctl restart fail2ban
-    systemctl restart nginx
-
-    print_success "Configurazione di sicurezza completata!"
-}
-
-### FUNZIONI DI GESTIONE ###
-
-# Avvia i servizi di M4Bot
-start_bot() {
+# Funzione per avviare M4Bot
+start_m4bot() {
     print_message "Avvio di M4Bot..."
-
-    # Verifica che la directory dei log esista
-    if [ ! -d "/opt/m4bot/bot/logs" ]; then
-        print_warning "La directory dei log non esiste, creazione in corso..."
-        mkdir -p /opt/m4bot/bot/logs
-        chown -R m4bot:m4bot /opt/m4bot/bot/logs 2>/dev/null || true
-        chmod -R 755 /opt/m4bot/bot/logs
-        print_success "Directory dei log creata"
-    fi
-
-    # Verifica che PostgreSQL e Nginx siano in esecuzione
+    check_root
     check_services
-
-    # Controllo se i servizi sono giÃ  in esecuzione
+    
+    # Verifica se i servizi sono già in esecuzione
     if systemctl is-active --quiet m4bot-bot.service; then
-        print_warning "Il servizio bot Ã¨ giÃ  in esecuzione"
+        print_warning "Il servizio bot è già in esecuzione"
     else
         systemctl start m4bot-bot.service
         if [ $? -eq 0 ]; then
             print_success "Bot avviato con successo"
         else
-            print_error "Impossibile avviare il bot" 1
+            print_error "Impossibile avviare il bot" 0
         fi
     fi
-
+    
     if systemctl is-active --quiet m4bot-web.service; then
-        print_warning "Il servizio web Ã¨ giÃ  in esecuzione"
+        print_warning "Il servizio web è già in esecuzione"
     else
         systemctl start m4bot-web.service
         if [ $? -eq 0 ]; then
             print_success "Web app avviata con successo"
         else
-            print_error "Impossibile avviare la web app" 1
+            print_error "Impossibile avviare la web app" 0
         fi
     fi
-
+    
     print_message "Stato dei servizi:"
     systemctl status m4bot-bot.service --no-pager | grep Active
     systemctl status m4bot-web.service --no-pager | grep Active
     systemctl status nginx --no-pager | grep Active
     systemctl status postgresql --no-pager | grep Active
-
-    print_message "M4Bot Ã¨ ora disponibile all'indirizzo https://m4bot.it"
-    print_message "Dashboard: https://dashboard.m4bot.it"
-    print_message "Pannello di controllo: https://control.m4bot.it"
+    
+    print_message "M4Bot è ora disponibile all'indirizzo https://m4bot.it"
 }
 
-# Ferma i servizi di M4Bot
-stop_bot() {
+# Funzione per fermare M4Bot
+stop_m4bot() {
     print_message "Arresto di M4Bot..."
-
-    # Arresto dei servizi
+    check_root
+    
+    # Ferma i servizi
     if systemctl is-active --quiet m4bot-bot.service; then
         systemctl stop m4bot-bot.service
-        if [ $? -eq 0 ]; then
-            print_success "Bot arrestato con successo"
-        else
-            print_error "Impossibile arrestare il bot" 1
-        fi
+        print_success "Bot fermato con successo"
     else
-        print_warning "Il servizio bot non Ã¨ in esecuzione"
+        print_warning "Il servizio bot non è in esecuzione"
     fi
-
+    
     if systemctl is-active --quiet m4bot-web.service; then
         systemctl stop m4bot-web.service
-        if [ $? -eq 0 ]; then
-            print_success "Web app arrestata con successo"
+        print_success "Web app fermata con successo"
+    else
+        print_warning "Il servizio web non è in esecuzione"
+    fi
+    
+    print_message "Tutti i servizi M4Bot sono stati arrestati"
+}
+
+# Funzione per riavviare M4Bot
+restart_m4bot() {
+    print_message "Riavvio di M4Bot..."
+    check_root
+    
+    # Riavvia i servizi
+    systemctl restart m4bot-bot.service
+    systemctl restart m4bot-web.service
+    
+    # Verifica che i servizi siano stati avviati correttamente
+    if systemctl is-active --quiet m4bot-bot.service && systemctl is-active --quiet m4bot-web.service; then
+        print_success "M4Bot è stato riavviato con successo"
+    else
+        print_error "Errore durante il riavvio di M4Bot" 0
+        
+        # Mostra lo stato dei servizi
+        systemctl status m4bot-bot.service --no-pager
+        systemctl status m4bot-web.service --no-pager
+    fi
+}
+
+# Funzione per mostrare lo stato di M4Bot
+status_m4bot() {
+    print_message "Stato di M4Bot:"
+    check_root
+    
+    echo "=== SERVIZI ==="
+    systemctl status m4bot-bot.service --no-pager | grep -E "Active:|Loaded:"
+    systemctl status m4bot-web.service --no-pager | grep -E "Active:|Loaded:"
+    systemctl status nginx --no-pager | grep -E "Active:|Loaded:"
+    systemctl status postgresql --no-pager | grep -E "Active:|Loaded:"
+    
+    echo "=== PORTE ==="
+    netstat -tuln | grep -E ":5000|:5001|:80|:443"
+    
+    echo "=== LOG RECENTI ==="
+    journalctl -u m4bot-bot.service -u m4bot-web.service --since "1 hour ago" | tail -n 10
+    
+    print_message "M4Bot è disponibile all'indirizzo https://m4bot.it"
+}
+
+# Funzione per controllare gli aggiornamenti
+check_updates() {
+    check_root
+    
+    if [ -d "$INSTALL_DIR" ]; then
+        print_message "Controllo aggiornamenti per M4Bot..."
+        
+        # Creazione file di versione se non esiste
+        if [ ! -f "$INSTALL_DIR/version.txt" ]; then
+            echo "1.0.0" > "$INSTALL_DIR/version.txt"
+        fi
+        
+        LOCAL_VERSION=$(cat "$INSTALL_DIR/version.txt")
+        LATEST_VERSION=$(curl -s "https://api.github.com/repos/yourusername/m4bot/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")')
+        
+        if [ -z "$LATEST_VERSION" ]; then
+            print_warning "Impossibile ottenere l'ultima versione"
+            return
+        fi
+        
+        print_message "Versione locale: $LOCAL_VERSION"
+        print_message "Ultima versione: $LATEST_VERSION"
+        
+        if [ "$LOCAL_VERSION" != "$LATEST_VERSION" ]; then
+            print_message "È disponibile una nuova versione!"
+            yes_no_menu "Vuoi aggiornare ora?" true && update_m4bot
         else
-            print_error "Impossibile arrestare la web app" 1
+            print_message "M4Bot è aggiornato all'ultima versione"
         fi
     else
-        print_warning "Il servizio web non Ã¨ in esecuzione"
+        print_error "M4Bot non è installato in $INSTALL_DIR" 1
     fi
-
-    print_message "Tutti i servizi di M4Bot sono stati arrestati"
 }
 
-# Riavvia i servizi di M4Bot
-restart_bot() {
-    print_message "Riavvio di M4Bot..."
-
-    # Ferma i servizi
-    print_message "Arresto dei servizi in corso..."
-    systemctl stop m4bot-bot.service
-    if [ $? -eq 0 ]; then
-        print_success "Bot arrestato con successo"
-    else
-        print_warning "Impossibile arrestare il bot, potrebbe non essere in esecuzione"
-    fi
-
-    systemctl stop m4bot-web.service
-    if [ $? -eq 0 ]; then
-        print_success "Web app arrestata con successo"
-    else
-        print_warning "Impossibile arrestare la web app, potrebbe non essere in esecuzione"
-    fi
-
-    # Breve pausa
-    sleep 2
-
-    # Avvia i servizi
-    print_message "Avvio dei servizi in corso..."
-    systemctl start m4bot-bot.service
-    if [ $? -eq 0 ]; then
-        print_success "Bot avviato con successo"
-    else
-        print_error "Impossibile avviare il bot" 1
-    fi
-
-    systemctl start m4bot-web.service
-    if [ $? -eq 0 ]; then
-        print_success "Web app avviata con successo"
-    else
-        print_error "Impossibile avviare la web app" 1
-    fi
-
-    # Controlla i servizi
+# Funzione per aggiornare M4Bot
+update_m4bot() {
+    check_root
     check_services
-
-    print_message "M4Bot Ã¨ stato riavviato con successo"
+    
+    print_message "Aggiornamento di M4Bot..."
+    
+    # Backup della directory attuale
+    BACKUP_DIR="/opt/m4bot_backup_$(date +%Y%m%d_%H%M%S)"
+    mkdir -p "$BACKUP_DIR"
+    cp -r "$INSTALL_DIR"/* "$BACKUP_DIR"
+    
+    # Scarica la nuova versione
+    TMP_DIR="/tmp/m4bot_update"
+    rm -rf "$TMP_DIR"
+    mkdir -p "$TMP_DIR"
+    
+    # curl -s -L "https://github.com/yourusername/m4bot/archive/main.zip" -o "$TMP_DIR/m4bot.zip"
+    # unzip -q "$TMP_DIR/m4bot.zip" -d "$TMP_DIR"
+    # cp -r "$TMP_DIR/m4bot-main"/* "$INSTALL_DIR"
+    
+    # Aggiorna dipendenze
+    "$INSTALL_DIR/venv/bin/pip" install --upgrade -r "$INSTALL_DIR/requirements.txt"
+    
+    # Aggiorna il file di versione
+    # LATEST_VERSION=$(curl -s "https://api.github.com/repos/yourusername/m4bot/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")')
+    # echo "$LATEST_VERSION" > "$INSTALL_DIR/version.txt"
+    
+    # Imposta permessi corretti
+    chown -R m4bot:m4bot "$INSTALL_DIR"
+    
+    # Riavvia i servizi
+    systemctl restart m4bot-bot.service
+    systemctl restart m4bot-web.service
+    
+    print_success "M4Bot aggiornato con successo!"
 }
 
-# Controlla lo stato di M4Bot
-status_bot() {
-    print_message "Controllo dello stato di M4Bot..."
-
-    # Controllo dello stato dei servizi
-    print_message "Servizio Bot:"
-    systemctl status m4bot-bot.service --no-pager
-
-    echo ""
-    print_message "Servizio Web:"
-    systemctl status m4bot-web.service --no-pager
-
-    echo ""
-    print_message "Servizio Nginx:"
-    systemctl status nginx --no-pager | grep Active
-
-    echo ""
-    print_message "Servizio PostgreSQL:"
-    systemctl status postgresql --no-pager | grep Active
-
-    # Verifica se i servizi sono attivi
-    if systemctl is-active --quiet m4bot-bot.service && systemctl is-active --quiet m4bot-web.service && systemctl is-active --quiet nginx && systemctl is-active --quiet postgresql; then
-        echo ""
-        print_success "Tutti i servizi di M4Bot sono attivi e funzionanti"
-        echo ""
-        print_message "M4Bot Ã¨ disponibile all'indirizzo https://m4bot.it"
-        print_message "Dashboard: https://dashboard.m4bot.it"
-        print_message "Pannello di controllo: https://control.m4bot.it"
-    else
-        echo ""
-        print_error "Uno o piÃ¹ servizi di M4Bot non sono attivi" 0
+# Funzione principale che gestisce i parametri di input
+main() {
+    if [ $# -eq 0 ]; then
+        # Nessun parametro, mostra il menu
+        echo "M4Bot - Script Unificato"
+        echo "------------------------"
+        echo "Utilizzo: $0 [comando]"
+        echo
+        echo "Comandi disponibili:"
+        echo "  install    - Installa M4Bot sul sistema"
+        echo "  start      - Avvia i servizi M4Bot"
+        echo "  stop       - Ferma i servizi M4Bot"
+        echo "  restart    - Riavvia i servizi M4Bot"
+        echo "  status     - Mostra lo stato dei servizi M4Bot"
+        echo "  update     - Aggiorna M4Bot all'ultima versione"
+        echo "  check      - Controlla se sono disponibili aggiornamenti"
+        echo "  help       - Mostra questa guida"
+        echo
+        echo "Esempi:"
+        echo "  $0 install  # Installa M4Bot sul sistema"
+        echo "  $0 start    # Avvia i servizi M4Bot"
+        exit 0
     fi
+    
+    # Gestisci il comando
+    case "$1" in
+        install)
+            install_m4bot "${@:2}"
+            ;;
+        start)
+            start_m4bot
+            ;;
+        stop)
+            stop_m4bot
+            ;;
+        restart)
+            restart_m4bot
+            ;;
+        status)
+            status_m4bot
+            ;;
+        update)
+            update_m4bot
+            ;;
+        check)
+            check_updates
+            ;;
+        help)
+            main
+            ;;
+        *)
+            echo "Comando non riconosciuto: $1"
+            echo "Usa '$0 help' per vedere i comandi disponibili"
+            exit 1
+            ;;
+    esac
+}
 
-    # Controlla l'utilizzo delle risorse
-    echo ""
-    print_message "Utilizzo delle risorse:"
-    echo "- CPU e Memoria per i processi di M4Bot:"
-    ps aux | grep -E "m4bot.py|app.py" | grep -v grep
-
-    echo ""
-    print_message "Spazio su disco:"
-    df -h | grep -E '(Filesystem|/$)'
-
-    echo ""
-    print_message "Ultimi log del bot:"
-    journalctl -u m4bot-bot.service -n 10 --no-pager
-
-    echo ""
-    print_message "Ultimi log del web:"
-    journalctl -u m4bot-web.service -n 10 --no-pager
-} 
+# Esegui la funzione principale con tutti i parametri passati allo script
+main "$@" 

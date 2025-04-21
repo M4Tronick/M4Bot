@@ -1,258 +1,380 @@
 #!/bin/bash
-# Script per risolvere i problemi piÃ¹ comuni di M4Bot
+# Script per la risoluzione dei problemi comuni di M4Bot
 
-# Carica le funzioni comuni
-source "$(dirname "$0")/common.sh"
+# Colori per output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
-# Verifica privilegi root
-check_root
+# Directory di installazione (modificare se necessario)
+INSTALL_DIR="/opt/m4bot"
+BOT_DIR="$INSTALL_DIR/bot"
+WEB_DIR="$INSTALL_DIR/web"
+LOG_DIR="$INSTALL_DIR/logs"
 
-print_message "=== RIPARAZIONE M4BOT ==="
-print_message "Questo script tenterÃ  di risolvere i problemi piÃ¹ comuni di M4Bot"
+# Funzioni di utilità
+print_message() {
+    echo -e "${BLUE}[M4Bot]${NC} $1"
+}
 
-# Configurazione
-M4BOT_DIR="/opt/m4bot"
-WEB_DIR="$M4BOT_DIR/web"
-BOT_DIR="$M4BOT_DIR/bot"
-LOGS_DIR="$BOT_DIR/logs"
-DB_NAME="m4bot_db"
-DB_USER="m4bot_user"
-
-# 1. Riparazione common.sh
-print_message "1. Riparazione dello script common.sh..."
-if [ ! -f "/usr/local/bin/common.sh" ] && [ -f "$(dirname "$0")/common.sh" ]; then
-    cp "$(dirname "$0")/common.sh" /usr/local/bin/
-    chmod +x /usr/local/bin/common.sh
-    print_success "File common.sh copiato in /usr/local/bin/"
-else
-    print_message "File common.sh giÃ  presente"
-fi
-
-# 2. Riparazione directory dei log
-print_message "2. Riparazione della directory dei log..."
-mkdir -p "$LOGS_DIR"
-chown -R m4bot:m4bot "$M4BOT_DIR" || true
-chmod -R 755 "$LOGS_DIR"
-print_success "Directory dei log creata e permessi impostati"
-
-# 3. Riparazione servizi
-print_message "3. Riparazione dei servizi..."
-systemctl daemon-reload
-systemctl restart postgresql nginx
-
-# 4. Riparazione del database
-print_message "4. Verifica del database..."
-if ! sudo -u postgres psql -lqt | grep -q "$DB_NAME"; then
-    print_warning "Database $DB_NAME non trovato, creazione in corso..."
-    
-    # Genera una password sicura
-    DB_PASSWORD=$(openssl rand -hex 12)
-    
-    # Crea l'utente e il database
-    sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';"
-    sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
-    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
-    
-    # Salva le credenziali del database
-    cat > "$M4BOT_DIR/.env" << EOF
-DB_USER=$DB_USER
-DB_PASSWORD=$DB_PASSWORD
-DB_NAME=$DB_NAME
-DB_HOST=localhost
-EOF
-    chmod 600 "$M4BOT_DIR/.env"
-    chown m4bot:m4bot "$M4BOT_DIR/.env"
-    
-    print_success "Database creato con successo"
-else
-    print_message "Database $DB_NAME giÃ  esistente"
-fi
-
-# 5. Verifica dei file principali
-print_message "5. Verifica dei file principali..."
-if [ ! -f "$WEB_DIR/app.py" ] || [ ! -f "$BOT_DIR/m4bot.py" ]; then
-    print_warning "File principali mancanti, tentativo di clonazione dal repository..."
-    
-    # Salva qualsiasi file esistente
-    if [ -d "$M4BOT_DIR" ]; then
-        BACKUP_DIR="/tmp/m4bot_backup_$(date +%s)"
-        mkdir -p "$BACKUP_DIR"
-        cp -r "$M4BOT_DIR" "$BACKUP_DIR"
-        print_message "Backup creato in $BACKUP_DIR"
+print_error() {
+    echo -e "${RED}[ERRORE]${NC} $1"
+    if [ -n "$2" ]; then
+        exit $2
     fi
-    
-    # Clone del repository
-    TEMP_DIR="/tmp/m4bot_repo"
-    rm -rf "$TEMP_DIR"
-    git clone https://github.com/M4Tronick/M4Bot.git "$TEMP_DIR"
-    
-    if [ -d "$TEMP_DIR" ]; then
-        # Copia i file mancanti
-        if [ ! -f "$WEB_DIR/app.py" ] && [ -f "$TEMP_DIR/web/app.py" ]; then
-            mkdir -p "$WEB_DIR"
-            cp -r "$TEMP_DIR/web/"* "$WEB_DIR/"
-            print_success "File web copiati dal repository"
-        fi
-        
-        if [ ! -f "$BOT_DIR/m4bot.py" ] && [ -f "$TEMP_DIR/bot/m4bot.py" ]; then
-            mkdir -p "$BOT_DIR"
-            cp -r "$TEMP_DIR/bot/"* "$BOT_DIR/"
-            print_success "File bot copiati dal repository"
-        fi
-        
-        # Pulisci
-        rm -rf "$TEMP_DIR"
-    else
-        print_error "Impossibile clonare il repository"
-    fi
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESSO]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[AVVISO]${NC} $1"
+}
+
+# Controlla che lo script sia eseguito come root
+if [ "$(id -u)" != "0" ]; then
+    print_error "Questo script deve essere eseguito come root" 1
 fi
 
-# 6. Riparazione porte
-print_message "6. Verifica delle porte..."
+# Se viene passato un parametro, usa quello come directory di installazione
+if [ -n "$1" ]; then
+    INSTALL_DIR="$1"
+    BOT_DIR="$INSTALL_DIR/bot"
+    WEB_DIR="$INSTALL_DIR/web"
+    LOG_DIR="$INSTALL_DIR/logs"
+fi
+
+# Verifica che la directory esista
+if [ ! -d "$INSTALL_DIR" ]; then
+    print_error "Directory $INSTALL_DIR non trovata" 1
+fi
+
+print_message "Risoluzione dei problemi comuni di M4Bot in $INSTALL_DIR..."
+
+# Problema 1: Permessi errati
+print_message "Controllo dei permessi..."
+find "$INSTALL_DIR" -type d -exec chmod 755 {} \;
+find "$INSTALL_DIR" -type f -name "*.py" -exec chmod 644 {} \;
+find "$INSTALL_DIR" -type f -name "*.sh" -exec chmod 755 {} \;
+find "$INSTALL_DIR/scripts" -type f -name "*.sh" -exec chmod 755 {} \;
+if [ -f "$BOT_DIR/m4bot.py" ]; then
+    chmod 755 "$BOT_DIR/m4bot.py"
+fi
+if [ -f "$WEB_DIR/app.py" ]; then
+    chmod 755 "$WEB_DIR/app.py"
+fi
+print_success "Permessi corretti"
+
+# Problema 2: Servizi non attivi
+print_message "Controllo dei servizi..."
+if systemctl is-active --quiet m4bot-bot.service; then
+    print_success "Il servizio m4bot-bot.service è attivo"
+else
+    print_warning "Il servizio m4bot-bot.service non è attivo, tentativo di avvio..."
+    systemctl start m4bot-bot.service
+fi
+
+if systemctl is-active --quiet m4bot-web.service; then
+    print_success "Il servizio m4bot-web.service è attivo"
+else
+    print_warning "Il servizio m4bot-web.service non è attivo, tentativo di avvio..."
+    systemctl start m4bot-web.service
+fi
+
+if systemctl is-active --quiet postgresql; then
+    print_success "Il servizio postgresql è attivo"
+else
+    print_warning "Il servizio postgresql non è attivo, tentativo di avvio..."
+    systemctl start postgresql
+fi
+
+if systemctl is-active --quiet nginx; then
+    print_success "Il servizio nginx è attivo"
+else
+    print_warning "Il servizio nginx non è attivo, tentativo di avvio..."
+    systemctl start nginx
+fi
+
+if systemctl is-active --quiet redis-server; then
+    print_success "Il servizio redis-server è attivo"
+else
+    print_warning "Il servizio redis-server non è attivo, tentativo di avvio..."
+    systemctl start redis-server
+fi
+
+# Problema 3: File di log troppo grandi
+print_message "Controllo dei file di log..."
+find "$LOG_DIR" -type f -name "*.log" -size +100M -exec truncate -s 10M {} \;
+print_success "File di log controllati"
+
+# Problema 4: Porta occupata
+print_message "Controllo delle porte..."
+
 if ! netstat -tuln | grep -q ":5000 "; then
-    print_warning "La porta 5000 non Ã¨ in ascolto, tentativo di riavvio dei servizi..."
-    
-    # Verifica se l'app utilizza una porta diversa
-    if [ -f "$WEB_DIR/app.py" ]; then
-        PORT=$(grep -o "port=[0-9]*" "$WEB_DIR/app.py" | cut -d= -f2)
-        if [ -n "$PORT" ] && [ "$PORT" != "5000" ]; then
-            print_warning "L'applicazione web utilizza la porta $PORT invece di 5000"
-            
-            # Aggiorna la configurazione Nginx
-            sed -i "s/proxy_pass http:\/\/localhost:5000;/proxy_pass http:\/\/localhost:$PORT;/" /etc/nginx/sites-available/m4bot
-            systemctl reload nginx
-            print_success "Configurazione Nginx aggiornata per utilizzare la porta $PORT"
-        fi
-    fi
-    
-    # Riavvia i servizi
+    print_warning "La porta 5000 non è in ascolto, tentativo di riavvio dei servizi..."
     systemctl restart m4bot-web.service
 fi
 
-# 7. Riparazione Nginx
-print_message "7. Riparazione di Nginx..."
-nginx -t || {
-    print_warning "Configurazione Nginx non valida, tentativo di riparazione..."
-    
-    # Ricrea la configurazione
-    cat > /etc/nginx/sites-available/m4bot << EOF
+if ! netstat -tuln | grep -q ":5001 "; then
+    print_warning "La porta 5001 non è in ascolto, tentativo di riavvio dei servizi..."
+    systemctl restart m4bot-bot.service
+fi
+print_success "Porte controllate"
+
+# Problema 5: File temporanei
+print_message "Pulizia dei file temporanei..."
+find "$INSTALL_DIR" -name "*.pyc" -delete
+find "$INSTALL_DIR" -name "__pycache__" -exec rm -rf {} +
+if [ -d "$INSTALL_DIR/tmp" ]; then
+    rm -rf "$INSTALL_DIR/tmp/*"
+fi
+print_success "File temporanei puliti"
+
+# Problema 6: Ambiente virtuale
+print_message "Controllo dell'ambiente virtuale..."
+if [ ! -d "$INSTALL_DIR/venv" ]; then
+    print_warning "Ambiente virtuale non trovato, creazione in corso..."
+    python3 -m venv "$INSTALL_DIR/venv"
+    print_message "Installazione delle dipendenze..."
+    if [ -f "$INSTALL_DIR/requirements.txt" ]; then
+        "$INSTALL_DIR/venv/bin/pip" install -r "$INSTALL_DIR/requirements.txt"
+    elif [ -f "$BOT_DIR/requirements.txt" ]; then
+        "$INSTALL_DIR/venv/bin/pip" install -r "$BOT_DIR/requirements.txt"
+    elif [ -f "$WEB_DIR/requirements.txt" ]; then
+        "$INSTALL_DIR/venv/bin/pip" install -r "$WEB_DIR/requirements.txt"
+    else
+        print_warning "File requirements.txt non trovato, installazione pacchetti di base..."
+        "$INSTALL_DIR/venv/bin/pip" install flask flask-babel flask-session flask-login psycopg2-binary redis requests
+    fi
+else
+    print_success "Ambiente virtuale trovato"
+fi
+
+# Problema 7: Directory mancanti
+print_message "Controllo delle directory necessarie..."
+declare -a directories=(
+    "$BOT_DIR"
+    "$WEB_DIR"
+    "$LOG_DIR"
+    "$BOT_DIR/plugins"
+    "$BOT_DIR/languages"
+    "$WEB_DIR/templates"
+    "$WEB_DIR/static"
+    "$WEB_DIR/static/css"
+    "$WEB_DIR/static/js"
+    "$WEB_DIR/static/images"
+)
+
+for dir in "${directories[@]}"; do
+    if [ ! -d "$dir" ]; then
+        print_warning "Directory $dir non trovata, creazione in corso..."
+        mkdir -p "$dir"
+    fi
+done
+print_success "Directory controllate"
+
+# Problema 8: Configurazione Nginx
+print_message "Controllo della configurazione Nginx..."
+if [ ! -f "/etc/nginx/sites-available/m4bot" ]; then
+    print_warning "Configurazione Nginx non trovata, creazione in corso..."
+    cat > "/etc/nginx/sites-available/m4bot" << EOF
 server {
     listen 80;
-    server_name _;  # Ascolta su tutti i domini
+    server_name _;
 
     location / {
-        proxy_pass http://localhost:5000;
+        proxy_pass http://127.0.0.1:5000;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
 
-    location /static {
-        alias $WEB_DIR/static;
+    location /api/ {
+        proxy_pass http://127.0.0.1:5001;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    location /static/ {
+        alias $WEB_DIR/static/;
     }
 }
 EOF
-    
-    # Verifica e ricarica
-    nginx -t && systemctl reload nginx
-    print_success "Configurazione Nginx ricreata"
-}
-
-# 8. Riparazione ambiente virtuale
-print_message "8. Verifica dell'ambiente virtuale..."
-if [ ! -d "$M4BOT_DIR/venv" ]; then
-    print_warning "Ambiente virtuale mancante, creazione in corso..."
-    python3 -m venv "$M4BOT_DIR/venv"
-    
-    # Installa le dipendenze base
-    "$M4BOT_DIR/venv/bin/pip" install --upgrade pip
-    "$M4BOT_DIR/venv/bin/pip" install flask flask-sqlalchemy flask-login psycopg2-binary python-dotenv requests asyncio aiohttp bcrypt
-    
-    # Installa le dipendenze specifiche
-    if [ -f "$WEB_DIR/requirements.txt" ]; then
-        "$M4BOT_DIR/venv/bin/pip" install -r "$WEB_DIR/requirements.txt"
+    if [ ! -L "/etc/nginx/sites-enabled/m4bot" ]; then
+        ln -s "/etc/nginx/sites-available/m4bot" "/etc/nginx/sites-enabled/"
     fi
-    
-    if [ -f "$BOT_DIR/requirements.txt" ]; then
-        "$M4BOT_DIR/venv/bin/pip" install -r "$BOT_DIR/requirements.txt"
-    fi
-    
-    print_success "Ambiente virtuale creato e dipendenze installate"
+    systemctl reload nginx
 fi
+print_success "Configurazione Nginx controllata"
 
-# 9. Inizializzazione del database
-print_message "9. Inizializzazione del database..."
-if [ -f "$(dirname "$0")/init_database.sh" ]; then
-    source "$(dirname "$0")/init_database.sh" "$DB_NAME" "$DB_USER" "$(grep DB_PASSWORD "$M4BOT_DIR/.env" | cut -d= -f2)"
+# Problema 9: Problemi di encoding
+print_message "Correzione dei problemi di encoding..."
+find "$INSTALL_DIR" -type f -name "*.py" -o -name "*.sh" | while read -r file; do
+    if file "$file" | grep -q "ISO-8859"; then
+        print_warning "Conversione encoding per $file..."
+        iconv -f ISO-8859-1 -t UTF-8 -o "$file.tmp" "$file" && mv "$file.tmp" "$file"
+    fi
+done
+print_success "Problemi di encoding corretti"
+
+# Problema 10: Risoluzione problemi file .env
+if [ -f "$INSTALL_DIR/.env" ]; then
+    print_message "Controllo file .env..."
+    # Verifica se DATABASE_URL è impostato correttamente
+    if ! grep -q "DATABASE_URL" "$INSTALL_DIR/.env"; then
+        print_warning "DATABASE_URL non trovato in .env, aggiunta in corso..."
+        echo "DATABASE_URL=postgresql://m4bot_user:m4bot_password@localhost/m4bot_db" >> "$INSTALL_DIR/.env"
+    fi
+    # Verifica se SECRET_KEY è impostato correttamente
+    if ! grep -q "SECRET_KEY" "$INSTALL_DIR/.env"; then
+        print_warning "SECRET_KEY non trovato in .env, aggiunta in corso..."
+        echo "SECRET_KEY=$(openssl rand -hex 32)" >> "$INSTALL_DIR/.env"
+    fi
 else
-    print_warning "File init_database.sh non trovato"
-    
-    # Crea tabelle base
-    print_message "Creazione delle tabelle base..."
-    cat > /tmp/init_m4bot_tables.sql << EOF
--- Tabella utenti
-CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    username VARCHAR(255) NOT NULL UNIQUE,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    is_admin BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Tabella canali
-CREATE TABLE IF NOT EXISTS channels (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
-    owner_id INTEGER REFERENCES users(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    is_active BOOLEAN DEFAULT TRUE
-);
-
--- Tabella sessioni
-CREATE TABLE IF NOT EXISTS sessions (
-    id VARCHAR(255) PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id),
-    data JSONB,
-    expires_at TIMESTAMP WITH TIME ZONE
-);
+    print_warning "File .env non trovato, creazione in corso..."
+    cat > "$INSTALL_DIR/.env" << EOF
+# Configurazione di M4Bot
+DEBUG=False
+SECRET_KEY=$(openssl rand -hex 32)
+DATABASE_URL=postgresql://m4bot_user:m4bot_password@localhost/m4bot_db
+REDIS_URL=redis://localhost:6379/0
 EOF
-    
-    sudo -u postgres psql -d "$DB_NAME" -f /tmp/init_m4bot_tables.sql
-    rm -f /tmp/init_m4bot_tables.sql
-    
-    # Crea utente admin
-    print_message "Creazione dell'utente admin..."
-    ADMIN_USER="admin"
-    ADMIN_EMAIL="admin@m4bot.it"
-    ADMIN_PASSWORD="admin123"
-    
-    # Genera hash della password
-    PASS_HASH=$(python3 -c "import bcrypt; print(bcrypt.hashpw('$ADMIN_PASSWORD'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8'))")
-    
-    # Inserisci l'utente admin
-    sudo -u postgres psql -d "$DB_NAME" -c "INSERT INTO users (username, email, password_hash, is_admin) VALUES ('$ADMIN_USER', '$ADMIN_EMAIL', '$PASS_HASH', TRUE) ON CONFLICT (username) DO NOTHING;"
-    
-    print_success "Database inizializzato con utente admin"
+fi
+print_success "File .env controllato"
+
+# Problema 11: Correzione unit file systemd
+print_message "Controllo dei file di servizio systemd..."
+if [ -f "/etc/systemd/system/m4bot-bot.service" ]; then
+    if ! grep -q "ExecStart=" "/etc/systemd/system/m4bot-bot.service"; then
+        print_warning "ExecStart non trovato in m4bot-bot.service, correzione in corso..."
+        cat > "/etc/systemd/system/m4bot-bot.service" << EOF
+[Unit]
+Description=M4Bot Bot Service
+After=network.target postgresql.service redis-server.service
+Requires=postgresql.service redis-server.service
+
+[Service]
+User=m4bot
+Group=m4bot
+WorkingDirectory=$BOT_DIR
+ExecStart=$INSTALL_DIR/venv/bin/python $BOT_DIR/m4bot.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+        systemctl daemon-reload
+        systemctl restart m4bot-bot.service
+    fi
+else
+    print_warning "File m4bot-bot.service non trovato, creazione in corso..."
+    cat > "/etc/systemd/system/m4bot-bot.service" << EOF
+[Unit]
+Description=M4Bot Bot Service
+After=network.target postgresql.service redis-server.service
+Requires=postgresql.service redis-server.service
+
+[Service]
+User=m4bot
+Group=m4bot
+WorkingDirectory=$BOT_DIR
+ExecStart=$INSTALL_DIR/venv/bin/python $BOT_DIR/m4bot.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl daemon-reload
+    systemctl enable m4bot-bot.service
+    systemctl start m4bot-bot.service
 fi
 
-# 10. Riavvia i servizi
-print_message "10. Riavvio dei servizi..."
+if [ -f "/etc/systemd/system/m4bot-web.service" ]; then
+    if ! grep -q "ExecStart=" "/etc/systemd/system/m4bot-web.service"; then
+        print_warning "ExecStart non trovato in m4bot-web.service, correzione in corso..."
+        cat > "/etc/systemd/system/m4bot-web.service" << EOF
+[Unit]
+Description=M4Bot Web Service
+After=network.target postgresql.service redis-server.service m4bot-bot.service
+Requires=postgresql.service redis-server.service
+
+[Service]
+User=m4bot
+Group=m4bot
+WorkingDirectory=$WEB_DIR
+ExecStart=$INSTALL_DIR/venv/bin/python $WEB_DIR/app.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+        systemctl daemon-reload
+        systemctl restart m4bot-web.service
+    fi
+else
+    print_warning "File m4bot-web.service non trovato, creazione in corso..."
+    cat > "/etc/systemd/system/m4bot-web.service" << EOF
+[Unit]
+Description=M4Bot Web Service
+After=network.target postgresql.service redis-server.service m4bot-bot.service
+Requires=postgresql.service redis-server.service
+
+[Service]
+User=m4bot
+Group=m4bot
+WorkingDirectory=$WEB_DIR
+ExecStart=$INSTALL_DIR/venv/bin/python $WEB_DIR/app.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl daemon-reload
+    systemctl enable m4bot-web.service
+    systemctl start m4bot-web.service
+fi
+print_success "File di servizio systemd controllati"
+
+# Problema 12: Verifica e correzione dei permessi dei file di configurazione
+print_message "Correzione dei permessi dei file di configurazione..."
+if [ -f "$BOT_DIR/config.py" ]; then
+    chmod 644 "$BOT_DIR/config.py"
+    chown m4bot:m4bot "$BOT_DIR/config.py"
+fi
+if [ -f "$WEB_DIR/config.py" ]; then
+    chmod 644 "$WEB_DIR/config.py"
+    chown m4bot:m4bot "$WEB_DIR/config.py"
+fi
+if [ -f "$INSTALL_DIR/.env" ]; then
+    chmod 600 "$INSTALL_DIR/.env"
+    chown m4bot:m4bot "$INSTALL_DIR/.env"
+fi
+print_success "Permessi dei file di configurazione corretti"
+
+# Problema 13: Imposta l'utente m4bot come proprietario
+print_message "Impostazione dell'utente m4bot come proprietario..."
+if ! id -u m4bot &>/dev/null; then
+    print_warning "Utente m4bot non trovato, creazione in corso..."
+    useradd -m -s /bin/bash m4bot
+fi
+chown -R m4bot:m4bot "$INSTALL_DIR"
+print_success "Utente m4bot impostato come proprietario"
+
+# Riavvia i servizi per applicare tutte le modifiche
+print_message "Riavvio dei servizi..."
+systemctl restart nginx
 systemctl restart m4bot-bot.service
 systemctl restart m4bot-web.service
 
-# Verifica finale
-print_message "=== STATO FINALE ==="
-systemctl status postgresql --no-pager
-systemctl status nginx --no-pager
-systemctl status m4bot-bot.service --no-pager
-systemctl status m4bot-web.service --no-pager
-
-print_success "=== RIPARAZIONE COMPLETATA ==="
-print_message "Se i problemi persistono, esegui il comando 'diagnose.sh' per un'analisi dettagliata"
-print_message "Le credenziali di accesso sono:"
-print_message "  Username: admin"
-print_message "  Password: admin123" 
+print_success "Risoluzione dei problemi completata"
+print_message "Tutti i problemi comuni sono stati corretti" 

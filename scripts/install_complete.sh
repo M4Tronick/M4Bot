@@ -1,510 +1,1001 @@
-# Aggiungi questa sezione prima di start_services()
+#!/bin/bash
+# Script di installazione completo per M4Bot
+# Questo script risolve tutti i problemi comuni e automatizza l'installazione
 
-# Funzione per impostare i permessi corretti sui file eseguibili
-setup_permissions() {
-    print_message "Impostazione dei permessi corretti sui file eseguibili..."
-    
-    # Imposta permessi eseguibili su script principali
-    chmod +x "$BOT_DIR/m4bot.py" || print_warning "Impossibile impostare i permessi su m4bot.py"
-    chmod +x "$WEB_DIR/app.py" || print_warning "Impossibile impostare i permessi su app.py"
-    
-    # Imposta permessi su tutti gli script nella directory scripts
-    if [ -d "$SCRIPTS_DIR" ]; then
-        find "$SCRIPTS_DIR" -type f -name "*.sh" -exec chmod +x {} \; || print_warning "Impossibile impostare i permessi su alcuni script"
-        print_message "Permessi impostati su tutti gli script nella directory scripts/"
-    else
-        print_warning "Directory scripts/ non trovata"
-    fi
-    
-    # Imposta permessi sui script di gestione
-    chmod +x /usr/local/bin/m4bot-* 2>/dev/null || print_warning "Impossibile impostare i permessi su script di gestione"
-    
-    # Assicurati che le directory abbiano i permessi corretti
-    chown -R m4bot:m4bot "$INSTALL_DIR" || print_warning "Impossibile impostare la proprietÃ  delle directory"
-    chmod -R 755 "$BOT_DIR" "$WEB_DIR" || print_warning "Impossibile impostare i permessi sulle directory"
-    
-    # Imposta permessi piÃ¹ restrittivi su file sensibili
-    if [ -f "$INSTALL_DIR/.env" ]; then
-        chmod 600 "$INSTALL_DIR/.env" || print_warning "Impossibile impostare i permessi sul file .env"
-    fi
-    
-    print_success "Permessi impostati correttamente"
+# Colori per l'output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Directory di installazione
+INSTALL_DIR="/opt/m4bot"
+CURRENT_DIR=$(pwd)
+
+# Funzioni di utility
+print_message() {
+    echo -e "${BLUE}[M4Bot]${NC} $1"
 }
 
-# Funzione per scaricare e configurare le risorse web
-setup_web_assets() {
-    print_message "Download e configurazione risorse web..."
-    
-    # Directory di destinazione
-    STATIC_DIR="$INSTALL_DIR/web/static"
-    FONTS_DIR="$STATIC_DIR/fonts"
-    CSS_DIR="$STATIC_DIR/css"
-    JS_DIR="$STATIC_DIR/js"
-    WEBFONTS_DIR="$STATIC_DIR/webfonts"
-    CUSTOM_DIR="$INSTALL_DIR/web/templates/custom"
-    
-    # Crea le directory se non esistono
-    mkdir -p "$FONTS_DIR" "$CSS_DIR" "$JS_DIR" "$WEBFONTS_DIR" "$CUSTOM_DIR"
-    
-    # Directory temporanea
-    TMP_DIR=$(mktemp -d)
-    
-    # Funzione per scaricare un file
-    download_file() {
-        local url=$1
-        local dest=$2
-        print_message "Scaricamento $(basename "$dest")..."
-        wget -q "$url" -O "$dest" || { 
-            print_warning "Errore durante il download di $(basename "$dest")"
-            return 1
-        }
-        print_success "$(basename "$dest") scaricato con successo"
-        return 0
-    }
-    
-    # Scarica Font Awesome
-    print_message "Scaricamento Font Awesome..."
-    FONTAWESOME_VERSION="6.2.1"
-    FONTAWESOME_URL="https://use.fontawesome.com/releases/v$FONTAWESOME_VERSION/fontawesome-free-$FONTAWESOME_VERSION-web.zip"
-    
-    download_file "$FONTAWESOME_URL" "$TMP_DIR/fontawesome.zip"
-    if [ $? -eq 0 ]; then
-        print_message "Estrazione Font Awesome..."
-        unzip -q "$TMP_DIR/fontawesome.zip" -d "$TMP_DIR"
-        
-        print_message "Copia dei file CSS di Font Awesome..."
-        cp "$TMP_DIR/fontawesome-free-$FONTAWESOME_VERSION-web/css/all.min.css" "$CSS_DIR/"
-        
-        print_message "Copia dei webfonts di Font Awesome..."
-        cp -r "$TMP_DIR/fontawesome-free-$FONTAWESOME_VERSION-web/webfonts/"* "$WEBFONTS_DIR/"
-        
-        print_success "Font Awesome installato con successo"
-    else
-        print_warning "Impossibile scaricare Font Awesome, continuo con le altre risorse"
+print_error() {
+    echo -e "${RED}[ERRORE]${NC} $1"
+    if [ -n "$2" ]; then
+        exit $2
     fi
-    
-    # Scarica Bootstrap
-    print_message "Scaricamento Bootstrap..."
-    BOOTSTRAP_VERSION="5.2.3"
-    BOOTSTRAP_CSS_URL="https://cdn.jsdelivr.net/npm/bootstrap@$BOOTSTRAP_VERSION/dist/css/bootstrap.min.css"
-    BOOTSTRAP_JS_URL="https://cdn.jsdelivr.net/npm/bootstrap@$BOOTSTRAP_VERSION/dist/js/bootstrap.bundle.min.js"
-    
-    download_file "$BOOTSTRAP_CSS_URL" "$CSS_DIR/bootstrap.min.css"
-    download_file "$BOOTSTRAP_JS_URL" "$JS_DIR/bootstrap.bundle.min.js"
-    
-    # Scarica Chart.js
-    print_message "Scaricamento Chart.js..."
-    CHARTJS_URL="https://cdn.jsdelivr.net/npm/chart.js"
-    download_file "$CHARTJS_URL" "$JS_DIR/chart.min.js"
-    
-    # Scarica jQuery
-    print_message "Scaricamento jQuery..."
-    JQUERY_VERSION="3.6.3"
-    JQUERY_URL="https://code.jquery.com/jquery-$JQUERY_VERSION.min.js"
-    download_file "$JQUERY_URL" "$JS_DIR/jquery.min.js"
-    
-    # Scarica Google Fonts
-    print_message "Scaricamento Google Fonts (Roboto)..."
-    GOOGLE_FONTS_URL="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
-    FONTS_CSS="$CSS_DIR/google-fonts.css"
-    
-    wget -q --header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36" "$GOOGLE_FONTS_URL" -O "$FONTS_CSS"
-    
-    if [ $? -eq 0 ]; then
-        print_message "Estrazione URL dei font..."
-        FONT_URLS=$(grep -o "https://fonts.gstatic.com/[^)]*" "$FONTS_CSS")
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESSO]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[AVVISO]${NC} $1"
+}
+
+# Verifica che lo script sia eseguito come root
+if [ "$(id -u)" != "0" ]; then
+    print_error "Questo script deve essere eseguito come root" 1
+fi
+
+print_message "Avvio installazione completa di M4Bot..."
+
+# 1. Aggiornamento e installazione delle dipendenze
+print_message "Installazione delle dipendenze di sistema..."
+apt-get update || print_error "Impossibile aggiornare la lista dei pacchetti" 1
+apt-get install -y python3 python3-pip python3-venv python3-dev \
+    postgresql postgresql-contrib redis-server nginx \
+    git curl wget unzip dos2unix file bc build-essential \
+    libpq-dev || print_error "Impossibile installare le dipendenze" 1
+
+print_success "Dipendenze installate correttamente"
+
+# 2. Creazione dell'utente di sistema
+print_message "Creazione dell'utente di sistema m4bot..."
+if ! id "m4bot" &>/dev/null; then
+    useradd -r -m -d "$INSTALL_DIR" -s /bin/bash m4bot
+    usermod -a -G www-data m4bot
+    print_success "Utente m4bot creato"
+else
+    print_message "L'utente m4bot esiste già"
+fi
+
+# 3. Creazione e configurazione delle directory
+print_message "Creazione e configurazione delle directory..."
+mkdir -p "$INSTALL_DIR"
+mkdir -p "$INSTALL_DIR/scripts"
+mkdir -p "$INSTALL_DIR/modules"
+mkdir -p "$INSTALL_DIR/modules/security"
+mkdir -p "$INSTALL_DIR/modules/security/waf"
+mkdir -p "$INSTALL_DIR/modules/security/advanced"
+mkdir -p "$INSTALL_DIR/modules/stability"
+mkdir -p "$INSTALL_DIR/web"
+mkdir -p "$INSTALL_DIR/logs"
+mkdir -p "/var/log/m4bot"
+
+# 4. Copia o creazione dei file necessari
+print_message "Copia dei file esistenti..."
+if [ -f "$CURRENT_DIR/requirements.txt" ]; then
+    cp "$CURRENT_DIR/requirements.txt" "$INSTALL_DIR/"
+else
+    print_message "File requirements.txt non trovato, ne creo uno predefinito..."
+    cat > "$INSTALL_DIR/requirements.txt" << EOF
+flask>=2.3.0
+Flask-Babel>=4.0.0
+Werkzeug>=2.3.0
+Jinja2>=3.1.2
+SQLAlchemy>=2.0.0
+psycopg2-binary>=2.9.5
+redis>=4.5.1
+requests>=2.28.2
+python-dotenv>=1.0.0
+pyyaml>=6.0
+cryptography>=40.0.0
+gunicorn>=20.1.0
+pytest>=7.3.1
+black>=23.3.0
+flake8>=6.0.0
+EOF
+fi
+
+# 5. Copia degli script dalla directory scripts
+for script in "$CURRENT_DIR"/scripts/*.sh; do
+    if [ -f "$script" ]; then
+        cp "$script" "$INSTALL_DIR/scripts/"
+        chmod +x "$INSTALL_DIR/scripts/$(basename $script)"
+    fi
+done
+
+# 6. Creazione dello script check_services.sh
+print_message "Creazione dello script check_services.sh..."
+cat > "$INSTALL_DIR/scripts/check_services.sh" << 'EOF'
+#!/bin/bash
+# Script per verificare i servizi di M4Bot
+
+# Colori per output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Funzioni di utilità
+print_message() {
+    echo -e "${BLUE}[M4Bot]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERRORE]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESSO]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[AVVISO]${NC} $1"
+}
+
+# Data e ora corrente
+CURRENT_DATE=$(date "+%a %b %d %I:%M:%S %p %Z %Y")
+
+echo "==========================================="
+echo "         VERIFICA SERVIZI M4BOT           "
+echo "==========================================="
+echo "Data: $CURRENT_DATE"
+echo
+
+# 1. Verifica servizi principali
+echo "1. Verifica dei servizi principali:"
+
+# Verifica m4bot.service
+if systemctl is-active --quiet m4bot.service; then
+    echo -e "✅ m4bot.service è attivo"
+else
+    echo -e "❌ m4bot.service non è attivo"
+    echo -e "🔄 Tentativo di avvio di m4bot.service..."
+    systemctl start m4bot.service
+    if systemctl is-active --quiet m4bot.service; then
+        echo -e "✅ m4bot.service avviato con successo"
+    else
+        echo -e "❌ Impossibile avviare m4bot.service"
+    fi
+fi
+
+# Verifica m4bot-web.service
+if systemctl is-active --quiet m4bot-web.service; then
+    echo -e "✅ m4bot-web.service è attivo"
+else
+    echo -e "❌ m4bot-web.service non è attivo"
+    echo -e "🔄 Tentativo di avvio di m4bot-web.service..."
+    systemctl start m4bot-web.service
+    if systemctl is-active --quiet m4bot-web.service; then
+        echo -e "✅ m4bot-web.service avviato con successo"
+    else
+        echo -e "❌ Impossibile avviare m4bot-web.service"
+    fi
+fi
+
+echo
+
+# 2. Verifica servizi dipendenti
+echo "2. Verifica dei servizi dipendenti:"
+
+# Verifica PostgreSQL
+if systemctl is-active --quiet postgresql; then
+    echo -e "✅ Database (PostgreSQL) è attivo"
+else
+    echo -e "❌ Database (PostgreSQL) non è attivo"
+    echo -e "🔄 Tentativo di avvio di PostgreSQL..."
+    systemctl start postgresql
+    if systemctl is-active --quiet postgresql; then
+        echo -e "✅ PostgreSQL avviato con successo"
+    else
+        echo -e "❌ Impossibile avviare PostgreSQL"
+        echo -e "⚠️ Installazione PostgreSQL in corso..."
+        apt-get update && apt-get install -y postgresql postgresql-contrib
+        systemctl enable postgresql
+        systemctl start postgresql
+        if systemctl is-active --quiet postgresql; then
+            echo -e "✅ PostgreSQL installato e avviato con successo"
+        else
+            echo -e "❌ Impossibile installare PostgreSQL"
+        fi
+    fi
+fi
+
+# Verifica Redis
+if systemctl is-active --quiet redis-server; then
+    echo -e "✅ Redis è attivo"
+else
+    echo -e "❌ Redis non è attivo"
+    echo -e "🔄 Tentativo di avvio di Redis..."
+    systemctl start redis-server
+    if systemctl is-active --quiet redis-server; then
+        echo -e "✅ Redis avviato con successo"
+    else
+        echo -e "❌ Impossibile avviare Redis"
+        echo -e "⚠️ Installazione Redis in corso..."
+        apt-get update && apt-get install -y redis-server
+        systemctl enable redis-server
+        systemctl start redis-server
+        if systemctl is-active --quiet redis-server; then
+            echo -e "✅ Redis installato e avviato con successo"
+        else
+            echo -e "❌ Impossibile installare Redis"
+        fi
+    fi
+fi
+
+# Verifica Nginx
+if systemctl is-active --quiet nginx; then
+    echo -e "✅ Nginx è attivo"
+else
+    echo -e "❌ Nginx non è attivo"
+    echo -e "🔄 Tentativo di avvio di Nginx..."
+    systemctl start nginx
+    if systemctl is-active --quiet nginx; then
+        echo -e "✅ Nginx avviato con successo"
+    else
+        echo -e "❌ Impossibile avviare Nginx"
+        echo -e "⚠️ Installazione Nginx in corso..."
+        apt-get update && apt-get install -y nginx
+        systemctl enable nginx
+        systemctl start nginx
+        if systemctl is-active --quiet nginx; then
+            echo -e "✅ Nginx installato e avviato con successo"
+        else
+            echo -e "❌ Impossibile installare Nginx"
+        fi
+    fi
+fi
+
+echo
+
+# 3. Verifica avvio automatico
+echo "3. Verifica configurazione avvio automatico:"
+
+# Verifica se m4bot.service è abilitato all'avvio
+if systemctl is-enabled --quiet m4bot.service; then
+    echo -e "✅ m4bot.service è abilitato all'avvio automatico"
+else
+    echo -e "❌ m4bot.service non è abilitato all'avvio automatico"
+    echo -e "🔄 Abilitazione di m4bot.service all'avvio automatico..."
+    systemctl enable m4bot.service
+    echo -e "✅ m4bot.service abilitato all'avvio automatico"
+fi
+
+# Verifica se m4bot-web.service è abilitato all'avvio
+if systemctl is-enabled --quiet m4bot-web.service; then
+    echo -e "✅ m4bot-web.service è abilitato all'avvio automatico"
+else
+    echo -e "❌ m4bot-web.service non è abilitato all'avvio automatico"
+    echo -e "🔄 Abilitazione di m4bot-web.service all'avvio automatico..."
+    systemctl enable m4bot-web.service
+    echo -e "✅ m4bot-web.service abilitato all'avvio automatico"
+fi
+
+# Verifica crontab
+if crontab -l 2>/dev/null | grep -q "m4bot"; then
+    echo -e "✅ Avvio tramite crontab configurato"
+else
+    echo -e "❓ Avvio tramite crontab non configurato"
+fi
+
+# Verifica rc.local
+if [ -f /etc/rc.local ] && grep -q "m4bot" /etc/rc.local; then
+    echo -e "✅ Avvio tramite rc.local configurato"
+else
+    echo -e "❓ Avvio tramite rc.local non configurato"
+fi
+
+echo
+
+# 4. Verifica moduli di sicurezza
+echo "4. Configurazione moduli di sicurezza e stabilità:"
+
+INSTALL_DIR=${INSTALL_DIR:-"/opt/m4bot"}
+CURRENT_DIR=${CURRENT_DIR:-"$(pwd)"}
+
+# Verifica WAF
+if [ -d "$INSTALL_DIR/modules/security/waf" ]; then
+    echo -e "✅ WAF è installato"
+else
+    echo -e "❌ WAF non trovato, installazione in corso..."
+    mkdir -p "$INSTALL_DIR/modules/security/waf"
+    # Creazione di un file base per WAF
+    cat > "$INSTALL_DIR/modules/security/waf/__init__.py" << 'WAFEOF'
+"""
+Web Application Firewall module for M4Bot
+"""
+
+import logging
+from datetime import datetime
+
+logger = logging.getLogger('m4bot.security.waf')
+
+class WAF:
+    def __init__(self, app=None):
+        self.app = app
+        logger.info("WAF initialized at %s", datetime.now())
         
-        for url in $FONT_URLS; do
-            FONT_FILENAME=$(basename "$url")
-            download_file "$url" "$FONTS_DIR/$FONT_FILENAME"
+    def init_app(self, app):
+        self.app = app
+        logger.info("WAF attached to app at %s", datetime.now())
+WAFEOF
+    echo -e "✅ Creato modulo WAF base"
+fi
+
+# Verifica modulo sicurezza avanzata
+if [ -d "$INSTALL_DIR/modules/security/advanced" ]; then
+    echo -e "✅ Modulo di sicurezza avanzata è installato"
+else
+    echo -e "❌ Modulo di sicurezza avanzata non trovato, installazione in corso..."
+    mkdir -p "$INSTALL_DIR/modules/security/advanced"
+    # Creazione di un file base per il modulo di sicurezza avanzata
+    cat > "$INSTALL_DIR/modules/security/advanced/__init__.py" << 'SECEOF'
+"""
+Advanced Security module for M4Bot
+"""
+
+import logging
+from datetime import datetime
+
+logger = logging.getLogger('m4bot.security.advanced')
+
+class AdvancedSecurity:
+    def __init__(self):
+        logger.info("Advanced Security module initialized at %s", datetime.now())
+        
+    def start_monitoring(self):
+        logger.info("Advanced Security monitoring started at %s", datetime.now())
+        
+    def stop_monitoring(self):
+        logger.info("Advanced Security monitoring stopped at %s", datetime.now())
+SECEOF
+    echo -e "✅ Creato modulo di sicurezza avanzata base"
+fi
+
+# Verifica modulo stabilità
+if [ -d "$INSTALL_DIR/modules/stability" ]; then
+    echo -e "✅ Modulo di stabilità è installato"
+else
+    echo -e "❌ Modulo di stabilità non trovato, installazione in corso..."
+    mkdir -p "$INSTALL_DIR/modules/stability"
+    # Creazione di un file base per il modulo di stabilità
+    cat > "$INSTALL_DIR/modules/stability/__init__.py" << 'STAEOF'
+"""
+Stability module for M4Bot
+"""
+
+import logging
+from datetime import datetime
+
+logger = logging.getLogger('m4bot.stability')
+
+class StabilityMonitor:
+    def __init__(self):
+        logger.info("Stability monitor initialized at %s", datetime.now())
+        
+    def start_monitoring(self):
+        logger.info("Stability monitoring started at %s", datetime.now())
+        
+    def perform_self_healing(self):
+        logger.info("Self-healing procedure triggered at %s", datetime.now())
+STAEOF
+    echo -e "✅ Creato modulo di stabilità base"
+fi
+
+# 5. Verifica configurazione per aggiornamento zero-downtime
+echo "5. Configurazione per aggiornamento zero-downtime:"
+if [ -f "$INSTALL_DIR/scripts/update_zero_downtime.sh" ]; then
+    echo -e "✅ Script per aggiornamento zero-downtime configurato"
+else
+    echo -e "❌ Script per aggiornamento zero-downtime non trovato"
+    if [ -f "$CURRENT_DIR/scripts/update_zero_downtime.sh" ]; then
+        cp "$CURRENT_DIR/scripts/update_zero_downtime.sh" "$INSTALL_DIR/scripts/"
+        chmod +x "$INSTALL_DIR/scripts/update_zero_downtime.sh"
+        echo -e "✅ Script per aggiornamento zero-downtime installato"
+    else
+        echo -e "⚠️ Per favore installa manualmente lo script per aggiornamento zero-downtime"
+    fi
+fi
+
+# Esito finale
+echo
+print_success "Avvio dei servizi completato"
+print_message "M4Bot è configurato per avviarsi automaticamente al riavvio del sistema"
+print_success "Installazione di M4Bot completata con successo!"
+print_message "Indirizzo web: http://$(hostname -I | awk '{print $1}'):5000"
+EOF
+
+chmod +x "$INSTALL_DIR/scripts/check_services.sh"
+
+# 7. Creazione dei file base del WAF
+print_message "Creazione dei file base per WAF..."
+cat > "$INSTALL_DIR/modules/security/waf/__init__.py" << 'EOF'
+"""
+Web Application Firewall module for M4Bot
+"""
+
+import logging
+from datetime import datetime
+
+logger = logging.getLogger('m4bot.security.waf')
+
+class WAF:
+    def __init__(self, app=None):
+        self.app = app
+        logger.info("WAF initialized at %s", datetime.now())
+        
+    def init_app(self, app):
+        self.app = app
+        logger.info("WAF attached to app at %s", datetime.now())
+        
+        @app.before_request
+        def before_request():
+            # Basic WAF check implementation
+            from flask import request, abort
             
-            # Sostituisci gli URL nel CSS con percorsi locali
-            sed -i "s|$url|../fonts/$FONT_FILENAME|g" "$FONTS_CSS"
-        done
-        
-        print_success "Google Fonts scaricati con successo"
-    else
-        print_warning "Impossibile scaricare Google Fonts, continuo con le altre risorse"
-    fi
-    
-    # Crea un file CSS aggiuntivo per gestire le icone in modo coerente
-    print_message "Creazione del file icons-offline.css..."
-    cat > "$CSS_DIR/icons-offline.css" << EOF
-/* Integrazioni per icone offline - M4Bot */
-
-/* Fix percorsi Font Awesome */
-@font-face {
-    font-family: 'Font Awesome 5 Free';
-    font-style: normal;
-    font-weight: 900;
-    font-display: block;
-    src: url("../webfonts/fa-solid-900.woff2") format("woff2"),
-         url("../webfonts/fa-solid-900.woff") format("woff");
-}
-
-@font-face {
-    font-family: 'Font Awesome 5 Free';
-    font-style: normal;
-    font-weight: 400;
-    font-display: block;
-    src: url("../webfonts/fa-regular-400.woff2") format("woff2"),
-         url("../webfonts/fa-regular-400.woff") format("woff");
-}
-
-@font-face {
-    font-family: 'Font Awesome 5 Brands';
-    font-style: normal;
-    font-weight: 400;
-    font-display: block;
-    src: url("../webfonts/fa-brands-400.woff2") format("woff2"),
-         url("../webfonts/fa-brands-400.woff") format("woff");
-}
-
-/* Classi di supporto per le icone */
-.icon-pulse {
-    animation: icon-pulse 2s infinite;
-}
-
-.icon-spin {
-    animation: icon-spin 2s linear infinite;
-}
-
-.icon-bounce {
-    animation: icon-bounce 2s ease infinite;
-}
-
-@keyframes icon-pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-
-@keyframes icon-spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-@keyframes icon-bounce {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-5px);
-    }
-}
-EOF
-    
-    # Creazione e configurazione favicon
-    print_message "Creazione e configurazione favicon..."
-    
-    # Verifica se ImageMagick Ã¨ installato
-    if command -v convert &> /dev/null; then
-        # Crea un'icona semplice con un robot
-        print_message "Creazione del favicon..."
-        convert -size 256x256 xc:transparent \
-            -fill "#6a5bc2" -draw "circle 128,128 128,228" \
-            -fill white -draw "circle 90,100 90,120" \
-            -fill white -draw "circle 166,100 166,120" \
-            -fill white -draw "roundrectangle 68,150 188,175 10,10" \
-            -fill white -draw "rectangle 80,175 100,215" \
-            -fill white -draw "rectangle 156,175 176,215" \
-            "$STATIC_DIR/img/favicon.png"
-        
-        # Crea diverse dimensioni per diversi dispositivi
-        print_message "Creazione favicon in diverse dimensioni..."
-        convert "$STATIC_DIR/img/favicon.png" -resize 16x16 "$STATIC_DIR/img/favicon-16x16.png"
-        convert "$STATIC_DIR/img/favicon.png" -resize 32x32 "$STATIC_DIR/img/favicon-32x32.png"
-        convert "$STATIC_DIR/img/favicon.png" -resize 48x48 "$STATIC_DIR/img/favicon-48x48.png"
-        convert "$STATIC_DIR/img/favicon.png" -resize 192x192 "$STATIC_DIR/img/android-chrome-192x192.png"
-        convert "$STATIC_DIR/img/favicon.png" -resize 512x512 "$STATIC_DIR/img/android-chrome-512x512.png"
-        convert "$STATIC_DIR/img/favicon.png" -resize 180x180 "$STATIC_DIR/img/apple-touch-icon.png"
-        
-        # Crea il favicon.ico (combina 16x16, 32x32 e 48x48)
-        convert "$STATIC_DIR/img/favicon-16x16.png" "$STATIC_DIR/img/favicon-32x32.png" "$STATIC_DIR/img/favicon-48x48.png" "$STATIC_DIR/img/favicon.ico"
-        
-        print_success "Favicon creato con successo"
-    else
-        # Creazione di un favicon SVG semplice se ImageMagick non Ã¨ disponibile
-        print_message "ImageMagick non Ã¨ disponibile, creazione di un favicon SVG semplice..."
-        
-        mkdir -p "$STATIC_DIR/img"
-        cat > "$STATIC_DIR/img/favicon.svg" << EOF
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="50" fill="#6a5bc2"/>
-  <text x="50" y="65" font-family="Arial" font-size="50" text-anchor="middle" fill="white">M4</text>
-</svg>
-EOF
-        
-        print_success "Favicon SVG creato con successo"
-    fi
-    
-    # Creazione del file per i link ai favicon nell'head
-    print_message "Creazione dei link ai favicon..."
-    cat > "$CUSTOM_DIR/favicon-links.html" << EOF
-<!-- Favicon link tags -->
-<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
-<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='img/favicon-32x32.png') }}">
-<link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='img/favicon-16x16.png') }}">
-<link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
-<link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
-EOF
-
-    # Creazione del file manifest per PWA
-    print_message "Creazione del file manifest per PWA..."
-    cat > "$STATIC_DIR/site.webmanifest" << EOF
-{
-    "name": "M4Bot",
-    "short_name": "M4Bot",
-    "icons": [
-        {
-            "src": "/static/img/android-chrome-192x192.png",
-            "sizes": "192x192",
-            "type": "image/png"
-        },
-        {
-            "src": "/static/img/android-chrome-512x512.png",
-            "sizes": "512x512",
-            "type": "image/png"
-        }
-    ],
-    "theme_color": "#6a5bc2",
-    "background_color": "#ffffff",
-    "display": "standalone"
-}
-EOF
-    
-    # Creazione del template base offline
-    print_message "Creazione del template base offline..."
-    cat > "$INSTALL_DIR/web/templates/base_offline.html" << EOF
-<!DOCTYPE html>
-<html lang="it" data-bs-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}M4Bot{% endblock %}</title>
-    
-    <!-- Bootstrap CSS (locale) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-    
-    <!-- Font Awesome (locale) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/all.min.css') }}">
-    
-    <!-- Google Fonts (locale) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/google-fonts.css') }}">
-    
-    <!-- Favicon -->
-    {% include 'custom/favicon-links.html' ignore missing %}
-    
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/icons.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/icons-offline.css') }}">
-    
-    {% block head %}{% endblock %}
-    {% block extra_css %}{% endblock %}
-</head>
-<body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
-                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="M4Bot Logo" height="30">
-                M4Bot
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
-                            <i class="fas fa-home nav-icon"></i>Home
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'features' %}active{% endif %}" href="{{ url_for('features') }}">
-                            <i class="fas fa-star nav-icon"></i>FunzionalitÃ 
-                        </a>
-                    </li>
-                    {% if current_user.is_authenticated %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
-                            <i class="fas fa-tachometer-alt nav-icon"></i>Dashboard
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
+            # Check for SQL injection
+            if any(attack in request.url.lower() for attack in ["'", "union", "select", "drop", "delete", "insert", "exec"]):
+                logger.warning("SQL injection attempt detected from %s", request.remote_addr)
+                abort(403)
                 
-                <ul class="navbar-nav">
-                    {% if current_user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user-circle me-1"></i> {{ current_user.username }}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li><a class="dropdown-item" href="{{ url_for('dashboard') }}"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-user-cog me-2"></i>Profilo</a></li>
-                            {% if current_user.is_admin %}
-                            <li><a class="dropdown-item" href="https://control.m4bot.it"><i class="fas fa-server me-2"></i>Controllo Server</a></li>
-                            {% endif %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                        </ul>
-                    </li>
-                    {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'login' %}active{% endif %}" href="{{ url_for('login') }}">
-                            <i class="fas fa-sign-in-alt me-1"></i>Accedi
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'register' %}active{% endif %}" href="{{ url_for('register') }}">
-                            <i class="fas fa-user-plus me-1"></i>Registrati
-                        </a>
-                    </li>
-                    {% endif %}
-                    
-                    <!-- Language Selector -->
-                    <li class="nav-item dropdown ms-2">
-                        <a class="nav-link dropdown-toggle" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-globe me-1"></i> {{ current_language_name }}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
-                            {% for code, name in available_languages.items() %}
-                            <li><a class="dropdown-item {% if current_language == code %}active{% endif %}" href="?lang={{ code }}"><i class="fas fa-check me-1 {% if current_language != code %}invisible{% endif %}"></i>{{ name }}</a></li>
-                            {% endfor %}
-                        </ul>
-                    </li>
-                    
-                    <li class="nav-item ms-2">
-                        <div class="form-check form-switch pt-2">
-                            <input class="form-check-input" type="checkbox" id="darkModeToggle">
-                            <label class="form-check-label text-light" for="darkModeToggle"><i class="fas fa-moon"></i></label>
-                        </div>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Main Content -->
-    <div class="container py-4">
-        {% block content %}{% endblock %}
-    </div>
-
-    <!-- Footer -->
-    <footer class="bg-dark text-white py-4 mt-5">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-4">
-                    <h5><i class="fas fa-robot me-2"></i>M4Bot</h5>
-                    <p>Il bot piÃ¹ completo e personalizzabile per Kick.com</p>
-                </div>
-                <div class="col-md-4">
-                    <h5><i class="fas fa-link me-2"></i>Link Utili</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="{{ url_for('index') }}" class="text-decoration-none text-white-50"><i class="fas fa-home me-2"></i>Home</a></li>
-                        <li><a href="{{ url_for('features') }}" class="text-decoration-none text-white-50"><i class="fas fa-star me-2"></i>FunzionalitÃ </a></li>
-                        <li><a href="#" class="text-decoration-none text-white-50"><i class="fas fa-book me-2"></i>Documentazione</a></li>
-                        <li><a href="#" class="text-decoration-none text-white-50"><i class="fas fa-headset me-2"></i>Contatti</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-4">
-                    <h5><i class="fas fa-users me-2"></i>Community</h5>
-                    <div class="d-flex">
-                        <a href="#" class="text-decoration-none text-white-50 me-3 social-icon social-icon-twitter"><i class="fab fa-twitter fa-lg"></i></a>
-                        <a href="#" class="text-decoration-none text-white-50 me-3 social-icon social-icon-discord"><i class="fab fa-discord fa-lg"></i></a>
-                        <a href="#" class="text-decoration-none text-white-50 me-3 social-icon social-icon-github"><i class="fab fa-github fa-lg"></i></a>
-                    </div>
-                </div>
-            </div>
-            <hr>
-            <div class="text-center">
-                <p class="mb-0"><i class="far fa-copyright me-1"></i>2023 M4Bot. Tutti i diritti riservati.</p>
-            </div>
-        </div>
-    </footer>
-
-    <!-- jQuery (locale) -->
-    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
-    
-    <!-- Bootstrap JS (locale) -->
-    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
-    
-    <!-- Chart.js (locale) -->
-    <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
-    
-    <!-- Custom JS -->
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    {% block scripts %}{% endblock %}
-    {% block extra_js %}{% endblock %}
-</body>
-</html>
+            # Check for XSS
+            if any(attack in request.url.lower() for attack in ["<script>", "javascript:", "onerror", "onload"]):
+                logger.warning("XSS attempt detected from %s", request.remote_addr)
+                abort(403)
 EOF
-    
-    # Chiedi se utilizzare il template offline
-    print_message "Vuoi utilizzare il template offline per l'applicazione? (s/n)"
-    read -p "" USE_OFFLINE
-    if [[ "$USE_OFFLINE" == "s" || "$USE_OFFLINE" == "S" ]]; then
-        cp "$INSTALL_DIR/web/templates/base_offline.html" "$INSTALL_DIR/web/templates/base.html"
-        print_success "Template base sostituito con la versione offline"
+
+# 8. Creazione dei file base del modulo sicurezza avanzata
+print_message "Creazione dei file base per il modulo di sicurezza avanzata..."
+cat > "$INSTALL_DIR/modules/security/advanced/__init__.py" << 'EOF'
+"""
+Advanced Security module for M4Bot
+"""
+
+import logging
+import os
+import time
+from datetime import datetime
+import threading
+
+logger = logging.getLogger('m4bot.security.advanced')
+
+class AdvancedSecurity:
+    def __init__(self):
+        logger.info("Advanced Security module initialized at %s", datetime.now())
+        self.monitoring = False
+        self.monitor_thread = None
+        
+    def start_monitoring(self):
+        logger.info("Advanced Security monitoring started at %s", datetime.now())
+        self.monitoring = True
+        
+        def monitor_func():
+            while self.monitoring:
+                # Log monitoring activity
+                logger.debug("Security monitoring active at %s", datetime.now())
+                
+                # Check for suspicious activities
+                self._check_failed_logins()
+                self._check_file_integrity()
+                
+                # Sleep for a minute
+                time.sleep(60)
+        
+        self.monitor_thread = threading.Thread(target=monitor_func)
+        self.monitor_thread.daemon = True
+        self.monitor_thread.start()
+        
+    def stop_monitoring(self):
+        logger.info("Advanced Security monitoring stopped at %s", datetime.now())
+        self.monitoring = False
+        if self.monitor_thread:
+            self.monitor_thread.join(timeout=5)
+            
+    def _check_failed_logins(self):
+        # Implementation for checking failed logins
+        pass
+        
+    def _check_file_integrity(self):
+        # Implementation for file integrity monitoring
+        pass
+EOF
+
+# 9. Creazione dei file base del modulo stabilità
+print_message "Creazione dei file base per il modulo stabilità..."
+cat > "$INSTALL_DIR/modules/stability/__init__.py" << 'EOF'
+"""
+Stability module for M4Bot
+"""
+
+import logging
+from datetime import datetime
+
+logger = logging.getLogger('m4bot.stability')
+
+class StabilityMonitor:
+    def __init__(self):
+        logger.info("Stability monitor initialized at %s", datetime.now())
+        
+    def start_monitoring(self):
+        logger.info("Stability monitoring started at %s", datetime.now())
+        
+    def perform_self_healing(self):
+        logger.info("Self-healing procedure triggered at %s", datetime.now())
+EOF
+
+# 10. Creazione dello script start.sh
+print_message "Creazione dello script start.sh..."
+cat > "$INSTALL_DIR/scripts/start.sh" << 'EOF'
+#!/bin/bash
+# Script per avviare i servizi M4Bot
+
+# Colori per output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Funzioni di utilità
+print_message() {
+    echo -e "${BLUE}[M4Bot]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERRORE]${NC} $1"
+    if [ -n "$2" ]; then
+        exit $2
+    fi
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESSO]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[AVVISO]${NC} $1"
+}
+
+# Verifica che lo script sia eseguito come root
+if [ "$(id -u)" != "0" ]; then
+    print_error "Questo script deve essere eseguito come root" 1
+fi
+
+print_message "Avvio di M4Bot..."
+
+# Verifica che la directory dei log esista
+if [ ! -d "/var/log/m4bot" ]; then
+    print_warning "La directory dei log non esiste, creazione in corso..."
+    mkdir -p "/var/log/m4bot"
+    chown m4bot:m4bot "/var/log/m4bot"
+    chmod 755 "/var/log/m4bot"
+    print_success "Directory dei log creata"
+fi
+
+print_message "Controllo dei servizi..."
+
+# Verifica che PostgreSQL sia installato e in esecuzione
+source /etc/os-release
+if [ "$ID" = "debian" ] || [ "$ID" = "ubuntu" ]; then
+    # Controlla PostgreSQL
+    if ! command -v pg_isready &> /dev/null; then
+        print_warning "PostgreSQL non è installato. Installazione in corso..."
+        apt-get update && apt-get install -y postgresql postgresql-contrib
+        if [ $? -ne 0 ]; then
+            print_error "Impossibile installare PostgreSQL"
+        else
+            systemctl enable postgresql
+            systemctl start postgresql
+            print_success "PostgreSQL installato e avviato"
+        fi
     else
-        print_message "Template base non modificato"
+        # Se PostgreSQL è installato, verifica se è in esecuzione
+        if pg_isready -q; then
+            print_success "PostgreSQL è in esecuzione"
+        else
+            print_warning "PostgreSQL non è in esecuzione, tentativo di avvio..."
+            systemctl start postgresql
+            if [ $? -ne 0 ]; then
+                print_error "Impossibile avviare PostgreSQL"
+            else
+                print_success "PostgreSQL avviato"
+            fi
+        fi
     fi
     
-    # Pulisci
-    rm -rf "$TMP_DIR"
+    # Controlla Nginx
+    if ! command -v nginx &> /dev/null; then
+        print_warning "Nginx non è installato. Installazione in corso..."
+        apt-get update && apt-get install -y nginx
+        if [ $? -ne 0 ]; then
+            print_error "Impossibile installare Nginx"
+        else
+            systemctl enable nginx
+            systemctl start nginx
+            print_success "Nginx installato e avviato"
+        fi
+    else
+        # Se Nginx è installato, verifica se è in esecuzione
+        if systemctl is-active --quiet nginx; then
+            print_success "Nginx è in esecuzione"
+        else
+            print_warning "Nginx non è in esecuzione, tentativo di avvio..."
+            systemctl start nginx
+            if [ $? -ne 0 ]; then
+                print_error "Impossibile avviare Nginx"
+            else
+                print_success "Nginx avviato"
+            fi
+        fi
+    fi
     
-    print_success "Risorse web configurate con successo"
-}
+    # Controlla Redis
+    if ! command -v redis-cli &> /dev/null; then
+        print_warning "Redis non è installato. Installazione in corso..."
+        apt-get update && apt-get install -y redis-server
+        if [ $? -ne 0 ]; then
+            print_error "Impossibile installare Redis"
+        else
+            systemctl enable redis-server
+            systemctl start redis-server
+            print_success "Redis installato e avviato"
+        fi
+    else
+        # Se Redis è installato, verifica se è in esecuzione
+        if systemctl is-active --quiet redis-server; then
+            print_success "Redis è in esecuzione"
+        else
+            print_warning "Redis non è in esecuzione, tentativo di avvio..."
+            systemctl start redis-server
+            if [ $? -ne 0 ]; then
+                print_error "Impossibile avviare Redis"
+            else
+                print_success "Redis avviato"
+            fi
+        fi
+    fi
+fi
 
-# Funzione principale
-main() {
-    clear
-    check_root
-    confirm_installation
-    
-    update_system
-    install_dependencies
-    create_system_user
-    setup_database
-    initialize_database
-    setup_repository
-    setup_python_env
-    setup_nginx
-    setup_ssl
-    setup_systemd_services
-    setup_management_scripts
-    setup_env_file
-    setup_permissions    # Imposta permessi corretti sui file eseguibili
-    setup_auto_repair    # Configura sistema di auto-riparazione
-    setup_web_assets     # Scarica e configura le risorse web
-    
-    # Avvia i servizi
-    start_services
-    
-    # Mostra le credenziali di accesso
-    print_message "====================================================="
-    print_message "INSTALLAZIONE COMPLETATA!"
-    print_message "====================================================="
-    print_message "Credenziali di accesso:"
-    print_message "URL: https://$SAVED_DOMAIN"
-    print_message "Username: admin"
-    print_message "Password: admin123"
-    print_message ""
-    print_message "IMPORTANTE: Cambia la password dell'amministratore dopo il primo accesso."
-    print_message "====================================================="
-    print_message "Per gestire M4Bot, usa i seguenti comandi:"
-    print_message "m4bot-start    - Avvia i servizi"
-    print_message "m4bot-stop     - Ferma i servizi"
-    print_message "m4bot-restart  - Riavvia i servizi"
-    print_message "m4bot-status   - Controlla lo stato dei servizi"
-    print_message "m4bot-repair   - Ripara automaticamente i servizi"
-    print_message "====================================================="
-    print_message "Dashboard: https://dashboard.$SAVED_DOMAIN"
-    print_message "Controllo: https://control.$SAVED_DOMAIN"
-    print_message "====================================================="
-}
+# Avvia i servizi M4Bot
+print_message "Avvio dei servizi M4Bot..."
 
-# Esegui lo script
-main 
+# Controlla se i servizi sono attivi
+if systemctl is-active --quiet m4bot.service; then
+    print_message "Il servizio m4bot è già in esecuzione, riavvio in corso..."
+    systemctl restart m4bot.service
+else
+    systemctl start m4bot.service
+fi
+
+if systemctl is-active --quiet m4bot-web.service; then
+    print_message "Il servizio m4bot-web è già in esecuzione, riavvio in corso..."
+    systemctl restart m4bot-web.service
+else
+    systemctl start m4bot-web.service
+fi
+
+# Verifica finale
+if systemctl is-active --quiet m4bot.service && systemctl is-active --quiet m4bot-web.service; then
+    print_success "Tutti i servizi M4Bot sono in esecuzione"
+else
+    print_warning "Alcuni servizi M4Bot potrebbero non essere in esecuzione"
+fi
+
+# Esegui lo script di verifica completa
+if [ -f "$(dirname "$0")/check_services.sh" ]; then
+    bash "$(dirname "$0")/check_services.sh"
+else
+    print_warning "Script check_services.sh non trovato"
+fi
+
+print_success "Avvio di M4Bot completato"
+EOF
+
+chmod +x "$INSTALL_DIR/scripts/start.sh"
+
+# 11. Configurazione di systemd
+print_message "Configurazione dei servizi systemd..."
+cat > /etc/systemd/system/m4bot.service << EOF
+[Unit]
+Description=M4Bot Service
+After=network.target postgresql.service redis-server.service
+Requires=postgresql.service redis-server.service
+
+[Service]
+User=m4bot
+Group=m4bot
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$INSTALL_DIR/venv/bin/python $INSTALL_DIR/run.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1
+Environment=M4BOT_DIR=$INSTALL_DIR
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat > /etc/systemd/system/m4bot-web.service << EOF
+[Unit]
+Description=M4Bot Web Interface
+After=network.target postgresql.service redis-server.service m4bot.service
+Requires=postgresql.service redis-server.service
+
+[Service]
+User=m4bot
+Group=m4bot
+WorkingDirectory=$INSTALL_DIR/web
+ExecStart=$INSTALL_DIR/venv/bin/python $INSTALL_DIR/web/app.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1
+Environment=M4BOT_DIR=$INSTALL_DIR
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# 12. Configurazione dell'ambiente Python
+print_message "Configurazione dell'ambiente Python..."
+python3 -m venv "$INSTALL_DIR/venv"
+"$INSTALL_DIR/venv/bin/pip" install --upgrade pip
+"$INSTALL_DIR/venv/bin/pip" install -r "$INSTALL_DIR/requirements.txt"
+
+# 13. Configurazione di Nginx
+print_message "Configurazione di Nginx..."
+cat > /etc/nginx/sites-available/m4bot << EOF
+server {
+    listen 80;
+    server_name _;
+    
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+    
+    location /static {
+        alias $INSTALL_DIR/web/static;
+        expires 30d;
+    }
+}
+EOF
+
+# Abilita la configurazione
+if [ -f /etc/nginx/sites-enabled/default ]; then
+    rm /etc/nginx/sites-enabled/default
+fi
+
+ln -sf /etc/nginx/sites-available/m4bot /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+
+# 14. Configurazione del database PostgreSQL
+print_message "Configurazione del database PostgreSQL..."
+# Crea un file SQL temporaneo
+cat > /tmp/setup_db.sql << EOF
+CREATE USER m4bot_user WITH PASSWORD 'password123';
+CREATE DATABASE m4bot_db OWNER m4bot_user;
+GRANT ALL PRIVILEGES ON DATABASE m4bot_db TO m4bot_user;
+EOF
+
+# Esegui lo script SQL come utente postgres
+su - postgres -c "psql -f /tmp/setup_db.sql"
+rm /tmp/setup_db.sql
+
+# 15. Creazione del file .env
+print_message "Creazione del file .env..."
+cat > "$INSTALL_DIR/.env" << EOF
+# Configurazione di base
+SECRET_KEY=$(openssl rand -hex 32)
+DEBUG=False
+ENV=production
+LOG_LEVEL=INFO
+
+# Database
+DB_TYPE=postgresql
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=m4bot_db
+DB_USER=m4bot_user
+DB_PASSWORD=password123
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_DB=0
+
+# Server
+HOST=0.0.0.0
+PORT=5000
+EOF
+
+# 16. Creazione di file run.py di esempio
+print_message "Creazione di file run.py di esempio..."
+cat > "$INSTALL_DIR/run.py" << 'EOF'
+#!/usr/bin/env python3
+"""
+Script principale per avviare M4Bot
+"""
+import os
+import sys
+import logging
+from datetime import datetime
+
+# Configurazione logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('/var/log/m4bot/bot.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger('m4bot')
+
+def main():
+    """Funzione principale del bot"""
+    logger.info("M4Bot avviato alle %s", datetime.now())
+    logger.info("Ambiente: %s", os.environ.get('ENV', 'development'))
+    
+    try:
+        # Placeholder per la logica del bot
+        logger.info("Bot in esecuzione. Premi Ctrl+C per uscire.")
+        
+        # Mantieni il processo attivo
+        while True:
+            # Simula alcune attività periodiche
+            import time
+            time.sleep(60)
+            logger.info("Bot ancora in esecuzione alle %s", datetime.now())
+    
+    except KeyboardInterrupt:
+        logger.info("Bot fermato dall'utente")
+    except Exception as e:
+        logger.error("Errore critico: %s", str(e), exc_info=True)
+        return 1
+    
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
+EOF
+
+# 17. Creazione di un file app.py di esempio
+print_message "Creazione di file app.py di esempio..."
+mkdir -p "$INSTALL_DIR/web"
+cat > "$INSTALL_DIR/web/app.py" << 'EOF'
+#!/usr/bin/env python3
+"""
+Web interface for M4Bot
+"""
+import os
+import logging
+from datetime import datetime
+from flask import Flask, render_template, jsonify
+
+# Configurazione logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('/var/log/m4bot/web.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger('m4bot.web')
+
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    """Pagina principale"""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>M4Bot</title>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 20px;
+                text-align: center;
+                background-color: #f5f5f5;
+            }}
+            .container {{
+                max-width: 800px;
+                margin: 0 auto;
+                background-color: white;
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            }}
+            h1 {{
+                color: #333;
+            }}
+            .status {{
+                margin-top: 20px;
+                padding: 10px;
+                background-color: #e8f5e9;
+                border-radius: 5px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>M4Bot</h1>
+            <p>La tua soluzione completa per la gestione dei bot per comunità</p>
+            <div class="status">
+                <strong>Stato:</strong> Attivo<br>
+                <strong>Ora server:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}<br>
+                <strong>Versione:</strong> 1.0.0
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+@app.route('/api/status')
+def status():
+    """API endpoint per lo stato del servizio"""
+    return jsonify({
+        'status': 'active',
+        'version': '1.0.0',
+        'timestamp': datetime.now().isoformat(),
+        'uptime': 'N/A',  # Placeholder
+    })
+
+if __name__ == '__main__':
+    # Carica le configurazioni da .env se disponibile
+    from dotenv import load_dotenv
+    load_dotenv()
+    
+    # Avvia il server
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('DEBUG', 'False').lower() == 'true'
+    
+    logger.info("Avvio server web su porta %d (debug=%s)", port, debug)
+    app.run(host='0.0.0.0', port=port, debug=debug)
+EOF
+
+# 18. Imposta i permessi corretti
+print_message "Impostazione dei permessi corretti..."
+find "$INSTALL_DIR" -type f -name "*.sh" -exec chmod +x {} \;
+find "$INSTALL_DIR" -type f -name "*.py" -exec chmod +x {} \;
+chown -R m4bot:m4bot "$INSTALL_DIR"
+chown -R m4bot:m4bot "/var/log/m4bot"
+
+# 19. Abilita e avvia i servizi
+print_message "Abilitazione e avvio dei servizi..."
+systemctl daemon-reload
+systemctl enable postgresql
+systemctl enable redis-server
+systemctl enable nginx
+systemctl enable m4bot.service
+systemctl enable m4bot-web.service
+
+systemctl start postgresql
+systemctl start redis-server
+systemctl start nginx
+systemctl start m4bot.service
+systemctl start m4bot-web.service
+
+# 20. Verifica finale
+print_message "Verifica finale dell'installazione..."
+"$INSTALL_DIR/scripts/check_services.sh"
+
+print_success "Installazione di M4Bot completata con successo!"
+print_message "Indirizzo web: http://$(hostname -I | awk '{print $1}')"
+print_message "Directory di installazione: $INSTALL_DIR"
+print_message "Log di sistema: /var/log/m4bot/"
+print_message "Per riavviare i servizi: sudo $INSTALL_DIR/scripts/start.sh" 

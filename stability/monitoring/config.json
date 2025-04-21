@@ -1,0 +1,94 @@
+{
+  "system_metrics_interval": 60,
+  "app_metrics_interval": 30,
+  "service_check_interval": 120,
+  "data_dir": "./monitoring_data",
+  "log_level": "INFO",
+  "enable_prometheus": true,
+  "prometheus_port": 9090,
+  "enable_export": true,
+  "export_interval": 300,
+  "history_days": 7,
+  "thresholds": {
+    "cpu_warning": 75,
+    "cpu_critical": 90,
+    "memory_warning": 80,
+    "memory_critical": 95,
+    "disk_warning": 85,
+    "disk_critical": 95,
+    "api_latency_warning": 500,
+    "api_latency_critical": 2000,
+    "error_rate_warning": 5,
+    "error_rate_critical": 10
+  },
+  "services": {
+    "web": {
+      "type": "systemd",
+      "unit": "m4bot-web.service",
+      "check_url": "http://localhost:8000/health",
+      "expected_status": 200
+    },
+    "bot": {
+      "type": "systemd",
+      "unit": "m4bot-bot.service"
+    },
+    "database": {
+      "type": "systemd",
+      "unit": "postgresql.service"
+    },
+    "redis": {
+      "type": "systemd",
+      "unit": "redis.service"
+    },
+    "nginx": {
+      "type": "systemd",
+      "unit": "nginx.service",
+      "check_url": "http://localhost/nginx_status",
+      "expected_status": 200
+    }
+  },
+  "alerts": {
+    "email": {
+      "enabled": true,
+      "recipients": ["admin@example.com"],
+      "smtp_server": "smtp.example.com",
+      "smtp_port": 587,
+      "smtp_user": "alerts@example.com",
+      "smtp_password": "your_password_here",
+      "from_address": "alerts@example.com",
+      "min_severity": "warning"
+    },
+    "telegram": {
+      "enabled": false,
+      "bot_token": "",
+      "chat_id": "",
+      "min_severity": "critical"
+    },
+    "webhook": {
+      "enabled": false,
+      "url": "https://example.com/webhook",
+      "min_severity": "critical"
+    }
+  },
+  "custom_metrics": [
+    {
+      "name": "app.active_users",
+      "type": "gauge",
+      "description": "Numero di utenti attivi",
+      "source": "app_metrics.json"
+    },
+    {
+      "name": "app.login_success_rate",
+      "type": "gauge",
+      "description": "Percentuale di login riusciti",
+      "source": "app_metrics.json"
+    },
+    {
+      "name": "app.api_endpoints.calls",
+      "type": "counter",
+      "description": "Numero di chiamate API per endpoint",
+      "source": "api_stats.json",
+      "labels": ["endpoint", "method"]
+    }
+  ]
+} 
