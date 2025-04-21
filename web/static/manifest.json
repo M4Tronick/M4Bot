@@ -1,133 +1,67 @@
 {
-  "name": "M4Bot Dashboard",
+  "name": "M4Bot - Sistema Intelligente",
   "short_name": "M4Bot",
-  "description": "Gestisci il tuo bot per Kick.com con funzionalità avanzate",
+  "description": "Sistema intelligente di gestione per automazione e monitoraggio",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#7e3ff2",
-  "orientation": "any",
+  "theme_color": "#5e45e2",
+  "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/static/icons/icon-72x72.png",
-      "sizes": "72x72",
+      "src": "/static/img/icon-192.png",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/static/icons/icon-96x96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/static/icons/icon-128x128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/static/icons/icon-144x144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/static/icons/icon-152x152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/static/icons/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "/static/icons/icon-384x384.png",
-      "sizes": "384x384",
+      "src": "/static/img/icon-512.png",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/static/icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/static/icons/maskable-icon.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ],
   "screenshots": [
     {
-      "src": "/static/screenshots/dashboard.png",
+      "src": "/static/img/screenshot1.png",
       "sizes": "1280x720",
       "type": "image/png",
-      "form_factor": "wide",
+      "platform": "wide",
       "label": "Dashboard principale di M4Bot"
     },
     {
-      "src": "/static/screenshots/commands.png",
+      "src": "/static/img/screenshot2.png",
       "sizes": "1280x720",
       "type": "image/png",
-      "form_factor": "wide",
-      "label": "Gestione dei comandi personalizzati"
-    },
-    {
-      "src": "/static/screenshots/analytics.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Analytics avanzate del canale"
-    },
-    {
-      "src": "/static/screenshots/mobile-dashboard.png",
-      "sizes": "750x1334",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Dashboard su dispositivi mobili"
+      "platform": "wide",
+      "label": "Pannello di controllo dei sistemi"
     }
   ],
+  "categories": ["productivity", "utilities"],
   "shortcuts": [
     {
       "name": "Dashboard",
-      "url": "/dashboard",
+      "short_name": "Dashboard",
       "description": "Vai alla dashboard principale",
-      "icons": [{ "src": "/static/icons/shortcut-dashboard.png", "sizes": "96x96" }]
+      "url": "/dashboard",
+      "icons": [{ "src": "/static/img/dashboard-icon.png", "sizes": "96x96" }]
     },
     {
-      "name": "Gestione comandi",
-      "url": "/manage_commands",
-      "description": "Gestisci i comandi del bot",
-      "icons": [{ "src": "/static/icons/shortcut-commands.png", "sizes": "96x96" }]
-    },
-    {
-      "name": "Automazioni",
-      "url": "/automations",
-      "description": "Configura le automazioni del bot",
-      "icons": [{ "src": "/static/icons/shortcut-automations.png", "sizes": "96x96" }]
-    },
-    {
-      "name": "Impostazioni profilo",
-      "url": "/profile",
-      "description": "Modifica le impostazioni dell'account",
-      "icons": [{ "src": "/static/icons/shortcut-profile.png", "sizes": "96x96" }]
+      "name": "Monitoraggio",
+      "short_name": "Monitor",
+      "description": "Controlla lo stato del sistema",
+      "url": "/monitoring",
+      "icons": [{ "src": "/static/img/monitor-icon.png", "sizes": "96x96" }]
     }
   ],
   "related_applications": [
     {
-      "platform": "web",
-      "url": "https://m4bot.it"
+      "platform": "webapp",
+      "url": "https://m4bot.example.com/manifest.json"
     }
   ],
   "prefer_related_applications": false,
-  "handle_links": "preferred",
-  "categories": ["productivity", "utilities"],
   "lang": "it-IT",
-  "dir": "ltr"
+  "dir": "ltr",
+  "scope": "/"
 } 

@@ -1,0 +1,344 @@
+/**
+ * M4Bot - Stili di accessibilità
+ * Version: 2.0.0
+ * Questo file CSS fornisce stili per migliorare l'accessibilità dell'interfaccia utente
+ */
+
+/* Variabili per l'accessibilità */
+:root {
+  --focus-outline-color: #2563eb;
+  --focus-outline-width: 2px;
+  --skip-link-bg: #2563eb;
+  --skip-link-color: #ffffff;
+  --high-contrast-bg: #000000;
+  --high-contrast-text: #ffffff;
+  --high-contrast-link: #4dc0ff;
+  --high-contrast-border: #ffffff;
+  --high-contrast-focus: #ffff00;
+}
+
+/* Stili per il link "salta al contenuto" */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--skip-link-bg);
+  color: var(--skip-link-color);
+  padding: 8px 16px;
+  z-index: 1060;
+  transition: top 0.3s ease;
+  border-radius: 0 0 4px 0;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: none;
+}
+
+/* Outline migliorato per il focus da tastiera */
+.keyboard-focus:focus,
+.keyboard-focus:focus-visible {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+  border-radius: 2px;
+  z-index: 1;
+}
+
+/* Stili per il testo parlato solo per screen reader */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Stili per il contrasto elevato */
+.high-contrast-mode {
+  background-color: var(--high-contrast-bg) !important;
+  color: var(--high-contrast-text) !important;
+}
+
+.high-contrast-mode * {
+  background-color: var(--high-contrast-bg) !important;
+  color: var(--high-contrast-text) !important;
+  border-color: var(--high-contrast-border) !important;
+}
+
+.high-contrast-mode a {
+  color: var(--high-contrast-link) !important;
+  text-decoration: underline !important;
+}
+
+.high-contrast-mode a:hover,
+.high-contrast-mode a:focus {
+  text-decoration: none !important;
+  outline: 2px solid var(--high-contrast-focus) !important;
+}
+
+.high-contrast-mode img,
+.high-contrast-mode svg {
+  filter: grayscale(100%) contrast(150%) !important;
+}
+
+.high-contrast-mode button,
+.high-contrast-mode .btn {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+  outline: none !important;
+}
+
+.high-contrast-mode button:hover,
+.high-contrast-mode button:focus,
+.high-contrast-mode .btn:hover,
+.high-contrast-mode .btn:focus {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+.high-contrast-mode input,
+.high-contrast-mode select,
+.high-contrast-mode textarea {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+}
+
+.high-contrast-mode input:focus,
+.high-contrast-mode select:focus,
+.high-contrast-mode textarea:focus {
+  outline: 2px solid var(--high-contrast-focus) !important;
+}
+
+.high-contrast-mode .card,
+.high-contrast-mode .modal-content {
+  background-color: #000000 !important;
+  border: 2px solid #ffffff !important;
+}
+
+.high-contrast-mode .dropdown-menu {
+  background-color: #000000 !important;
+  border: 2px solid #ffffff !important;
+}
+
+.high-contrast-mode .dropdown-item:hover,
+.high-contrast-mode .dropdown-item:focus {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* Riduzione delle animazioni */
+.reduce-motion * {
+  animation-duration: 0.001s !important;
+  transition-duration: 0.001s !important;
+}
+
+/* Dimensioni del testo personalizzate */
+body.text-size--3 {
+  font-size: 75% !important;
+}
+
+body.text-size--2 {
+  font-size: 85% !important;
+}
+
+body.text-size--1 {
+  font-size: 95% !important;
+}
+
+body.text-size-0 {
+  font-size: 100% !important;
+}
+
+body.text-size-1 {
+  font-size: 110% !important;
+}
+
+body.text-size-2 {
+  font-size: 120% !important;
+}
+
+body.text-size-3 {
+  font-size: 130% !important;
+}
+
+body.text-size-4 {
+  font-size: 140% !important;
+}
+
+body.text-size-5 {
+  font-size: 150% !important;
+}
+
+/* Barra degli strumenti di accessibilità */
+.accessibility-toolbar {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  z-index: 1000;
+  display: flex;
+  gap: 8px;
+}
+
+.accessibility-toolbar button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+
+.accessibility-toolbar button:hover {
+  background-color: #e5e7eb;
+}
+
+.accessibility-toolbar button:focus {
+  outline: 2px solid var(--focus-outline-color);
+  outline-offset: 2px;
+}
+
+/* Menu di accessibilità migliorato */
+.accessibility-dropdown .dropdown-menu {
+  width: 280px;
+  padding: 16px;
+}
+
+.accessibility-dropdown .dropdown-item {
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+}
+
+.accessibility-dropdown .dropdown-item:not(:last-child) {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Stili per le tabelle accessibili */
+table.accessible-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table.accessible-table th,
+table.accessible-table td {
+  padding: 10px;
+  border: 1px solid #ddd;
+}
+
+table.accessible-table th {
+  background-color: #f3f4f6;
+  color: #1f2937;
+  font-weight: bold;
+  text-align: left;
+}
+
+table.accessible-table tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+table.accessible-table caption {
+  padding: 10px;
+  font-weight: bold;
+  text-align: left;
+  color: #111827;
+}
+
+/* Indicatore di focus migliorato per navigazione da tastiera */
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+}
+
+/* Stili per etichette di form accessibili */
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-text {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+/* Indicatori di errore accessibili */
+.form-control.is-invalid,
+.was-validated .form-control:invalid {
+  border-color: #dc2626;
+  padding-right: calc(1.5em + 0.75rem);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc2626'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc2626' stroke='none'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right calc(0.375em + 0.1875rem) center;
+  background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+.invalid-feedback {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: #dc2626;
+}
+
+/* Supporto per media queries di accessibilità */
+@media (prefers-reduced-motion) {
+  * {
+    animation-duration: 0.001s !important;
+    transition-duration: 0.001s !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --focus-outline-color: #ffdd00;
+    --focus-outline-width: 3px;
+  }
+  
+  body {
+    background-color: #000000;
+    color: #ffffff;
+  }
+  
+  a {
+    color: #4dc0ff;
+  }
+  
+  img, svg {
+    filter: contrast(150%);
+  }
+}
+
+@media (prefers-reduced-data) {
+  img[loading="lazy"] {
+    content-visibility: auto;
+  }
+  
+  video, iframe {
+    display: none;
+  }
+  
+  body {
+    font-size: 95%;
+  }
+} 

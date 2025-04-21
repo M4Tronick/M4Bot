@@ -1,0 +1,125 @@
+:root {
+  --bg-light: #ffffff;
+  --text-light: #333333;
+  --accent-light: #4a6cf7;
+  --border-light: #e5e7eb;
+  
+  --bg-dark: #121212;
+  --text-dark: #e5e5e5;
+  --accent-dark: #8aa2ff;
+  --border-dark: #2a2a2a;
+  
+  /* Impostazioni predefinite in modalità chiara */
+  --bg: var(--bg-light);
+  --text: var(--text-light);
+  --accent: var(--accent-light);
+  --border: var(--border-light);
+}
+
+/* Transizioni globali per un cambio fluido */
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+/* Applicazione della modalità scura */
+body.dark-mode {
+  --bg: var(--bg-dark);
+  --text: var(--text-dark);
+  --accent: var(--accent-dark);
+  --border: var(--border-dark);
+}
+
+/* Stile del pulsante del tema */
+.theme-toggle-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  transition: background-color 0.2s ease;
+}
+
+.theme-toggle-btn:hover {
+  background-color: rgba(127, 127, 127, 0.1);
+}
+
+.theme-toggle-btn:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Icone per modalità chiara/scura */
+.theme-toggle-btn .icon-light,
+.theme-toggle-btn .icon-dark {
+  width: 24px;
+  height: 24px;
+  position: absolute;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* In modalità chiara, mostra l'icona della luna */
+.theme-toggle-btn .icon-light {
+  opacity: 0;
+  transform: scale(0.5);
+}
+
+.theme-toggle-btn .icon-dark {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* In modalità scura, mostra l'icona del sole */
+body.dark-mode .theme-toggle-btn .icon-light {
+  opacity: 1;
+  transform: scale(1);
+}
+
+body.dark-mode .theme-toggle-btn .icon-dark {
+  opacity: 0;
+  transform: scale(0.5);
+}
+
+/* Applicazione della modalità scura a componenti comuni */
+body.dark-mode button:not(.theme-toggle-btn) {
+  background-color: var(--bg-dark);
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode input, 
+body.dark-mode textarea, 
+body.dark-mode select {
+  background-color: var(--bg-dark);
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode a {
+  color: var(--accent-dark);
+}
+
+/* Classe per nascondere elementi fino al caricamento del JS */
+.theme-loading * {
+  transition: none !important;
+}
+
+/* Stile per prevenire flash di contenuto in bianco */
+.no-js body {
+  transition: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .no-js body {
+    --bg: var(--bg-dark);
+    --text: var(--text-dark);
+    --accent: var(--accent-dark);
+    --border: var(--border-dark);
+  }
+} 

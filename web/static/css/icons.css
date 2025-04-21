@@ -1,320 +1,323 @@
 /**
- * M4Bot - Icon Styles
- * Definizioni e stili per tutte le icone utilizzate nell'applicazione M4Bot
+ * M4Bot - Stili per le icone
+ * Version: 3.0.0
+ * Descrizione: Icone personalizzate e stili di icone per l'interfaccia di M4Bot
  */
 
-/* Animazioni per le icone */
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+:root {
+  /* Dimensioni delle icone */
+  --icon-size-xs: 12px;
+  --icon-size-sm: 16px;
+  --icon-size-md: 24px;
+  --icon-size-lg: 32px;
+  --icon-size-xl: 48px;
+  
+  /* Colori per le icone a seconda dello stato */
+  --icon-color-default: var(--secondary);
+  --icon-color-hover: var(--primary);
+  --icon-color-active: var(--primary);
+  --icon-color-error: var(--danger);
+  --icon-color-success: var(--success);
+  --icon-color-warning: var(--warning);
+  --icon-color-info: var(--info);
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
+/* Dimensioni standard delle icone */
+.icon-xs { font-size: var(--icon-size-xs); }
+.icon-sm { font-size: var(--icon-size-sm); }
+.icon-md { font-size: var(--icon-size-md); }
+.icon-lg { font-size: var(--icon-size-lg); }
+.icon-xl { font-size: var(--icon-size-xl); }
 
-@keyframes bounce {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-5px);
-    }
-}
-
-/* Classi di utilità per icone */
+/* Animazioni specifiche per le icone */
 .icon-pulse {
-    animation: pulse 2s infinite;
+  animation: iconPulse 1.5s infinite ease-in-out;
 }
 
 .icon-spin {
-    animation: spin 2s linear infinite;
+  animation: iconSpin 2s infinite linear;
 }
 
 .icon-bounce {
-    animation: bounce 2s ease infinite;
+  animation: iconBounce 1s infinite ease-in-out;
 }
 
-/* Stili per dimensioni icone */
-.icon-xs { font-size: 0.75rem; }
-.icon-sm { font-size: 0.875rem; }
-.icon-md { font-size: 1rem; }
-.icon-lg { font-size: 1.5rem; }
-.icon-xl { font-size: 2rem; }
-.icon-xxl { font-size: 3rem; }
-
-/* Icone di navigazione */
-.nav-icon {
-    margin-right: 0.5rem;
-    width: 1em;
-    text-align: center;
+.icon-shake {
+  animation: iconShake 0.8s ease-in-out;
 }
 
-/* Icone per le card */
-.card-icon {
-    margin-bottom: 1rem;
-    color: var(--primary);
-    font-size: 2.5rem;
+/* Icone con contorno per maggiore leggibilità su sfondi variabili */
+.icon-outline {
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.2);
 }
 
-/* Icone per pulsanti */
-.btn .fas,
-.btn .fab,
-.btn .far {
-    margin-right: 0.5rem;
-}
-
-.btn-icon-only {
-    width: 2.5rem;
-    height: 2.5rem;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Icone stato */
-.status-icon {
-    width: 10px;
-    height: 10px;
-    display: inline-block;
-    border-radius: 50%;
-    margin-right: 5px;
-}
-
-.status-online {
-    background-color: #10b981;
-}
-
-.status-offline {
-    background-color: #ef4444;
-}
-
-.status-idle {
-    background-color: #f59e0b;
-}
-
-/* Icone per funzionalità */
-.feature-icon {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    color: #0d6efd;
-}
-
-/* Icone per badge */
-.badge-with-icon i {
-    margin-right: 3px;
-}
-
-/* Icone per form */
-.form-icon {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    left: 10px;
-    color: #6c757d;
-}
-
-.form-control-with-icon {
-    padding-left: 35px;
-}
-
-/* Icone sociali */
-.social-icons {
-    display: flex;
-    gap: 10px;
-}
-
-.social-icon {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    color: white;
-    transition: all 0.3s ease;
-    background-color: #333;
-}
-
-.social-icon:hover {
-    transform: translateY(-3px);
-}
-
-.social-icon-twitter:hover {
-    background-color: #1DA1F2;
-}
-
-.social-icon-discord:hover {
-    background-color: #5865F2;
-}
-
-.social-icon-github:hover {
-    background-color: #333;
-}
-
-.social-icon-kick:hover {
-    background-color: #53FC18;
-    color: #000;
-}
-
-/* Icone per dashboard */
-.dashboard-icon {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-    color: var(--primary, #6a5bc2);
-}
-
-/* Icone per menù a tendina */
-.dropdown-item i {
-    margin-right: 0.5rem;
-    width: 1rem;
-    text-align: center;
-}
-
-/* Icone per tooltip */
-.tooltip-icon {
-    margin-left: 0.25rem;
-    font-size: 0.875rem;
-    color: var(--secondary, #6c757d);
-    cursor: help;
-}
-
-/* Stili per le icone in M4Bot */
-
-/* Colori delle icone per stati */
-.icon-success {
-    color: #2ecc40;
-}
-
-.icon-warning {
-    color: #ffdc00;
-}
-
-.icon-danger {
-    color: #ff4136;
-}
-
-.icon-info {
-    color: #0074d9;
-}
-
-.icon-muted {
-    color: #aaaaaa;
-}
-
-/* Dimensioni delle icone */
-.icon-xs {
-    font-size: 0.75rem;
-}
-
-.icon-sm {
-    font-size: 0.875rem;
-}
-
-.icon-md {
-    font-size: 1.2rem;
-}
-
-.icon-lg {
-    font-size: 1.5rem;
-}
-
-.icon-xl {
-    font-size: 2rem;
-}
-
-.icon-2x {
-    font-size: 2.5rem;
-}
-
-.icon-3x {
-    font-size: 3rem;
-}
-
-/* Icone con animazioni */
-.icon-spin {
-    animation: icon-spin 2s infinite linear;
-}
-
-.icon-pulse {
-    animation: icon-spin 1s infinite steps(8);
-}
-
-.icon-beat {
-    animation: icon-beat 1s infinite;
-}
-
-@keyframes icon-spin {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(359deg);
-    }
-}
-
-@keyframes icon-beat {
-    0% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.3);
-    }
-    100% {
-        transform: scale(1);
-    }
-}
-
-/* Contenitori di icone */
+/* Icona con cerchio di background */
 .icon-circle {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
     border-radius: 50%;
-    background-color: rgba(0, 0, 0, 0.1);
+  padding: 0.5rem;
+  background-color: var(--bs-body-bg);
+  transition: all 0.3s ease;
 }
 
+.icon-circle:hover {
+  transform: scale(1.1);
+  background-color: var(--bs-primary-bg-subtle);
+}
+
+/* Indicatore di stato con icone */
+.status-icon {
+  position: relative;
+}
+
+.status-icon::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--bs-gray-300);
+  border: 1px solid var(--bs-body-bg);
+}
+
+.status-icon.online::after { background-color: var(--success); }
+.status-icon.offline::after { background-color: var(--danger); }
+.status-icon.away::after { background-color: var(--warning); }
+.status-icon.busy::after { background-color: var(--danger); }
+
+/* Badge numerico per le icone (notifiche) */
 .icon-badge {
-    position: relative;
-    display: inline-flex;
+  position: relative;
+  display: inline-flex;
 }
 
-.icon-badge::after {
-    content: '';
+.icon-badge[data-count]::after {
+  content: attr(data-count);
     position: absolute;
-    top: 0;
-    right: 0;
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 50%;
-    background-color: #ff4136;
+  top: -8px;
+  right: -8px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 10px;
+  background-color: var(--danger);
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+    display: flex;
+  align-items: center;
+    justify-content: center;
+  padding: 0 4px;
 }
 
-/* Effetti hover */
-.icon-hover {
-    transition: all 0.2s ease;
+/* Icone per sezioni specifiche dell'applicazione */
+.dashboard-icon {
+  color: var(--primary);
+  margin-right: 0.5rem;
+  transition: transform 0.2s ease;
 }
 
-.icon-hover:hover {
-    transform: translateY(-3px);
-    opacity: 0.8;
+.dashboard-card:hover .dashboard-icon {
+  transform: scale(1.1);
 }
 
-/* Gruppi di icone */
-.icon-group {
-    display: inline-flex;
-    align-items: center;
+/* Icone per i tipi di file */
+.file-icon::before {
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  margin-right: 0.5rem;
 }
 
-.icon-group > * {
-    margin-right: 0.5rem;
+.file-icon.file-pdf::before { content: "\f1c1"; color: #e74c3c; }
+.file-icon.file-word::before { content: "\f1c2"; color: #3498db; }
+.file-icon.file-excel::before { content: "\f1c3"; color: #2ecc71; }
+.file-icon.file-image::before { content: "\f1c5"; color: #9b59b6; }
+.file-icon.file-audio::before { content: "\f1c7"; color: #f39c12; }
+.file-icon.file-video::before { content: "\f1c8"; color: #e74c3c; }
+.file-icon.file-code::before { content: "\f1c9"; color: #3498db; }
+.file-icon.file-archive::before { content: "\f1c6"; color: #f39c12; }
+.file-icon.file-unknown::before { content: "\f15b"; color: #7f8c8d; }
+
+/* Icone personalizzate per servizi */
+.service-icon {
+  width: 24px;
+  height: 24px;
+  display: inline-block;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  vertical-align: middle;
 }
 
-.icon-group > *:last-child {
-    margin-right: 0;
+.service-icon.discord { background-image: url('../img/services/discord.svg'); }
+.service-icon.twitch { background-image: url('../img/services/twitch.svg'); }
+.service-icon.youtube { background-image: url('../img/services/youtube.svg'); }
+.service-icon.twitter { background-image: url('../img/services/twitter.svg'); }
+.service-icon.instagram { background-image: url('../img/services/instagram.svg'); }
+.service-icon.tiktok { background-image: url('../img/services/tiktok.svg'); }
+.service-icon.obs { background-image: url('../img/services/obs.svg'); }
+
+/* Icone con gradient */
+.icon-gradient {
+  background: linear-gradient(45deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.icon-gradient-blue-purple {
+  background: linear-gradient(45deg, #4a6cf7, #8e33d4);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.icon-gradient-green-blue {
+  background: linear-gradient(45deg, #10b981, #3b82f6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.icon-gradient-orange-red {
+  background: linear-gradient(45deg, #f59e0b, #ef4444);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Icone con glow effect */
+.icon-glow {
+  text-shadow: 0 0 8px var(--primary-light);
+}
+
+.icon-glow-success {
+  text-shadow: 0 0 8px var(--success-light);
+}
+
+.icon-glow-danger {
+  text-shadow: 0 0 8px var(--danger-light);
+}
+
+.icon-glow-warning {
+  text-shadow: 0 0 8px var(--warning-light);
+}
+
+/* Icone per navigazione principale */
+.nav-icon {
+  width: 20px;
+  display: inline-block;
+  text-align: center;
+  margin-right: 10px;
+  transition: all 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover .nav-icon,
+.sidebar-link:hover .nav-icon,
+.active .nav-icon {
+  transform: translateY(-2px);
+}
+
+/* Icone per bottoni */
+.btn .btn-icon {
+  margin-right: 0.5rem;
+}
+
+.btn-icon-only {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.btn-icon-only.btn-sm {
+  width: 28px;
+  height: 28px;
+}
+
+.btn-icon-only.btn-lg {
+  width: 48px;
+  height: 48px;
+}
+
+/* Keyframes per animazioni */
+@keyframes iconPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes iconSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes iconBounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-8px); }
+  60% { transform: translateY(-4px); }
+}
+
+@keyframes iconShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
+/* Supporto per modalità dark */
+[data-bs-theme="dark"] .icon-circle {
+  background-color: var(--bs-dark-bg-subtle);
+}
+
+[data-bs-theme="dark"] .status-icon::after {
+  border-color: var(--bs-dark);
+}
+
+/* Ottimizzazioni per alte densità di pixel */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .service-icon {
+    background-size: contain;
+  }
+}
+
+/* Adattamento per schermi piccoli */
+@media (max-width: 768px) {
+  .nav-icon {
+    margin-right: 5px;
+  }
+  
+  .icon-md {
+    font-size: var(--icon-size-sm);
+  }
+  
+  .icon-lg {
+    font-size: var(--icon-size-md);
+  }
+}
+
+/* Supporto per utenti che preferiscono ridurre le animazioni */
+@media (prefers-reduced-motion: reduce) {
+  .icon-pulse,
+  .icon-spin,
+  .icon-bounce,
+  .icon-shake,
+  .navbar-nav .nav-link:hover .nav-icon,
+  .sidebar-link:hover .nav-icon,
+  .active .nav-icon,
+  .dashboard-card:hover .dashboard-icon {
+    animation: none;
+    transition: none;
+    transform: none;
+  }
+}
+
+/* Supporto accessibilità per nascondere icone quando sono puramente decorative */
+.icon-decorative {
+  aria-hidden: true;
 } 

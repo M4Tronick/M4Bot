@@ -3,120 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>M4Bot - Manutenzione</title>
+    <title>M4Bot - Modalità Offline</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
             color: #333;
-            background-color: #f8f9fa;
+            background-color: #f5f5f5;
             margin: 0;
             padding: 0;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
             min-height: 100vh;
-        }
-        .container {
-            max-width: 800px;
-            padding: 40px;
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             text-align: center;
         }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+        }
         h1 {
-            color: #6a5bc2;
-            margin-bottom: 20px;
+            color: #2c3e50;
+            margin-top: 0;
         }
-        img {
-            max-width: 150px;
-            margin-bottom: 30px;
+        .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #e67e22;
         }
-        .message {
-            font-size: 18px;
-            margin-bottom: 30px;
-            color: #666;
-        }
-        .status {
-            background-color: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 30px;
-        }
-        .links {
-            margin-top: 40px;
-        }
-        .links a {
+        .btn {
             display: inline-block;
-            margin: 0 10px;
-            color: #6a5bc2;
+            background-color: #3498db;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            margin-top: 1rem;
             text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.3s;
         }
-        .links a:hover {
-            text-decoration: underline;
+        .btn:hover {
+            background-color: #2980b9;
         }
-        .footer {
-            margin-top: 50px;
-            font-size: 14px;
-            color: #999;
+        .offline-message {
+            margin: 1.5rem 0;
+            line-height: 1.8;
         }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-        .pulse {
-            animation: pulse 2s infinite;
+        .cached-content {
+            border-top: 1px solid #eee;
+            margin-top: 2rem;
+            padding-top: 1rem;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <img src="https://m4bot.it/static/img/logo.png" alt="M4Bot Logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiM2YTViYzIiIHJ4PSIxMCIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgZmlsbD0iI2ZmZiI+TTQ8L3RleHQ+PC9zdmc+'" class="pulse">
+        <div class="icon">📶</div>
+        <h1>Connessione Assente</h1>
         
-        <h1>M4Bot è in manutenzione</h1>
-        
-        <div class="message">
-            Il server è attualmente in manutenzione. Torneremo online il prima possibile.
+        <div class="offline-message">
+            <p>Sembra che tu sia attualmente offline. Alcune funzionalità potrebbero non essere disponibili fino a quando non sarai di nuovo connesso a Internet.</p>
+            <p>Puoi comunque accedere ai contenuti che sono stati precedentemente memorizzati nella cache.</p>
         </div>
         
-        <div class="status">
-            <strong>Stato:</strong> Manutenzione programmata in corso
-            <br>
-            <strong>Tempo stimato di ripristino:</strong> <span id="eta">A breve</span>
-        </div>
+        <button class="btn" id="reload-btn">Riprova Connessione</button>
         
-        <p>Stiamo lavorando per migliorare il servizio. Ci scusiamo per l'inconveniente.</p>
-        
-        <div class="links">
-            <a href="https://kick.com" target="_blank">Kick.com</a>
-            <a href="mailto:support@m4bot.it">Contattaci</a>
-        </div>
-        
-        <div class="footer">
-            &copy; 2025 M4Bot - Il Bot per Kick.com
+        <div class="cached-content">
+            <h3>Cosa puoi fare mentre sei offline?</h3>
+            <ul style="text-align: left;">
+                <li>Visualizzare i dati precedentemente caricati</li>
+                <li>Accedere alle pagine che hai già visitato</li>
+                <li>Preparare nuove richieste che verranno inviate automaticamente quando tornerai online</li>
+            </ul>
         </div>
     </div>
 
     <script>
-        // Aggiorna l'ETA a un orario casuale tra 5-30 minuti da ora
-        function updateETA() {
-            const now = new Date();
-            const minutes = Math.floor(Math.random() * 25) + 5; // 5-30 minuti
-            now.setMinutes(now.getMinutes() + minutes);
-            
-            const hours = now.getHours().toString().padStart(2, '0');
-            const mins = now.getMinutes().toString().padStart(2, '0');
-            
-            document.getElementById('eta').textContent = `${hours}:${mins}`;
+        document.getElementById('reload-btn').addEventListener('click', function() {
+            window.location.reload();
+        });
+        
+        // Controlla periodicamente se la connessione è tornata
+        function checkOnlineStatus() {
+            if (navigator.onLine) {
+                const lastPage = localStorage.getItem('lastPage') || '/';
+                window.location.href = lastPage;
+            }
         }
         
-        // Esegui all'avvio della pagina
-        updateETA();
+        window.addEventListener('online', checkOnlineStatus);
+        setInterval(checkOnlineStatus, 5000); // Controlla ogni 5 secondi
+        
+        // Memorizza l'ultima pagina visitata prima di andare offline
+        if (navigator.onLine) {
+            localStorage.setItem('lastPage', window.location.pathname);
+        }
     </script>
 </body>
 </html> 

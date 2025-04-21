@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, render_template, current_app, session
+from flask import Blueprint, jsonify, request, render_template, current_app, session, redirect, url_for
 from functools import wraps
 import logging
 import json
@@ -20,6 +20,16 @@ def login_required(f):
     @wraps(f)
     async def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
+            # Controlla se c'è un token di accesso nei cookie
+            access_token = request.cookies.get('access_token')
+            
+            if access_token and hasattr(current_app, 'validate_token'):
+                user_id = await current_app.validate_token(access_token)
+                if user_id:
+                    # Reimpostare la sessione con l'utente
+                    session['user_id'] = user_id
+                    return await f(*args, **kwargs)
+            
             return redirect(url_for('login', next=request.url))
         try:
             return await f(*args, **kwargs)
@@ -99,7 +109,53 @@ async def custom_dashboard():
             
             widget_data['youtube_stats'] = youtube_stats or {}
         
-        # Aggiungere qui altri widget...
+        # Aggiungi dati per widget delle statistiche Telegram
+        if any(w['id'] == 'telegram_stats' and w['visible'] for w in dashboard_config['widgets']):
+            # Usa Redis cache se disponibile
+            if hasattr(current_app, 'redis_client') and current_app.redis_client:
+                telegram_stats = await current_app.redis_cache(
+                    f"telegram_stats_{user_id}",
+                    lambda: current_app.api_request('http://localhost:5000/api/telegram/stats'),
+                    expire=300
+                )
+            else:
+                telegram_stats = await current_app.api_request('http://localhost:5000/api/telegram/stats')
+            
+            widget_data['telegram_stats'] = telegram_stats or {}
+            
+        # Aggiungi dati per widget delle statistiche WhatsApp
+        if any(w['id'] == 'whatsapp_stats' and w['visible'] for w in dashboard_config['widgets']):
+            # Usa Redis cache se disponibile
+            if hasattr(current_app, 'redis_client') and current_app.redis_client:
+                whatsapp_stats = await current_app.redis_cache(
+                    f"whatsapp_stats_{user_id}",
+                    lambda: current_app.api_request('http://localhost:5000/api/whatsapp/stats'),
+                    expire=300
+                )
+            else:
+                whatsapp_stats = await current_app.api_request('http://localhost:5000/api/whatsapp/stats')
+            
+            widget_data['whatsapp_stats'] = whatsapp_stats or {}
+            
+        # Aggiungi dati per lo stato del sistema
+        if any(w['id'] == 'system_health' and w['visible'] for w in dashboard_config['widgets']):
+            # Usa Redis cache se disponibile
+            if hasattr(current_app, 'redis_client') and current_app.redis_client:
+                system_health = await current_app.redis_cache(
+                    f"system_health",
+                    lambda: current_app.api_request('http://localhost:5000/api/system/health'),
+                    expire=60  # Cache più breve per i dati del sistema
+                )
+            else:
+                system_health = await current_app.api_request('http://localhost:5000/api/system/health')
+            
+            widget_data['system_health'] = system_health or {}
+            
+        # Aggiungi dati per messaggi recenti
+        if any(w['id'] == 'recent_messages' and w['visible'] for w in dashboard_config['widgets']):
+            # I messaggi recenti non vengono memorizzati nella cache per garantire che siano aggiornati
+            recent_messages = await current_app.api_request('http://localhost:5000/api/messages/recent')
+            widget_data['recent_messages'] = recent_messages or {'messages': []}
         
         return await render_template('custom_dashboard.html', 
                                     dashboard_config=dashboard_config,
@@ -121,11 +177,19 @@ async def dashboard_config():
             return jsonify({'success': True, 'config': dashboard_config})
         else:  # PUT
             # Aggiorna configurazione
-            data = await request.json
+            data = await request.get_json()
             
             # Verifica campi obbligatori
-            if 'layout' not in data or 'widgets' not in data:
+            if not data or 'layout' not in data or 'widgets' not in data:
                 return jsonify({'success': False, 'message': 'Configurazione incompleta'}), 400
+            
+            # Validazione widget
+            if not isinstance(data['widgets'], list):
+                return jsonify({'success': False, 'message': 'Il campo "widgets" deve essere un array'}), 400
+                
+            for widget in data['widgets']:
+                if not isinstance(widget, dict) or 'id' not in widget or 'position' not in widget:
+                    return jsonify({'success': False, 'message': 'Formato widget non valido'}), 400
             
             # Salva la configurazione
             if save_user_dashboard(user_id, data):

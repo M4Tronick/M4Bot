@@ -1,1167 +1,1152 @@
 /**
  * M4Bot - Main JavaScript
- * Versione 2.0 con supporto avanzato per animazioni, interattività e
- * migliore gestione degli eventi utente e della reattività.
+ * Funzionalità avanzate e ottimizzazioni per l'interfaccia utente
+ * Versione: 3.0
  */
 
-// IIFE per incapsulare il codice
-(function() {
-    // Costanti configurabili
-    const CONFIG = {
-        animations: {
-            enabled: true,
-            duration: {
-                short: 150,
-                medium: 300,
-                long: 500
+document.addEventListener('DOMContentLoaded', function() {
+  // Inizializzazione dei componenti principali
+  initLazyLoading();
+  initMicroAnimations();
+  initPerformanceOptimizations();
+  initAdvancedAccessibility();
+  initMobileFeatures();
+  initNotifications();
+  initCustomDashboard();
+  initDataVisualization();
+  initOfflineMode();
+  initPrivacyFeatures();
+  
+  // Monitoraggio connessione
+  setupConnectionMonitoring();
+});
+
+/**
+ * Lazy Loading per immagini e componenti pesanti
+ */
+function initLazyLoading() {
+  // Implementazione IntersectionObserver per lazy loading nativo
+  if ('IntersectionObserver' in window) {
+    const lazyImages = document.querySelectorAll('img.lazy-load, iframe.lazy-load, video.lazy-load');
+    const imageObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const lazyElement = entry.target;
+          
+          if (lazyElement.tagName.toLowerCase() === 'img') {
+            // Per immagini
+            if (lazyElement.dataset.src) {
+              lazyElement.src = lazyElement.dataset.src;
+            }
+            if (lazyElement.dataset.srcset) {
+              lazyElement.srcset = lazyElement.dataset.srcset;
+            }
+          } else if (lazyElement.tagName.toLowerCase() === 'iframe' || lazyElement.tagName.toLowerCase() === 'video') {
+            // Per iframe e video
+            if (lazyElement.dataset.src) {
+              lazyElement.src = lazyElement.dataset.src;
+            }
+          }
+          
+          lazyElement.classList.remove('lazy-load');
+          lazyElement.classList.add('loaded');
+          imageObserver.unobserve(lazyElement);
+        }
+      });
+    }, {
+      rootMargin: '200px 0px', // Carica quando si avvicina a 200px dalla viewport
+      threshold: 0.01
+    });
+    
+    lazyImages.forEach(image => {
+      imageObserver.observe(image);
+    });
+    
+    // Lazy loading per componenti JS pesanti
+    const lazyComponents = document.querySelectorAll('[data-component-lazy]');
+    const componentObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const component = entry.target;
+          const componentType = component.dataset.componentLazy;
+          
+          // Inizializza il componente in base al tipo
+          switch(componentType) {
+            case 'chart':
+              initChart(component);
+              break;
+            case 'map':
+              initMap(component);
+              break;
+            case 'video-player':
+              initVideoPlayer(component);
+              break;
+            case 'rich-editor':
+              initRichEditor(component);
+              break;
+          }
+          
+          componentObserver.unobserve(component);
+        }
+      });
+    }, {
+      rootMargin: '100px 0px',
+      threshold: 0.01
+    });
+    
+    lazyComponents.forEach(component => {
+      componentObserver.observe(component);
+    });
+  } else {
+    // Fallback per browser che non supportano IntersectionObserver
+    const lazyImages = document.querySelectorAll('img.lazy-load');
+    lazyImages.forEach(img => {
+      if (img.dataset.src) {
+        img.src = img.dataset.src;
+      }
+      img.classList.remove('lazy-load');
+    });
+  }
+}
+
+/**
+ * Micro-animazioni per feedback utente
+ */
+function initMicroAnimations() {
+  // Effetto click su pulsanti
+  const buttons = document.querySelectorAll('.btn, button:not(.btn-plain)');
+  buttons.forEach(button => {
+    if (!button.classList.contains('no-animation')) {
+      button.addEventListener('click', function(e) {
+        // Aggiungi classe per animazione solo se non è disabilitata la motion
+        if (!document.documentElement.classList.contains('reduced-motion')) {
+          this.classList.add('btn-clicked');
+          
+          // Rimuovi classe dopo animazione
+          setTimeout(() => {
+            this.classList.remove('btn-clicked');
+          }, 300);
+        }
+      });
+    }
+  });
+  
+  // Effetto hover avanzato su card e componenti interattivi
+  const interactiveElements = document.querySelectorAll('.interactive-element');
+  interactiveElements.forEach(element => {
+    element.addEventListener('mousemove', function(e) {
+      if (!document.documentElement.classList.contains('reduced-motion')) {
+        const rect = this.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        // Calcola percentuale della posizione del mouse all'interno dell'elemento
+        const posX = (x / rect.width) * 100;
+        const posY = (y / rect.height) * 100;
+        
+        // Applica effetto spostamento 3D limitato
+        this.style.transform = `perspective(1000px) rotateX(${(posY - 50) * 0.02}deg) rotateY(${(posX - 50) * -0.02}deg)`;
+        
+        // Effetto luce
+        this.style.background = `radial-gradient(circle at ${posX}% ${posY}%, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%)`;
+      }
+    });
+    
+    element.addEventListener('mouseleave', function() {
+      // Reset trasformazione e background
+      this.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
+      this.style.background = '';
+                });
+            });
+
+  // Effetto animazione per badge "nuovo"
+  const newBadges = document.querySelectorAll('.badge.pulse');
+  newBadges.forEach(badge => {
+    // Già gestito dal CSS con la classe .pulse
+            });
+        }
+
+        /**
+ * Ottimizzazioni performance
+ */
+function initPerformanceOptimizations() {
+  // Preconnect per risorse esterne
+  const preconnectDomains = [
+    'https://fonts.googleapis.com',
+    'https://fonts.gstatic.com',
+    'https://cdn.jsdelivr.net',
+    'https://cdnjs.cloudflare.com'
+  ];
+  
+  preconnectDomains.forEach(domain => {
+    const link = document.createElement('link');
+    link.rel = 'preconnect';
+    link.href = domain;
+    link.crossOrigin = 'anonymous';
+    document.head.appendChild(link);
+  });
+  
+  // Prefetch pagine comuni
+  const commonPages = [
+    '/dashboard',
+    '/profile',
+    '/settings'
+  ];
+  
+  if (!navigator.connection || navigator.connection.saveData !== true) {
+    commonPages.forEach(page => {
+      const link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.href = page;
+      document.head.appendChild(link);
+    });
+  }
+  
+  // Debounce per eventi che causano reflow
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+  
+  // Applicazione del debounce all'evento resize
+  const resizeHandler = debounce(() => {
+    // Esegui operazioni che richiedono reflow
+    document.dispatchEvent(new CustomEvent('optimizedResize'));
+  }, 100);
+  
+  window.addEventListener('resize', resizeHandler);
+  
+  // Rimuovi classi di animazione dopo che sono state completate
+  document.addEventListener('animationend', function(e) {
+    if (e.target.classList.contains('animate-once')) {
+      e.target.classList.remove('animate-once');
+      // Rimuovi anche classi di animazione specifiche
+      const animationClasses = ['fade-in', 'slide-in-up', 'slide-in-down', 'slide-in-left', 'slide-in-right', 'zoom-in'];
+      animationClasses.forEach(className => {
+        if (e.target.classList.contains(className)) {
+          e.target.classList.remove(className);
+        }
+      });
+    }
+  });
+}
+
+/**
+ * Funzionalità di accessibilità avanzate
+ */
+function initAdvancedAccessibility() {
+  // Aggiungi supporto per scorciatoie da tastiera
+  const keyboardShortcuts = {
+    'Alt+1': () => navigateTo('/dashboard'),
+    'Alt+2': () => navigateTo('/profile'),
+    'Alt+3': () => navigateTo('/settings'),
+    'Alt+s': () => document.querySelector('#global-search-input')?.focus(),
+    'Alt+t': () => window.themeSystem.toggleTheme(),
+    'Alt+h': () => toggleHelpModal(),
+    'Alt+a': () => toggleAccessibilityMenu(),
+    'Escape': () => closeActiveModal()
+  };
+  
+  document.addEventListener('keydown', function(e) {
+    // Non eseguire scorciatoie quando si è in un input o textarea
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+      return;
+    }
+    
+    const key = `${e.altKey ? 'Alt+' : ''}${e.ctrlKey ? 'Ctrl+' : ''}${e.shiftKey ? 'Shift+' : ''}${e.key}`;
+    
+    if (keyboardShortcuts[key]) {
+      e.preventDefault();
+      keyboardShortcuts[key]();
+    }
+  });
+  
+  // Focus visibile migliorato
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Tab') {
+      document.body.classList.add('keyboard-navigation');
+    }
+  });
+  
+  document.addEventListener('mousedown', function() {
+    document.body.classList.remove('keyboard-navigation');
+  });
+  
+  // Gestione annunci per screen reader
+  window.a11yAnnounce = function(message, priority = 'polite') {
+    const announceElement = document.getElementById('a11y-announce');
+    
+    if (!announceElement) {
+      const newAnnounceElement = document.createElement('div');
+      newAnnounceElement.id = 'a11y-announce';
+      newAnnounceElement.setAttribute('aria-live', priority);
+      newAnnounceElement.className = 'sr-only';
+      document.body.appendChild(newAnnounceElement);
+      
+      setTimeout(() => {
+        newAnnounceElement.textContent = message;
+      }, 100);
+    } else {
+      announceElement.setAttribute('aria-live', priority);
+      
+      // Pulizia e poi aggiunta del nuovo messaggio
+      announceElement.textContent = '';
+      setTimeout(() => {
+        announceElement.textContent = message;
+      }, 100);
+    }
+  };
+  
+  // Miglioramento menu dropdown per accessibilità
+  const dropdownToggles = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+  dropdownToggles.forEach(toggle => {
+    toggle.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.click();
+      }
+    });
+  });
+}
+
+/**
+ * Funzionalità mobile avanzate
+ */
+function initMobileFeatures() {
+  // Rileva se siamo su mobile
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  if (isMobile) {
+    document.body.classList.add('is-mobile-device');
+    
+    // Aggiungi supporto per gesti mobile
+    const gestureElements = document.querySelectorAll('.supports-gestures');
+    
+    if ('ontouchstart' in window) {
+      gestureElements.forEach(element => {
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+        
+        element.addEventListener('touchstart', function(e) {
+          touchStartX = e.changedTouches[0].screenX;
+          touchStartY = e.changedTouches[0].screenY;
+        }, false);
+        
+        element.addEventListener('touchend', function(e) {
+          touchEndX = e.changedTouches[0].screenX;
+          touchEndY = e.changedTouches[0].screenY;
+          handleGesture(this, touchStartX, touchStartY, touchEndX, touchEndY);
+        }, false);
+      });
+    }
+    
+    // Modalità una mano su telefoni grandi
+    const oneHandModeButton = document.getElementById('one-hand-mode');
+    if (oneHandModeButton) {
+      oneHandModeButton.addEventListener('click', function() {
+        document.body.classList.toggle('one-hand-mode');
+        localStorage.setItem('oneHandMode', document.body.classList.contains('one-hand-mode'));
+      });
+      
+      // Ripristina stato precedente
+      if (localStorage.getItem('oneHandMode') === 'true') {
+        document.body.classList.add('one-hand-mode');
+      }
+    }
+    
+    // Adattamenti UI per schermi più piccoli
+    const screenWidth = window.innerWidth;
+    if (screenWidth < 768) {
+      // Semplifica alcuni componenti UI per schermi molto piccoli
+      document.querySelectorAll('.simplify-mobile').forEach(el => {
+        el.classList.add('mobile-simplified');
+                });
+            }
+        }
+}
+
+/**
+ * Gestione notifiche avanzate
+ */
+function initNotifications() {
+  // Sistema di notifiche push
+  if ('Notification' in window && 'PushManager' in window) {
+    // Variabile per memorizzare sottoscrizione notifiche
+    let pushSubscription = null;
+    
+    // API per controllare le notifiche
+    window.notificationSystem = {
+      // Richiedi permesso notifiche
+      requestPermission: async function() {
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+            this.subscribeUserToPush();
+            return true;
+          }
+          return false;
+        } catch (error) {
+          console.error('Errore nella richiesta permessi notifiche:', error);
+          return false;
+        }
+      },
+      
+      // Iscrivere utente alle notifiche push
+      subscribeUserToPush: async function() {
+        try {
+          const registration = await navigator.serviceWorker.getRegistration();
+          pushSubscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: this.urlBase64ToUint8Array(window.VAPID_PUBLIC_KEY || '')
+          });
+          
+          // Invia la sottoscrizione al server
+          await fetch('/api/push-subscription', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
             },
-            timing: 'cubic-bezier(0.4, 0, 0.2, 1)'
-        },
-        sidebar: {
-            collapseBreakpoint: 992, // Breakpoint per collassare sidebar (px)
-            swipeThreshold: 50      // Soglia per swipe gesture (px)
-        },
-        scrolling: {
-            smoothScroll: true,
-            scrollOffset: 70,      // Offset per evitare che header copra il contenuto
-            scrollSmoothing: 'smooth'
-        },
-        feedback: {
-            enabled: true,
-            haptic: true          // Vibrazione per feedback tattile
-        },
-        performance: {
-            idleTimeout: 90000,    // 1.5 minuti in ms
-            lazyLoadThreshold: 200 // Distanza in px per lazy loading 
+            body: JSON.stringify(pushSubscription)
+          });
+          
+          return true;
+        } catch (error) {
+          console.error('Errore nella sottoscrizione push:', error);
+          return false;
+        }
+      },
+      
+      // Utility per convertire chiave VAPID
+      urlBase64ToUint8Array: function(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+          .replace(/-/g, '+')
+          .replace(/_/g, '/');
+        
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        
+        for (let i = 0; i < rawData.length; ++i) {
+          outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+      },
+      
+      // Mostra notifica locale
+      showNotification: function(title, options = {}) {
+        if (!('Notification' in window)) return;
+        
+        if (Notification.permission === 'granted') {
+          navigator.serviceWorker.getRegistration().then(registration => {
+            registration.showNotification(title, {
+              badge: '/static/icons/badge-icon.png',
+              icon: '/static/icons/notification-icon.png',
+              ...options
+            });
+                });
+            }
         }
     };
+    
+    // Pulsante per iscriversi alle notifiche
+    const notificationButton = document.getElementById('enable-notifications');
+    if (notificationButton) {
+      notificationButton.addEventListener('click', async function() {
+        const result = await window.notificationSystem.requestPermission();
+        if (result) {
+          this.classList.add('subscribed');
+          this.textContent = 'Notifiche attivate';
+        }
+      });
+    }
+            }
+        }
 
-    // Cache per gli elementi DOM frequentemente utilizzati
-    const DOM = {
-        body: document.body,
-        sidebar: document.querySelector('.sidebar'),
-        sidebarToggle: document.querySelector('.sidebar-toggle'),
-        toTopButton: document.getElementById('to-top-button'),
-        loadingOverlay: document.getElementById('loading-overlay'),
-        actionFeedback: document.getElementById('action-feedback'),
-        scrollElements: document.querySelectorAll('[data-scroll]'),
-        parallaxElements: document.querySelectorAll('.parallax-element'),
-        staggeredElements: document.querySelectorAll('.stagger-items'),
-        revealElements: document.querySelectorAll('.reveal-on-scroll'),
-        root: document.documentElement
+        /**
+ * Dashboard personalizzabile
+ */
+function initCustomDashboard() {
+  // Implementazione del sistema di widget trascinabili
+  const customDashboard = document.querySelector('.custom-dashboard');
+  if (!customDashboard) return;
+  
+  // Verifica che la libreria Sortable sia caricata
+  if (typeof Sortable !== 'undefined') {
+    // Abilita il riordinamento dei widget
+    const widgetContainer = customDashboard.querySelector('.widget-container');
+    if (widgetContainer) {
+      const sortable = Sortable.create(widgetContainer, {
+        animation: 150,
+        handle: '.widget-header',
+        ghostClass: 'widget-ghost',
+        chosenClass: 'widget-chosen',
+        dragClass: 'widget-drag',
+        onEnd: function(evt) {
+          // Salva l'ordine dei widget
+          const widgetOrder = Array.from(widgetContainer.children).map(widget => {
+            return widget.dataset.widgetId;
+          });
+          
+          localStorage.setItem('dashboardWidgetOrder', JSON.stringify(widgetOrder));
+          
+          // Aggiorna il dashboard sul server
+          fetch('/api/dashboard-layout', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ widgetOrder })
+          }).catch(error => {
+            console.error('Errore nel salvataggio layout dashboard:', error);
+          });
+        }
+      });
+    }
+    
+    // Aggiungi pulsanti per aggiungere/rimuovere widget
+    const addWidgetButton = customDashboard.querySelector('.add-widget-button');
+    if (addWidgetButton) {
+      addWidgetButton.addEventListener('click', function() {
+        const widgetSelector = document.getElementById('widget-selector');
+        if (widgetSelector) {
+          widgetSelector.classList.add('show');
+        }
+      });
+    }
+    
+    // Gestisci selezione widget
+    const widgetOptions = document.querySelectorAll('.widget-option');
+    widgetOptions.forEach(option => {
+      option.addEventListener('click', function() {
+        const widgetType = this.dataset.widgetType;
+        addWidgetToDashboard(widgetType);
+        
+        // Chiudi selettore
+        const widgetSelector = document.getElementById('widget-selector');
+        if (widgetSelector) {
+          widgetSelector.classList.remove('show');
+        }
+      });
+    });
+  }
+}
+
+/**
+ * Visualizzazione dati avanzata
+ */
+function initDataVisualization() {
+  // Inizializzazione grafici con animazioni
+  const chartElements = document.querySelectorAll('[data-chart-type]');
+  
+  chartElements.forEach(element => {
+    // Se il chart è configurato per lazy loading, salta
+    if (element.classList.contains('lazy-load')) return;
+    
+    initChart(element);
+  });
+  
+  // Implementazione tema coordinato per i grafici
+  document.addEventListener('themeChanged', function(event) {
+    const theme = event.detail.theme;
+    updateChartsTheme(theme);
+  });
+}
+
+/**
+ * Inizializza un grafico
+ */
+function initChart(element) {
+  const chartType = element.dataset.chartType;
+  const chartData = JSON.parse(element.dataset.chartData || '{}');
+  const chartOptions = JSON.parse(element.dataset.chartOptions || '{}');
+  const chartId = element.id;
+  
+  if (!chartId) return;
+  
+  // Verifica che Chart.js sia caricato
+  if (typeof Chart !== 'undefined') {
+    // Aggiungi animazioni fluide
+    const defaultOptions = {
+      animation: {
+        duration: 1000,
+        easing: 'easeOutQuart'
+      },
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          animation: {
+            duration: 100
+          },
+          backdropPadding: 6,
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          titleFont: {
+            weight: 'bold'
+          }
+        },
+        legend: {
+          labels: {
+            usePointStyle: true,
+            padding: 15
+          }
+        }
+      }
     };
+    
+    // Opzioni specifiche per il tema corrente
+    const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+    const themeOptions = getChartThemeOptions(theme);
+    
+    // Unisci opzioni
+    const mergedOptions = deepMerge(defaultOptions, themeOptions, chartOptions);
+    
+    // Crea il grafico
+    const ctx = document.getElementById(chartId).getContext('2d');
+    const chart = new Chart(ctx, {
+      type: chartType,
+      data: chartData,
+      options: mergedOptions
+    });
+    
+    // Salva l'istanza del grafico per riferimento futuro
+    element.chart = chart;
+  }
+}
 
-    // Stato dell'applicazione
-    const state = {
-        sidebarOpen: window.innerWidth >= CONFIG.sidebar.collapseBreakpoint,
-        serverPingMs: null,
-        isOnline: navigator.onLine,
-        touchStartX: 0,
-        touchEndX: 0,
-        isIdle: false,
-        isPageVisible: true,
-        scrollPosition: 0,
-        hasFocus: true
+/**
+ * Ottieni opzioni di tema per i grafici
+ */
+function getChartThemeOptions(theme) {
+  if (theme === 'dark') {
+    return {
+      color: 'rgba(255, 255, 255, 0.7)',
+      scales: {
+        x: {
+          grid: {
+            color: 'rgba(255, 255, 255, 0.1)'
+          },
+          ticks: {
+            color: 'rgba(255, 255, 255, 0.7)'
+          }
+        },
+        y: {
+          grid: {
+            color: 'rgba(255, 255, 255, 0.1)'
+          },
+          ticks: {
+            color: 'rgba(255, 255, 255, 0.7)'
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          labels: {
+            color: 'rgba(255, 255, 255, 0.9)'
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(30, 30, 30, 0.8)',
+          titleColor: 'rgba(255, 255, 255, 0.9)',
+          bodyColor: 'rgba(255, 255, 255, 0.7)'
+        }
+      }
     };
-
-    /**
-     * Classe principale per gestire l'app
-     */
-    class AppManager {
-        constructor() {
-            this.initializeApp();
-            this.setupEventListeners();
+  }
+  
+  return {
+    color: 'rgba(0, 0, 0, 0.7)',
+    scales: {
+      x: {
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)'
+        },
+        ticks: {
+          color: 'rgba(0, 0, 0, 0.7)'
         }
-
-        /**
-         * Inizializza l'applicazione
-         */
-        initializeApp() {
-            // Imposta lo stato iniziale della sidebar
-            this.updateSidebarState(state.sidebarOpen, false);
-
-            // Inizializza i componenti UI principali
-            this.initializeUIComponents();
-
-            // Controlla connettività
-            this.updateConnectionStatus();
-
-            // Verifica compatibilità browser avanzate
-            this.checkBrowserCapabilities();
-
-            // Polling del server ping (heartbeat)
-            this.startServerPing();
-
-            // Imposta stato responsivo
-            this.handleResponsiveLayout();
-
-            // Rimuovi loading overlay
-            this.hideLoadingOverlay();
-
-            // Inizializza lazy loading
-            this.initializeLazyLoading();
-
-            // Aggiungi detector idle
-            this.setupIdleDetection();
-
-            console.log('M4Bot App initialized successfully');
+      },
+      y: {
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)'
+        },
+        ticks: {
+          color: 'rgba(0, 0, 0, 0.7)'
         }
-
-        /**
-         * Nasconde l'overlay di caricamento con animazione
-         */
-        hideLoadingOverlay() {
-            if (!DOM.loadingOverlay) return;
-
-            // Aggiungi classe per attivare animazione
-            DOM.loadingOverlay.classList.add('fade-out');
-
-            // Rimuovi dopo animazione
-            setTimeout(() => {
-                DOM.loadingOverlay.style.display = 'none';
-                DOM.loadingOverlay.classList.remove('fade-out');
-            }, CONFIG.animations.duration.medium);
+      }
+    },
+    plugins: {
+      legend: {
+        labels: {
+          color: 'rgba(0, 0, 0, 0.8)'
         }
-
-        /**
-         * Inizializza componenti UI principali
-         */
-        initializeUIComponents() {
-            // Inizializza tooltip bootstrap
-            const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-            if (tooltips.length > 0) {
-                [...tooltips].map(tooltip => new bootstrap.Tooltip(tooltip));
-            }
-
-            // Inizializza popovers bootstrap
-            const popovers = document.querySelectorAll('[data-bs-toggle="popover"]');
-            if (popovers.length > 0) {
-                [...popovers].map(popover => new bootstrap.Popover(popover));
-            }
-
-            // Attiva animazioni elementi 
-            this.setupAnimations();
-        }
-
-        /**
-         * Configura gestori degli eventi
-         */
-        setupEventListeners() {
-            // Toggle sidebar
-            if (DOM.sidebarToggle) {
-                DOM.sidebarToggle.addEventListener('click', () => {
-                    this.toggleSidebar();
-                });
-            }
-
-            // Chiusura sidebar con click fuori
-            document.addEventListener('click', (e) => {
-                if (state.sidebarOpen && window.innerWidth < CONFIG.sidebar.collapseBreakpoint) {
-                    if (DOM.sidebar && !DOM.sidebar.contains(e.target) && 
-                        DOM.sidebarToggle && !DOM.sidebarToggle.contains(e.target)) {
-                        this.updateSidebarState(false);
-                    }
-                }
-            });
-
-            // Pulsante torna in cima
-            if (DOM.toTopButton) {
-                DOM.toTopButton.addEventListener('click', () => {
-                    this.scrollToTop();
-                });
-            }
-
-            // Scroll handler
-            window.addEventListener('scroll', this.handleScroll.bind(this), { passive: true });
-
-            // Resize handler
-            window.addEventListener('resize', this.debounce(() => {
-                this.handleResponsiveLayout();
-            }, 250));
-
-            // Touch handlers
-            document.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: true });
-            document.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: true });
-
-            // Connection status handlers
-            window.addEventListener('online', this.updateConnectionStatus.bind(this));
-            window.addEventListener('offline', this.updateConnectionStatus.bind(this));
-
-            // Gestione visibilità pagina e focus
-            document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
-            window.addEventListener('focus', this.handleFocus.bind(this));
-            window.addEventListener('blur', this.handleBlur.bind(this));
-
-            // Rileva stili preferiti dall'utente
-            this.detectUserPreferences();
-
-            // Event handlers per link con hash
-            document.querySelectorAll('a[href^="#"]:not([href="#"])').forEach(anchor => {
-                anchor.addEventListener('click', (e) => {
-                    this.handleHashLinkClick(e);
-            });
-        });
-
-            // Click handler per pulsanti azione
-            document.querySelectorAll('[data-action]').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    this.handleActionButton(e);
-                });
-            });
-
-            // Intercetta submit forms per validation
-            document.querySelectorAll('form:not([data-novalidate])').forEach(form => {
-                form.addEventListener('submit', (e) => {
-                    this.handleFormSubmit(e);
-                });
-            });
-        }
-
-        /**
-         * Gestione click su link con hash
-         */
-        handleHashLinkClick(e) {
-            const href = e.currentTarget.getAttribute('href');
-            const targetElement = document.querySelector(href);
-            
-            if (targetElement) {
-                e.preventDefault();
-                
-                // Calcola offset per scorrimento
-                const headerOffset = CONFIG.scrolling.scrollOffset;
-                const elementPosition = targetElement.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.scrollY - headerOffset;
-                
-                // Scorri alla posizione
-                window.scrollTo({
-                    top: offsetPosition,
-                    behavior: CONFIG.scrolling.scrollSmoothing
-                });
-                
-                // Focus su elemento per a11y
-                targetElement.setAttribute('tabindex', '-1');
-                targetElement.focus({ preventScroll: true });
-                
-                // Aggiorna URL con hash
-                history.pushState(null, null, href);
-            }
-        }
-
-        /**
-         * Gestisce il submit dei form
-         */
-        handleFormSubmit(e) {
-            const form = e.currentTarget;
-            
-            // Se il form non è valido, impediamo submit
-            if (!form.checkValidity()) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                // Aggiungi classe per attivare stile validazione
-                form.classList.add('was-validated');
-                
-                // Trova primo elemento non valido e fai focus
-                const invalidField = form.querySelector(':invalid');
-                if (invalidField) {
-                    invalidField.focus();
-                    
-                    // Feedback visivo
-                    this.showFeedback('error', 'Verifica i campi evidenziati');
-                }
-            } else {
-                if (form.hasAttribute('data-confirm')) {
-                    const confirmMsg = form.getAttribute('data-confirm') || 'Sei sicuro di voler procedere?';
-                    
-                    if (!confirm(confirmMsg)) {
-                        e.preventDefault();
-                    }
-                }
-                
-                // Disabilita form durante submit per evitare multi-submit
-                if (!form.hasAttribute('data-no-disable')) {
-                    const submitBtn = form.querySelector('[type="submit"]');
-                    if (submitBtn) {
-                        const originalText = submitBtn.innerText;
-                        submitBtn.disabled = true;
-                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Elaborazione...';
-                        
-                        // Riabilita dopo timeout (fallback se AJAX non completa)
-            setTimeout(() => {
-                            submitBtn.disabled = false;
-                            submitBtn.innerText = originalText;
-                        }, 5000);
-                    }
-                }
-            }
-        }
-
-        /**
-         * Gestisce click sui pulsanti azione
-         */
-        handleActionButton(e) {
-            const button = e.currentTarget;
-            const action = button.getAttribute('data-action');
-            
-            if (!action) return;
-            
-            // Feedback visivo
-            this.showClickFeedback(e);
-            
-            // Esegui azione corrispondente
-            switch (action) {
-                case 'toggle-sidebar':
-                    this.toggleSidebar();
-                    break;
-                    
-                case 'toggle-theme':
-                    if (window.toggleTheme) window.toggleTheme();
-                    break;
-                    
-                case 'refresh':
-                    this.refreshCurrentContent();
-                    break;
-                    
-                case 'back':
-                    history.back();
-                    break;
-                    
-                case 'toggle-notifications':
-                    this.toggleNotificationsPanel();
-                    break;
-                    
-                default:
-                    // Azioni personalizzate - emetti un evento personalizzato
-                    const customEvent = new CustomEvent('actionTriggered', {
-                        detail: { action, element: button }
-                    });
-                    document.dispatchEvent(customEvent);
-                    break;
-            }
-        }
-
-        /**
-         * Rileva preferenze utente
-         */
-        detectUserPreferences() {
-            // Rileva preference per riduzione movimento
-            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-            
-            const handleMotionPreference = (e) => {
-                CONFIG.animations.enabled = !e.matches;
-                document.documentElement.classList.toggle('reduced-motion', e.matches);
+      },
+      tooltip: {
+        backgroundColor: 'rgba(245, 245, 245, 0.9)',
+        titleColor: 'rgba(0, 0, 0, 0.9)',
+        bodyColor: 'rgba(0, 0, 0, 0.7)'
+      }
+    }
             };
-            
-            // Imposta valore iniziale
-            handleMotionPreference(prefersReducedMotion);
-            
-            // Aggiungi listener per cambiamenti
-            prefersReducedMotion.addEventListener('change', handleMotionPreference);
-            
-            // Rileva preferenza contrasto
-            const prefersHighContrast = window.matchMedia('(prefers-contrast: more)');
-            
-            const handleContrastPreference = (e) => {
-                document.documentElement.classList.toggle('high-contrast', e.matches);
-            };
-            
-            // Imposta valore iniziale
-            handleContrastPreference(prefersHighContrast);
-            
-            // Aggiungi listener per cambiamenti
-            prefersHighContrast.addEventListener('change', handleContrastPreference);
         }
 
         /**
-         * Gestisce cambio stato visibilità pagina
-         */
-        handleVisibilityChange() {
-            state.isPageVisible = document.visibilityState === 'visible';
-            
-            if (state.isPageVisible) {
-                // Ripristina polling per dati in tempo reale
-                this.resumePolling();
-            } else {
-                // Sospendi polling 
-                this.pausePolling();
+ * Aggiorna il tema di tutti i grafici
+ */
+function updateChartsTheme(theme) {
+  const chartElements = document.querySelectorAll('[data-chart-type]');
+  
+  chartElements.forEach(element => {
+    if (element.chart) {
+      const chart = element.chart;
+      const themeOptions = getChartThemeOptions(theme);
+      
+      // Aggiorna opzioni del grafico
+      deepMerge(chart.options, themeOptions);
+      
+      // Aggiorna il grafico
+      chart.update();
+    }
+  });
+}
+
+/**
+ * Funzionalità offline
+ */
+function initOfflineMode() {
+  // Monitora stato della connessione
+  window.addEventListener('online', updateConnectionStatus);
+  window.addEventListener('offline', updateConnectionStatus);
+  
+  // Controlla stato iniziale
+  updateConnectionStatus();
+  
+  // Cache dei dati per modalità offline
+  if ('caches' in window) {
+    // Registra dati da cachare per uso offline
+    const cachableRequests = [
+      '/api/user-profile',
+      '/api/dashboard-summary',
+      '/api/recent-activity'
+    ];
+    
+    // Crea una cache per i dati API
+    caches.open('api-data-cache').then(cache => {
+      // Cache dei dati API
+      cachableRequests.forEach(url => {
+        fetch(url)
+                .then(response => {
+            if (response.ok) {
+              // Clona la risposta per poterla usare e cachare
+              const responseToCache = response.clone();
+              cache.put(url, responseToCache);
             }
-        }
+          })
+          .catch(error => {
+            console.error('Errore nel caching dei dati:', error);
+          });
+      });
+    });
+  }
+}
 
-        /**
-         * Gestisce focus sulla finestra
-         */
-        handleFocus() {
-            state.hasFocus = true;
-            // Riprendi attività in background
-            this.resumeBackgroundTasks();
+/**
+ * Funzionalità per la privacy
+ */
+function initPrivacyFeatures() {
+  // Implementazione modalità privacy (offuscamento dati sensibili)
+  const privacyModeToggle = document.getElementById('privacy-mode');
+  if (privacyModeToggle) {
+    privacyModeToggle.addEventListener('change', function() {
+      document.body.classList.toggle('privacy-mode', this.checked);
+      
+      // Salva preferenza
+      localStorage.setItem('privacyMode', this.checked);
+      
+      // Annuncia per screen reader
+      if (window.a11yAnnounce) {
+        window.a11yAnnounce(this.checked ? 'Modalità privacy attivata' : 'Modalità privacy disattivata');
+      }
+    });
+    
+    // Ripristina preferenza
+    if (localStorage.getItem('privacyMode') === 'true') {
+      privacyModeToggle.checked = true;
+      document.body.classList.add('privacy-mode');
+    }
+  }
+  
+  // Implementazione blocco automatico per inattività
+  const inactivityTimeout = 5 * 60 * 1000; // 5 minuti
+  let inactivityTimer;
+  
+  function resetInactivityTimer() {
+    clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(() => {
+      // Attiva modalità privacy se non è già attiva
+      if (!document.body.classList.contains('privacy-mode')) {
+        document.body.classList.add('privacy-mode');
+        if (privacyModeToggle) privacyModeToggle.checked = true;
+        
+        // Mostra notifica
+        if (window.toastSystem) {
+          window.toastSystem.show('Modalità privacy attivata per inattività', 'info');
         }
+      }
+    }, inactivityTimeout);
+  }
+  
+  // Eventi per resettare il timer
+  ['mousemove', 'mousedown', 'keypress', 'touchstart', 'scroll'].forEach(event => {
+    document.addEventListener(event, resetInactivityTimer);
+  });
+  
+  // Inizializza timer
+  resetInactivityTimer();
+}
 
-        /**
-         * Gestisce perdita focus sulla finestra
-         */
-        handleBlur() {
-            state.hasFocus = false;
-            // Sospendi attività pesanti per risparmiare batteria
-            this.pauseBackgroundTasks();
-        }
+/**
+ * Monitoraggio della connessione e gestione indicatori
+ */
+function setupConnectionMonitoring() {
+  // Stato connessione
+  updateConnectionStatus();
+  
+  // Ping del server per verificare la connessione effettiva
+  setInterval(() => {
+    const startTime = performance.now();
+    
+    fetch('/api/ping', {
+      method: 'HEAD',
+      cache: 'no-store'
+    })
+      .then(() => {
+        const endTime = performance.now();
+        const pingTime = Math.round(endTime - startTime);
+        updatePingDisplay(pingTime);
+      })
+      .catch(() => {
+        updatePingDisplay(-1); // -1 indica errore
+      });
+  }, 30000); // Ogni 30 secondi
+}
 
-        /**
-         * Pausa task in background
-         */
-        pauseBackgroundTasks() {
-            if (window.pollingIntervals) {
-                Object.keys(window.pollingIntervals).forEach(key => {
-                    clearInterval(window.pollingIntervals[key]);
-                });
-            }
-        }
-
-        /**
-         * Riprende task in background
-         */
-        resumeBackgroundTasks() {
-            // Implementazione specifica per attività da ripristinare
-            this.startServerPing();
-        }
-
-        /**
-         * Pausa polling dati
-         */
-        pausePolling() {
-            if (window.pingInterval) {
-                clearInterval(window.pingInterval);
-            }
-        }
-
-        /**
-         * Riprende polling dati
-         */
-        resumePolling() {
-            this.startServerPing();
-        }
-
-        /**
-         * Imposta detection per stato idle
-         */
-        setupIdleDetection() {
-            // Lista eventi che resettano lo stato idle
-            const resetEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-            
-            // Timer per stato idle
-            let idleTimer = null;
-            
-            // Funzione per resettare timer idle
-            const resetIdleTimer = () => {
-                if (idleTimer) {
-                    clearTimeout(idleTimer);
-                }
-                
-                // Se era in stato idle, ripristina
-                if (state.isIdle) {
-                    state.isIdle = false;
-                    this.handleActiveStateChange(true);
-                }
-                
-                // Imposta nuovo timer
-                idleTimer = setTimeout(() => {
-                    state.isIdle = true;
-                    this.handleActiveStateChange(false);
-                }, CONFIG.performance.idleTimeout);
-            };
-            
-            // Aggiungi listener per ogni evento che resetta lo stato idle
-            resetEvents.forEach(eventName => {
-                document.addEventListener(eventName, resetIdleTimer, { passive: true });
-            });
-            
-            // Inizializza timer
-            resetIdleTimer();
-        }
-
-        /**
-         * Gestisce cambio di stato attivo/idle
-         */
-        handleActiveStateChange(isActive) {
-            if (isActive) {
-                // L'utente è tornato attivo
-                DOM.body.classList.remove('user-idle');
-                
-                // Riprendi attività intensive
-                this.resumeIntensiveTasks();
-            } else {
-                // L'utente è diventato idle
-                DOM.body.classList.add('user-idle');
-                
-                // Sospendi attività intensive per preservare CPU e batteria
-                this.suspendIntensiveTasks();
-            }
-        }
-
-        /**
-         * Sospende attività intensive
-         */
-        suspendIntensiveTasks() {
-            // Sospendi animazioni e polling frequente
-            document.documentElement.classList.add('reduce-animations');
-            
-            // Sospendi worker e task di background
-            if (window.backgroundWorkers) {
-                Object.values(window.backgroundWorkers).forEach(worker => {
-                    worker.postMessage({ action: 'suspend' });
-                });
-            }
-        }
-
-        /**
-         * Riprende attività intensive
-         */
-        resumeIntensiveTasks() {
-            // Ripristina animazioni
-            document.documentElement.classList.remove('reduce-animations');
-            
-            // Ripristina worker e task di background
-            if (window.backgroundWorkers) {
-                Object.values(window.backgroundWorkers).forEach(worker => {
-                    worker.postMessage({ action: 'resume' });
-                });
-            }
-        }
-
-        /**
-         * Inizializza lazy loading per immagini e contenuti
-         */
-        initializeLazyLoading() {
-            // Utilizza IntersectionObserver se disponibile
-            if (!('IntersectionObserver' in window)) return;
-            
-            // Osserva immagini con attributo data-src
-            const lazyImages = document.querySelectorAll('img[data-src], video[data-src]');
-            if (lazyImages.length > 0) {
-                const imageObserver = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            const element = entry.target;
-                            
-                            element.src = element.getAttribute('data-src');
-                            
-                            if (element.getAttribute('data-srcset')) {
-                                element.srcset = element.getAttribute('data-srcset');
-                            }
-                            
-                            element.classList.add('loaded');
-                            imageObserver.unobserve(element);
-                        }
-                    });
-                }, {
-                    rootMargin: `${CONFIG.performance.lazyLoadThreshold}px 0px`,
-                    threshold: 0.01
-                });
-                
-                lazyImages.forEach(image => {
-                    imageObserver.observe(image);
-                });
-            }
-            
-            // Osserva elementi con contenuto lazy (iframes, componenti pesanti)
-            const lazyContents = document.querySelectorAll('[data-lazy-load]');
-            if (lazyContents.length > 0) {
-                const contentObserver = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            const element = entry.target;
-                            const contentType = element.getAttribute('data-lazy-load');
-                            
-                            switch(contentType) {
-                                case 'iframe':
-                                    this.loadLazyIframe(element);
-                                    break;
-                                case 'component':
-                                    this.loadLazyComponent(element);
-                                    break;
-                                default:
-                                    console.warn('Unknown lazy load type:', contentType);
-                            }
-                            
-                            contentObserver.unobserve(element);
-                        }
-                    });
-                }, {
-                    rootMargin: `${CONFIG.performance.lazyLoadThreshold}px 0px`,
-                    threshold: 0.01
-                });
-                
-                lazyContents.forEach(content => {
-                    contentObserver.observe(content);
-                });
-            }
-        }
-
-        /**
-         * Carica iframe in modo lazy
-         */
-        loadLazyIframe(container) {
-            const src = container.getAttribute('data-src');
-            if (!src) return;
-            
-            const iframe = document.createElement('iframe');
-            
-            // Copia attributi
-            const attributes = container.getAttributeNames()
-                .filter(name => name.startsWith('data-iframe-'))
-                .map(name => ({
-                    key: name.replace('data-iframe-', ''),
-                    value: container.getAttribute(name)
-                }));
-            
-            // Imposta src e altri attributi
-            iframe.src = src;
-            attributes.forEach(attr => {
-                iframe.setAttribute(attr.key, attr.value);
-            });
-            
-            // Sostituisci placeholder
-            container.innerHTML = '';
-            container.appendChild(iframe);
-            container.classList.add('loaded');
-        }
-
-        /**
-         * Carica componente in modo lazy
-         */
-        loadLazyComponent(container) {
-            const component = container.getAttribute('data-component');
-            if (!component) return;
-            
-            // Carica contenuto 
-            fetch(`/api/components/${component}`)
-                .then(response => response.text())
-                .then(html => {
-                    container.innerHTML = html;
-                    container.classList.add('loaded');
-                    
-                    // Inizializza eventuali script
-                    const scripts = container.querySelectorAll('script');
-                    scripts.forEach(oldScript => {
-                        const newScript = document.createElement('script');
-                        
-                        // Copia attributi
-                        Array.from(oldScript.attributes)
-                            .forEach(attr => newScript.setAttribute(attr.name, attr.value));
-                        
-                        // Copia contenuto
-                        newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-                        
-                        // Sostituisci vecchio script
-                        oldScript.parentNode.replaceChild(newScript, oldScript);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error loading component:', error);
-                    container.innerHTML = `<div class="alert alert-danger">Errore nel caricamento del componente</div>`;
-                });
-        }
-
-        /**
-         * Controlla capacità del browser
-         */
-        checkBrowserCapabilities() {
-            const capabilities = {
-                webP: false,
-                webGL: false,
-                webWorkers: !!window.Worker,
-                localStorage: !!window.localStorage,
-                serviceWorker: !!navigator.serviceWorker,
-                intersection: !!window.IntersectionObserver,
-                touch: ('ontouchstart' in window) || (navigator.maxTouchPoints > 0),
-                battery: !!navigator.getBattery,
-                permissions: !!navigator.permissions,
-                bluetooth: !!navigator.bluetooth,
-                vibration: !!navigator.vibrate,
-                share: !!navigator.share
-            };
-            
-            // Controlla supporto WebP
-            const webP = new Image();
-            webP.onload = function() { capabilities.webP = (webP.width > 0) && (webP.height > 0); };
-            webP.onerror = function() { capabilities.webP = false; };
-            webP.src = 'data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vlAAA==';
-            
-            // Controlla supporto WebGL
-            try {
-                const canvas = document.createElement('canvas');
-                capabilities.webGL = !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
-            } catch (e) {
-                capabilities.webGL = false;
-            }
-            
-            // Aggiungi classi CSS per feature detection
-            Object.keys(capabilities).forEach(feature => {
-                if (capabilities[feature]) {
-                    document.documentElement.classList.add(`has-${feature}`);
-                } else {
-                    document.documentElement.classList.add(`no-${feature}`);
-                }
-            });
-            
-            // Salva per utilizzo futuro
-            window.browserCapabilities = capabilities;
-        }
-
-        /**
-         * Gestisce touch start
-         */
-        handleTouchStart(e) {
-            state.touchStartX = e.changedTouches[0].screenX;
-        }
-
-        /**
-         * Gestisce touch end
-         */
-        handleTouchEnd(e) {
-            state.touchEndX = e.changedTouches[0].screenX;
-            this.handleSwipeGesture();
-        }
-
-        /**
-         * Interpreta gesture di swipe
-         */
-        handleSwipeGesture() {
-            const distance = state.touchEndX - state.touchStartX;
-            const threshold = CONFIG.sidebar.swipeThreshold;
-            
-            // Se siamo in modalità mobile
-            if (window.innerWidth < CONFIG.sidebar.collapseBreakpoint) {
-                if (distance > threshold) {
-                    // Swipe da sinistra a destra -> apri sidebar
-                    this.updateSidebarState(true);
-                } else if (distance < -threshold && state.sidebarOpen) {
-                    // Swipe da destra a sinistra -> chiudi sidebar
-                    this.updateSidebarState(false);
-                }
-            }
-        }
-
-        /**
-         * Aggiorna stato connessione
-         */
-        updateConnectionStatus() {
-            const connectionStatus = document.querySelector('.connection-status');
+/**
+ * Aggiorna lo stato della connessione nell'UI
+ */
+function updateConnectionStatus() {
+  const isOnline = navigator.onLine;
             const statusIndicator = document.querySelector('.status-indicator');
             const statusText = document.querySelector('.status-text');
             
-            if (!connectionStatus || !statusIndicator || !statusText) return;
-            
-            state.isOnline = navigator.onLine;
-            
-            if (state.isOnline) {
+  if (statusIndicator && statusText) {
+    if (isOnline) {
                 statusIndicator.classList.remove('disconnected');
                 statusIndicator.classList.add('connected');
                 statusText.textContent = 'Online';
-                DOM.body.classList.remove('offline-mode');
             } else {
                 statusIndicator.classList.remove('connected');
                 statusIndicator.classList.add('disconnected');
                 statusText.textContent = 'Offline';
-                DOM.body.classList.add('offline-mode');
-                
-                this.showFeedback('error', 'Connessione assente. Alcune funzionalità potrebbero non essere disponibili.');
-            }
-        }
-
-        /**
-         * Mostra feedback con toast
-         */
-        showFeedback(type, message) {
-            // Crea elemento toast per feedback
-            const toastContainer = document.querySelector('.toast-container');
-            if (!toastContainer) return;
-            
-            const iconMap = {
-                'success': 'fa-check-circle',
-                'error': 'fa-exclamation-circle',
-                'warning': 'fa-exclamation-triangle',
-                'info': 'fa-info-circle'
-            };
-            
-            const typeMap = {
-                'success': 'bg-success',
-                'error': 'bg-danger',
-                'warning': 'bg-warning text-dark',
-                'info': 'bg-info text-dark'
-            };
-            
-            const toastElement = document.createElement('div');
-            toastElement.className = `toast align-items-center text-white ${typeMap[type] || 'bg-primary'} border-0`;
-            toastElement.setAttribute('role', 'alert');
-            toastElement.setAttribute('aria-live', 'assertive');
-            toastElement.setAttribute('aria-atomic', 'true');
-            
-            toastElement.innerHTML = `
-                <div class="d-flex">
-        <div class="toast-body">
-                        <i class="fas ${iconMap[type] || 'fa-circle'} me-2"></i>
-            ${message}
-        </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-    </div>
-    `;
-    
-            toastContainer.appendChild(toastElement);
-    const toast = new bootstrap.Toast(toastElement, {
-        animation: true,
-        autohide: true,
-                delay: 3000
-    });
-    
-    toast.show();
-    
-            // Rimuovi elemento dopo che è nascosto
-            toastElement.addEventListener('hidden.bs.toast', () => {
-                toastElement.remove();
-            });
-            
-            // Feedback haptic se supportato e abilitato
-            if (CONFIG.feedback.haptic && 'vibrate' in navigator && type !== 'info') {
-                switch (type) {
-                    case 'error':
-                        navigator.vibrate([100, 50, 100]);
-                        break;
-                    case 'warning':
-                        navigator.vibrate(100);
-                        break;
-                    case 'success':
-                        navigator.vibrate(50);
-                        break;
-                }
-            }
-        }
-
-        /**
-         * Mostra feedback visivo per click
-         */
-        showClickFeedback(e) {
-            if (!CONFIG.feedback.enabled || !DOM.actionFeedback) return;
-            
-            const x = e.clientX;
-            const y = e.clientY;
-            
-            // Posiziona feedback
-            DOM.actionFeedback.style.left = `${x}px`;
-            DOM.actionFeedback.style.top = `${y}px`;
-            
-            // Rimuovi classe precedente
-            DOM.actionFeedback.classList.remove('animate');
-            
-            // Force reflow
-            void DOM.actionFeedback.offsetWidth;
-            
-            // Attiva animazione
-            DOM.actionFeedback.classList.add('animate');
-        }
-
-        /**
-         * Avvia ping periodico al server
-         */
-        startServerPing() {
-            // Cancella eventuale interval precedente
-            if (window.pingInterval) {
-                clearInterval(window.pingInterval);
-            }
-            
-            // Funzione per eseguire ping
-            const pingServer = async () => {
-                if (!state.isOnline || !state.isPageVisible) return;
-                
-                try {
-                    const startTime = performance.now();
-                    const response = await fetch('/api/ping', { 
-                        method: 'GET',
-                        headers: { 'Cache-Control': 'no-cache' },
-                        credentials: 'same-origin'
-                    });
-                    
-                    if (response.ok) {
-                        const endTime = performance.now();
-                        state.serverPingMs = Math.round(endTime - startTime);
-                        
-                        // Aggiorna UI
-                        this.updatePingDisplay(state.serverPingMs);
-                    } else {
-                        // Server error
-                        this.updatePingDisplay(null);
-                    }
-                } catch (error) {
-                    // Connessione fallita
-                    this.updatePingDisplay(null);
-                }
-            };
-            
-            // Primo ping immediato
-            pingServer();
-            
-            // Imposta interval per ping periodico (ogni 30s)
-            window.pingInterval = setInterval(pingServer, 30000);
-            
-            // Salva in pollingIntervals
-            if (!window.pollingIntervals) {
-                window.pollingIntervals = {};
-            }
-            window.pollingIntervals.ping = window.pingInterval;
-        }
-
-        /**
-         * Aggiorna display del ping
-         */
-        updatePingDisplay(ping) {
-            const pingElement = document.getElementById('server-ping-value');
-            if (!pingElement) return;
-            
-            if (ping === null) {
-                pingElement.textContent = '--';
-                pingElement.parentElement.classList.add('text-danger');
-            } else {
-                pingElement.textContent = ping;
-                pingElement.parentElement.classList.remove('text-danger');
-                
-                // Colore basato sulla latenza
-                if (ping < 100) {
-                    pingElement.parentElement.className = 'server-ping text-success';
-                } else if (ping < 300) {
-                    pingElement.parentElement.className = 'server-ping text-warning';
-                } else {
-                    pingElement.parentElement.className = 'server-ping text-danger';
-                }
-            }
-        }
-
-        /**
-         * Gestisce scroll
-         */
-        handleScroll() {
-            // Memorizza posizione
-            state.scrollPosition = window.scrollY;
-            
-            // Gestisce pulsante torna in alto
-            this.updateToTopButton();
-            
-            // Gestisce animazioni al scroll
-            this.handleScrollAnimations();
-            
-            // Header hide/show
-            this.handleDynamicHeader();
-        }
-
-        /**
-         * Gestione header dinamico (nascondi durante scroll down)
-         */
-        handleDynamicHeader() {
-            const header = document.querySelector('.app-status-bar');
-            if (!header) return;
-            
-            const currentScroll = window.scrollY;
-            const scrollDelta = currentScroll - (this.lastScroll || 0);
-            
-            // Memorizza ultima posizione
-            this.lastScroll = currentScroll;
-            
-            // Se lo scroll è significativo
-            if (Math.abs(scrollDelta) < 10) return;
-            
-            if (scrollDelta > 0 && currentScroll > 100) {
-                // Scrolling down - nascondi header
-                header.classList.add('header-hidden');
-            } else {
-                // Scrolling up - mostra header
-                header.classList.remove('header-hidden');
-            }
-        }
-
-        /**
-         * Aggiorna pulsante torna in cima
-         */
-        updateToTopButton() {
-            if (!DOM.toTopButton) return;
-            
-            if (window.scrollY > 300) {
-                DOM.toTopButton.classList.add('visible');
-            } else {
-                DOM.toTopButton.classList.remove('visible');
-            }
-        }
-
-        /**
-         * Gestisce animazioni al scroll
-         */
-        handleScrollAnimations() {
-            if (!CONFIG.animations.enabled) return;
-            
-            // Gestisci elementi reveal-on-scroll
-            this.animateRevealElements();
-        }
-
-        /**
-         * Anima elementi reveal
-         */
-        animateRevealElements() {
-            if (!DOM.revealElements || !('IntersectionObserver' in window)) return;
-            
-            // Lazy initialize observer
-            if (!this.revealObserver) {
-                this.revealObserver = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            entry.target.classList.add('visible');
-                            this.revealObserver.unobserve(entry.target);
-                        }
-                    });
-                }, { 
-                    threshold: 0.1 
-                });
-                
-                // Osserva tutti gli elementi
-                DOM.revealElements.forEach(el => {
-                    this.revealObserver.observe(el);
-                });
-            }
-        }
-
-        /**
-         * Imposta effetto parallax su elementi
-         */
-        setupParallaxElements() {
-            if (!CONFIG.animations.enabled || !DOM.parallaxElements) return;
-            
-            const handleMouseMove = (e) => {
-                const mouseX = e.clientX / window.innerWidth;
-                const mouseY = e.clientY / window.innerHeight;
-                
-                DOM.parallaxElements.forEach(el => {
-                    const speed = parseFloat(el.getAttribute('data-parallax-speed')) || 0.05;
-                    const moveX = (mouseX - 0.5) * speed * 100;
-                    const moveY = (mouseY - 0.5) * speed * 100;
-                    
-                    el.style.transform = `translate(${moveX}px, ${moveY}px)`;
-                });
-            };
-            
-            // Use debounced version for better performance
-            document.addEventListener('mousemove', this.debounce(handleMouseMove, 5));
-        }
-
-        /**
-         * Funzione debounce per limitare chiamate frequenti
-         */
-        debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
-                
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        }
-
-        /**
-         * Configura animazioni
-         */
-        setupAnimations() {
-            // Parallax
-            this.setupParallaxElements();
-            
-            // Inizializza animazioni stagger
-            if (DOM.staggeredElements) {
-                setTimeout(() => {
-                    DOM.staggeredElements.forEach(el => el.classList.add('animate'));
-                }, 100);
+      
+      // Notifica utente
+      if (window.toastSystem) {
+        window.toastSystem.show('Sei offline. Alcune funzionalità potrebbero non essere disponibili.', 'warning');
+      }
     }
+            }
+        }
+
+        /**
+ * Aggiorna il display del ping
+ */
+function updatePingDisplay(pingTime) {
+  const pingDisplay = document.getElementById('server-ping-value');
+  if (pingDisplay) {
+    if (pingTime === -1) {
+      pingDisplay.textContent = '--';
+      pingDisplay.classList.add('text-danger');
+    } else {
+      pingDisplay.textContent = pingTime;
+      pingDisplay.classList.remove('text-danger');
+      
+      // Aggiungi classi in base al tempo di ping
+      pingDisplay.classList.remove('text-success', 'text-warning', 'text-danger');
+      
+      if (pingTime < 100) {
+        pingDisplay.classList.add('text-success');
+      } else if (pingTime < 300) {
+        pingDisplay.classList.add('text-warning');
+      } else {
+        pingDisplay.classList.add('text-danger');
+      }
+                }
+            }
+        }
+
+        /**
+ * Utility per navigare a una URL
+ */
+function navigateTo(url) {
+  window.location.href = url;
 }
 
 /**
-         * Aggiorna stato sidebar
-         */
-        updateSidebarState(isOpen, animate = true) {
-            if (!DOM.sidebar) return;
-            
-            state.sidebarOpen = isOpen;
-            
-            if (isOpen) {
-                if (animate) {
-                    DOM.sidebar.classList.add('opening');
+ * Toggle per il modal di help
+ */
+function toggleHelpModal() {
+  const helpModal = document.getElementById('help-modal');
+  if (helpModal) {
+    const bsModal = new bootstrap.Modal(helpModal);
+    bsModal.toggle();
+  }
+}
+
+/**
+ * Toggle per il menu di accessibilità
+ */
+function toggleAccessibilityMenu() {
+  const accessibilityMenu = document.getElementById('accessibilityMenuButton');
+  if (accessibilityMenu) {
+    accessibilityMenu.click();
+  }
+}
+
+/**
+ * Chiude il modal attivo
+ */
+function closeActiveModal() {
+  const activeModal = document.querySelector('.modal.show');
+  if (activeModal) {
+    const bsModal = bootstrap.Modal.getInstance(activeModal);
+    if (bsModal) {
+      bsModal.hide();
                 }
-                DOM.sidebar.classList.add('open');
-                document.body.classList.add('sidebar-open');
+            }
+        }
+
+        /**
+ * Gestione dei gesti touch su mobile
+ */
+function handleGesture(element, touchStartX, touchStartY, touchEndX, touchEndY) {
+  const gestureType = element.dataset.gestureAction;
+  if (!gestureType) return;
+  
+  const minSwipeDistance = 50;
+  const deltaX = touchEndX - touchStartX;
+  const deltaY = touchEndY - touchStartY;
+  
+  // Determina il tipo di swipe (orizzontale o verticale)
+  const isHorizontalSwipe = Math.abs(deltaX) > Math.abs(deltaY);
+  
+  if (isHorizontalSwipe && Math.abs(deltaX) > minSwipeDistance) {
+    if (deltaX > 0) {
+      // Swipe a destra
+      if (gestureType === 'navigate-back') {
+        window.history.back();
+      } else if (gestureType === 'reveal-actions') {
+        element.classList.add('actions-revealed');
+      }
             } else {
-                if (animate) {
-                    DOM.sidebar.classList.add('closing');
-                }
-                DOM.sidebar.classList.remove('open');
-                document.body.classList.remove('sidebar-open');
-            }
-            
-            // Rimuovi classi transizione dopo l'animazione
-            if (animate) {
-                setTimeout(() => {
-                    DOM.sidebar.classList.remove('opening', 'closing');
-                }, CONFIG.animations.duration.medium);
-            }
-        }
-
-        /**
-         * Toggle stato sidebar
-         */
-        toggleSidebar() {
-            this.updateSidebarState(!state.sidebarOpen);
-        }
-
-        /**
-         * Gestisce layout responsivo
-         */
-        handleResponsiveLayout() {
-            const isDesktop = window.innerWidth >= CONFIG.sidebar.collapseBreakpoint;
-            
-            // Aggiorna stato sidebar basato su breakpoint
-            if (isDesktop) {
-                // Su desktop, sidebar è aperta di default
-                this.updateSidebarState(true, false);
-                document.body.classList.remove('mobile-view');
-                document.body.classList.add('desktop-view');
-            } else {
-                // Su mobile, sidebar è chiusa di default
-                this.updateSidebarState(false, false);
-                document.body.classList.remove('desktop-view');
-                document.body.classList.add('mobile-view');
-            }
-        }
-
-        /**
-         * Scroll alla cima della pagina
-         */
-        scrollToTop() {
-            window.scrollTo({
-                top: 0,
-                behavior: CONFIG.scrolling.smoothScroll ? 'smooth' : 'auto'
-            });
-        }
-
-        /**
-         * Aggiorna contenuto corrente
-         */
-        refreshCurrentContent() {
-            // Mostra overlay loading
-            if (DOM.loadingOverlay) {
-                DOM.loadingOverlay.style.display = 'flex';
-            }
-            
-            // Refresh page
-            window.location.reload();
-        }
+      // Swipe a sinistra
+      if (gestureType === 'navigate-forward') {
+        window.history.forward();
+      } else if (gestureType === 'dismiss') {
+        element.classList.add('dismissed');
+        setTimeout(() => element.remove(), 300);
+      } else if (gestureType === 'hide-actions') {
+        element.classList.remove('actions-revealed');
+      }
     }
+  } else if (!isHorizontalSwipe && Math.abs(deltaY) > minSwipeDistance) {
+    if (deltaY > 0) {
+      // Swipe in giù
+      if (gestureType === 'refresh') {
+        location.reload();
+      } else if (gestureType === 'collapse') {
+        element.classList.add('collapsed');
+      }
+            } else {
+      // Swipe in su
+      if (gestureType === 'expand') {
+        element.classList.remove('collapsed');
+      }
+    }
+  }
+}
 
-    // Inizializza quando DOM è pronto
-    document.addEventListener('DOMContentLoaded', () => {
-        window.appManager = new AppManager();
+/**
+ * Utilità per unire oggetti profondamente
+ */
+function deepMerge(...objects) {
+  return objects.reduce((acc, obj) => {
+    Object.keys(obj).forEach(key => {
+      if (typeof obj[key] === 'object' && obj[key] !== null && typeof acc[key] === 'object' && acc[key] !== null) {
+        acc[key] = deepMerge(acc[key], obj[key]);
+      } else {
+        acc[key] = obj[key];
+      }
     });
-})();
+    return acc;
+  }, {});
+}
+
+/**
+ * Aggiunge un widget alla dashboard
+ */
+function addWidgetToDashboard(widgetType) {
+  const widgetContainer = document.querySelector('.widget-container');
+  if (!widgetContainer) return;
+  
+  // Genera ID unico per il widget
+  const widgetId = 'widget-' + Date.now();
+  
+  // Crea elemento widget
+  const widget = document.createElement('div');
+  widget.className = 'widget';
+  widget.dataset.widgetId = widgetId;
+  widget.dataset.widgetType = widgetType;
+  
+  // Contenuto del widget in base al tipo
+  let widgetContent = '';
+  
+  switch (widgetType) {
+    case 'stats':
+      widgetContent = `
+        <div class="widget-header">
+          <h3>Statistiche</h3>
+          <div class="widget-actions">
+            <button class="btn btn-sm btn-icon widget-action" data-action="refresh"><i class="fas fa-sync-alt"></i></button>
+            <button class="btn btn-sm btn-icon widget-action" data-action="remove"><i class="fas fa-times"></i></button>
+          </div>
+        </div>
+        <div class="widget-body">
+          <div class="d-flex justify-content-between mb-4">
+            <div class="stat-item text-center">
+              <div class="stat-value">0</div>
+              <div class="stat-label">Interazioni</div>
+            </div>
+            <div class="stat-item text-center">
+              <div class="stat-value">0</div>
+              <div class="stat-label">Visitatori</div>
+            </div>
+            <div class="stat-item text-center">
+              <div class="stat-value">0</div>
+              <div class="stat-label">Conversioni</div>
+            </div>
+          </div>
+          <div class="text-center">
+            <a href="/statistics" class="btn btn-sm btn-primary">Visualizza dettagli</a>
+          </div>
+        </div>
+      `;
+      break;
+    
+    case 'chart':
+      widgetContent = `
+        <div class="widget-header">
+          <h3>Grafico</h3>
+          <div class="widget-actions">
+            <button class="btn btn-sm btn-icon widget-action" data-action="refresh"><i class="fas fa-sync-alt"></i></button>
+            <button class="btn btn-sm btn-icon widget-action" data-action="remove"><i class="fas fa-times"></i></button>
+          </div>
+        </div>
+        <div class="widget-body">
+          <canvas id="${widgetId}-chart" data-chart-type="line" data-chart-data='{"labels":["Gen","Feb","Mar","Apr","Mag","Giu"],"datasets":[{"label":"Dati","data":[12,19,3,5,2,3],"borderColor":"rgb(75, 192, 192)","tension":0.1}]}'></canvas>
+        </div>
+      `;
+      break;
+    
+    case 'activity':
+      widgetContent = `
+        <div class="widget-header">
+          <h3>Attività Recenti</h3>
+          <div class="widget-actions">
+            <button class="btn btn-sm btn-icon widget-action" data-action="refresh"><i class="fas fa-sync-alt"></i></button>
+            <button class="btn btn-sm btn-icon widget-action" data-action="remove"><i class="fas fa-times"></i></button>
+          </div>
+        </div>
+        <div class="widget-body">
+          <div class="activity-list">
+            <div class="activity-item">
+              <div class="activity-icon"><i class="fas fa-user"></i></div>
+              <div class="activity-content">
+                <div class="activity-title">Nuovo utente registrato</div>
+                <div class="activity-time">2 minuti fa</div>
+              </div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-icon"><i class="fas fa-chart-line"></i></div>
+              <div class="activity-content">
+                <div class="activity-title">Aggiornamento dashboard</div>
+                <div class="activity-time">30 minuti fa</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      break;
+    
+    default:
+      widgetContent = `
+        <div class="widget-header">
+          <h3>Widget</h3>
+          <div class="widget-actions">
+            <button class="btn btn-sm btn-icon widget-action" data-action="refresh"><i class="fas fa-sync-alt"></i></button>
+            <button class="btn btn-sm btn-icon widget-action" data-action="remove"><i class="fas fa-times"></i></button>
+          </div>
+        </div>
+        <div class="widget-body">
+          <p>Contenuto del widget</p>
+        </div>
+      `;
+  }
+  
+  widget.innerHTML = widgetContent;
+  widgetContainer.appendChild(widget);
+  
+  // Inizializza funzionalità del widget
+  if (widgetType === 'chart') {
+    const chartElement = document.getElementById(`${widgetId}-chart`);
+    if (chartElement) {
+      initChart(chartElement);
+    }
+  }
+  
+  // Aggiungi event listener per le azioni del widget
+  const widgetActions = widget.querySelectorAll('.widget-action');
+  widgetActions.forEach(action => {
+    action.addEventListener('click', function() {
+      const actionType = this.dataset.action;
+      
+      if (actionType === 'remove') {
+        widget.classList.add('removing');
+        setTimeout(() => {
+          widget.remove();
+          
+          // Aggiorna ordine widget
+          const widgetOrder = Array.from(widgetContainer.children).map(w => w.dataset.widgetId);
+          localStorage.setItem('dashboardWidgetOrder', JSON.stringify(widgetOrder));
+        }, 300);
+      } else if (actionType === 'refresh') {
+        // Simula aggiornamento
+        this.classList.add('rotating');
+                setTimeout(() => {
+          this.classList.remove('rotating');
+        }, 1000);
+      }
+    });
+  });
+  
+  // Aggiungi classe per animazione di entrata
+  setTimeout(() => {
+    widget.classList.add('added');
+  }, 10);
+}

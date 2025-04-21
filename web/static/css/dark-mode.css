@@ -1,0 +1,452 @@
+/**
+ * Stili per modalità scura con transizioni fluide
+ */
+
+:root {
+  --light-bg: #ffffff;
+  --light-bg-secondary: #f8f9fa;
+  --light-bg-tertiary: #e9ecef;
+  --light-text: #212529;
+  --light-text-secondary: #495057;
+  --light-border: #dee2e6;
+  --light-input-bg: #ffffff;
+  --light-card-bg: #ffffff;
+  --light-navbar-bg: #ffffff;
+  --light-sidebar-bg: #f8f9fa;
+  --light-hover: #f2f2f2;
+  --light-active: #e9ecef;
+  --light-shadow: rgba(0, 0, 0, 0.1);
+  
+  --dark-bg: #121212;
+  --dark-bg-secondary: #1e1e1e;
+  --dark-bg-tertiary: #2d2d2d;
+  --dark-text: #e0e0e0;
+  --dark-text-secondary: #a0a0a0;
+  --dark-border: #333333;
+  --dark-input-bg: #2d2d2d;
+  --dark-card-bg: #1e1e1e;
+  --dark-navbar-bg: #1a1a1a;
+  --dark-sidebar-bg: #1e1e1e;
+  --dark-hover: #333333;
+  --dark-active: #444444;
+  --dark-shadow: rgba(0, 0, 0, 0.3);
+  
+  --primary: #5e45e2;
+  --primary-hover: #4a35c9;
+  --secondary: #6c757d;
+  --success: #28a745;
+  --danger: #dc3545;
+  --warning: #ffc107;
+  --info: #17a2b8;
+
+  /* Variabili Dark Mode per componenti specifici */
+  --scrollbar-thumb: #c1c1c1;
+  --scrollbar-track: #f1f1f1;
+  --code-bg: #f7f7f7;
+  --code-text: #333333;
+  --tooltip-bg: #000000;
+  --tooltip-text: #ffffff;
+  --dropdown-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  
+  /* Variabili di transizione */
+  --transition-speed: 0.3s;
+  --transition-timing: ease;
+
+  /* Variabili per la modalità chiara (default) */
+  --bg-color: #ffffff;
+  --text-color: #333333;
+  --primary-color: #4a7dff;
+  --secondary-color: #6c757d;
+  --accent-color: #ff6b6b;
+  --card-bg: #f8f9fa;
+  --header-bg: #ffffff;
+  --footer-bg: #f1f1f1;
+  --input-bg: #ffffff;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Variabili per la modalità scura */
+[data-theme="dark"] {
+  --bg-color: #121212;
+  --text-color: #e0e0e0;
+  --primary-color: #64b5f6;
+  --secondary-color: #90a4ae;
+  --accent-color: #ff8a80;
+  --border-color: #424242;
+  --card-bg: #1e1e1e;
+  --header-bg: #1a1a1a;
+  --footer-bg: #1a1a1a;
+  --input-bg: #2c2c2c;
+  --hover-bg: #333333;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Applicazione delle variabili agli elementi */
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.site-header, .navbar {
+  background-color: var(--header-bg);
+  transition: background-color 0.3s ease;
+  box-shadow: 0 2px 10px var(--shadow-color);
+}
+
+.site-footer {
+  background-color: var(--footer-bg);
+  transition: background-color 0.3s ease;
+}
+
+.card, .modal-content {
+  background-color: var(--card-bg);
+  border-color: var(--border-color);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+button, .btn, input, select, textarea {
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  border-color: var(--border-color);
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+a {
+  color: var(--primary-color);
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: var(--accent-color);
+}
+
+.nav-link, .footer-links a {
+  color: var(--text-color);
+  transition: color 0.3s ease;
+}
+
+.nav-link:hover, .footer-links a:hover {
+  color: var(--primary-color);
+}
+
+/* Tema toggle button */
+.theme-toggle-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.theme-toggle-btn:hover {
+  background-color: var(--hover-bg);
+}
+
+.theme-toggle-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+.theme-icon {
+  width: 24px;
+  height: 24px;
+  fill: var(--text-color);
+  transition: fill 0.3s ease, transform 0.3s ease;
+}
+
+.dark-icon {
+  display: block;
+}
+
+.light-icon {
+  display: none;
+}
+
+[data-theme="dark"] .dark-icon {
+  display: none;
+}
+
+[data-theme="dark"] .light-icon {
+  display: block;
+}
+
+/* Applica transizione a tutti gli elementi per cambio tema */
+body {
+  transition: background-color var(--transition-speed) var(--transition-timing),
+              color var(--transition-speed) var(--transition-timing);
+}
+
+/* Transizioni per gli elementi comuni */
+a, button, input, select, textarea, .card, .modal, .navbar, .dropdown-menu, 
+.list-group-item, .alert, .badge, .btn, .form-control, .table, .progress, 
+.nav-link, .card-header, .card-footer, .modal-header, .modal-footer, 
+.tab-content, .accordion, .toast, .tooltip, .popover {
+  transition: background-color var(--transition-speed) var(--transition-timing),
+              color var(--transition-speed) var(--transition-timing),
+              border-color var(--transition-speed) var(--transition-timing),
+              box-shadow var(--transition-speed) var(--transition-timing);
+}
+
+/* Light Mode (default) */
+body {
+  background-color: var(--light-bg);
+  color: var(--light-text);
+}
+
+/* Dark Mode */
+body.dark-mode {
+  background-color: var(--dark-bg);
+  color: var(--dark-text);
+}
+
+/* Stili per i container principali */
+.dark-mode .container,
+.dark-mode .container-fluid {
+  background-color: var(--dark-bg);
+}
+
+/* Stili per card e componenti simili */
+.dark-mode .card,
+.dark-mode .modal-content,
+.dark-mode .list-group-item,
+.dark-mode .dropdown-menu,
+.dark-mode .toast {
+  background-color: var(--dark-card-bg);
+  border-color: var(--dark-border);
+}
+
+.dark-mode .card-header,
+.dark-mode .card-footer,
+.dark-mode .modal-header,
+.dark-mode .modal-footer {
+  background-color: var(--dark-bg-tertiary);
+  border-color: var(--dark-border);
+}
+
+/* Stili per elementi di navigazione */
+.dark-mode .navbar {
+  background-color: var(--dark-navbar-bg);
+  border-color: var(--dark-border);
+}
+
+.dark-mode .nav-link,
+.dark-mode .navbar-brand,
+.dark-mode .dropdown-item {
+  color: var(--dark-text);
+}
+
+.dark-mode .nav-link:hover,
+.dark-mode .dropdown-item:hover {
+  background-color: var(--dark-hover);
+}
+
+.dark-mode .navbar-toggler {
+  border-color: var(--dark-border);
+}
+
+/* Stili per tabelle */
+.dark-mode .table {
+  color: var(--dark-text);
+}
+
+.dark-mode .table th,
+.dark-mode .table td {
+  border-color: var(--dark-border);
+}
+
+.dark-mode .table-striped tbody tr:nth-of-type(odd) {
+  background-color: var(--dark-bg-secondary);
+}
+
+.dark-mode .table-hover tbody tr:hover {
+  background-color: var(--dark-hover);
+}
+
+/* Stili per form */
+.dark-mode .form-control,
+.dark-mode .input-group-text,
+.dark-mode .custom-select {
+  background-color: var(--dark-input-bg);
+  border-color: var(--dark-border);
+  color: var(--dark-text);
+}
+
+.dark-mode .form-control:focus {
+  background-color: var(--dark-input-bg);
+  border-color: var(--primary);
+  color: var(--dark-text);
+}
+
+.dark-mode .form-control::placeholder {
+  color: var(--dark-text-secondary);
+}
+
+/* Pulsanti */
+.dark-mode .btn-light {
+  background-color: var(--dark-bg-tertiary);
+  border-color: var(--dark-border);
+  color: var(--dark-text);
+}
+
+.dark-mode .btn-light:hover {
+  background-color: var(--dark-hover);
+}
+
+.dark-mode .btn-outline-light {
+  border-color: var(--dark-border);
+  color: var(--dark-text);
+}
+
+.dark-mode .btn-outline-light:hover {
+  background-color: var(--dark-hover);
+  color: var(--dark-text);
+}
+
+/* Link */
+.dark-mode a {
+  color: #81a1ff; /* Versione più chiara del blu per sfondo scuro */
+}
+
+.dark-mode a:hover {
+  color: #a4baff;
+}
+
+/* Badge e alerts */
+.dark-mode .alert-secondary,
+.dark-mode .bg-light {
+  background-color: var(--dark-bg-secondary) !important;
+  color: var(--dark-text);
+  border-color: var(--dark-border);
+}
+
+/* Scrollbar personalizzata per Dark Mode */
+.dark-mode ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.dark-mode ::-webkit-scrollbar-thumb {
+  background-color: #555;
+  border-radius: 5px;
+}
+
+.dark-mode ::-webkit-scrollbar-track {
+  background-color: #2d2d2d;
+}
+
+/* Stili per codice e pre */
+.dark-mode code,
+.dark-mode pre {
+  background-color: #2d2d2d;
+  color: #e0e0e0;
+  border-color: var(--dark-border);
+}
+
+/* Stili per tooltip e popover */
+.dark-mode .tooltip-inner,
+.dark-mode .popover {
+  background-color: #333333;
+  color: var(--dark-text);
+}
+
+.dark-mode .popover-header {
+  background-color: var(--dark-bg-tertiary);
+  border-color: var(--dark-border);
+}
+
+.dark-mode .bs-popover-auto[x-placement^=top] .arrow::after, 
+.dark-mode .bs-popover-top .arrow::after {
+  border-top-color: #333333;
+}
+
+/* Stile per ombre */
+.dark-mode .shadow,
+.dark-mode .shadow-sm,
+.dark-mode .shadow-lg,
+.dark-mode .dropdown-menu {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Stili per bordi e divisori */
+.dark-mode .border,
+.dark-mode .border-top,
+.dark-mode .border-right,
+.dark-mode .border-bottom,
+.dark-mode .border-left {
+  border-color: var(--dark-border) !important;
+}
+
+.dark-mode hr {
+  border-color: var(--dark-border);
+}
+
+/* Stili per componenti specifici */
+.dark-mode .breadcrumb {
+  background-color: var(--dark-bg-tertiary);
+}
+
+.dark-mode .pagination .page-link {
+  background-color: var(--dark-bg-tertiary);
+  border-color: var(--dark-border);
+  color: var(--dark-text);
+}
+
+.dark-mode .pagination .page-item.active .page-link {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.dark-mode .progress {
+  background-color: var(--dark-bg-tertiary);
+}
+
+/* Dark Mode per componenti personalizzati */
+.dark-mode .custom-control-label::before {
+  background-color: var(--dark-input-bg);
+  border-color: var(--dark-border);
+}
+
+.dark-mode .custom-switch .custom-control-label::after {
+  background-color: var(--dark-border);
+}
+
+.dark-mode .custom-checkbox .custom-control-input:checked ~ .custom-control-label::before,
+.dark-mode .custom-radio .custom-control-input:checked ~ .custom-control-label::before,
+.dark-mode .custom-switch .custom-control-input:checked ~ .custom-control-label::before {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* Stili di animazione per toggle tema */
+.theme-toggle-icon {
+  transition: transform var(--transition-speed);
+}
+
+.dark-mode .theme-toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* Modalità scura per icone */
+.dark-mode .feather,
+.dark-mode .svg-icon {
+  stroke: var(--dark-text);
+}
+
+/* Supporto riduzione del movimento */
+@media (prefers-reduced-motion: reduce) {
+  body,
+  a, button, input, select, textarea, .card, .modal, .navbar, .dropdown-menu,
+  .list-group-item, .alert, .badge, .btn, .form-control, .table, .progress,
+  .nav-link, .card-header, .card-footer, .modal-header, .modal-footer,
+  .tab-content, .accordion, .toast, .tooltip, .popover,
+  .theme-toggle-icon {
+    transition: none !important;
+  }
+} 

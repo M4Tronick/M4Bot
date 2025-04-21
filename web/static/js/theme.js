@@ -1,342 +1,451 @@
 /**
- * M4Bot - Theme Manager 2.0
- * Sistema avanzato per gestione temi chiari/scuri con rilevamento automatico,
- * transizioni fluide e memorizzazione delle preferenze.
+ * M4Bot - Gestione Tema e Effetti UI
+ * Versione 3.0 - Migliorato con transizioni fluide ed effetti moderni
  */
 
-// IIFE per evitare inquinamento del global scope
-(function() {
-    // Costanti e definizioni configurabili
-    const THEME_STORAGE_KEY = 'm4bot_theme_preference';
-    const COLOR_MODE_KEY = 'data-bs-theme';
-    const TRANSITION_DURATION = 300; // durata transizione in ms
-    
-    // Stati del tema
-    const THEMES = {
-        LIGHT: 'light',
-        DARK: 'dark',
-        AUTO: 'auto'
-    };
-    
-    // Colori per personalizzare i meta tag
-    const META_COLORS = {
-        [THEMES.LIGHT]: '#ffffff',
-        [THEMES.DARK]: '#121212'
-    };
-    
-    // Riferimenti DOM
-    const htmlElement = document.documentElement;
-    const themeToggle = document.getElementById('darkModeToggle');
-    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-    
-    /**
-     * Classe principale per gestire i temi
-     */
-    class ThemeManager {
-        constructor() {
-            this.currentTheme = THEMES.LIGHT;
-            this.systemPrefersDark = false;
-            this.isTransitioning = false;
-        }
-        
-        /**
-         * Inizializza il gestore dei temi
-         */
-        init() {
-            // Rileva preferenze sistema
-            this._detectSystemPreference();
-            
-            // Carica tema salvato
-            this._loadSavedTheme();
-            
-            // Aggiunge event listeners
-            this._setupEventListeners();
-            
-            // Applica tema iniziale senza transizione
-            this._applyTheme(this.currentTheme, false);
-            
-            // Inizializza toggle switch
-            this._updateToggleState();
-            
-            console.log('Theme Manager initialized:', {
-                theme: this.currentTheme,
-                systemPreference: this.systemPrefersDark ? 'dark' : 'light'
-            });
-        }
-        
-        /**
-         * Rileva preferenze di sistema per il tema scuro
-         */
-        _detectSystemPreference() {
-            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-            this.systemPrefersDark = systemPrefersDark.matches;
-            
-            // Listener per cambiamenti nelle preferenze di sistema
-            systemPrefersDark.addEventListener('change', e => {
-                this.systemPrefersDark = e.matches;
-                
-                // Aggiorna tema se in modalità AUTO
-                if (this.currentTheme === THEMES.AUTO) {
-                    this._applyTheme(THEMES.AUTO);
-                }
-            });
-        }
-        
-        /**
-         * Carica il tema salvato dal localStorage
-         */
-        _loadSavedTheme() {
-            try {
-                const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-                if (savedTheme && Object.values(THEMES).includes(savedTheme)) {
-                    this.currentTheme = savedTheme;
-                } else {
-                    // Default è AUTO se non c'è un tema salvato
-                    this.currentTheme = THEMES.AUTO;
-                }
-            } catch (e) {
-                console.error('Error loading saved theme:', e);
-                this.currentTheme = THEMES.AUTO;
-            }
-        }
-        
-        /**
-         * Configura event listeners
-         */
-        _setupEventListeners() {
-            if (themeToggle) {
-                themeToggle.addEventListener('change', () => {
-                    const newTheme = themeToggle.checked ? THEMES.DARK : THEMES.LIGHT;
-                    this.setTheme(newTheme);
-                });
-                
-                // Doppio click per modalità AUTO
-                themeToggle.addEventListener('dblclick', (e) => {
-                    e.preventDefault();
-                    this.setTheme(THEMES.AUTO);
-                });
-            }
-            
-            // Shortcut da tastiera (Alt+Shift+D per modalità scura, Alt+Shift+L per modalità chiara, Alt+Shift+A per modalità auto)
-            document.addEventListener('keydown', (e) => {
-                if (e.altKey && e.shiftKey) {
-                    if (e.key === 'D' || e.key === 'd') {
-                        this.setTheme(THEMES.DARK);
-                    } else if (e.key === 'L' || e.key === 'l') {
-                        this.setTheme(THEMES.LIGHT);
-                    } else if (e.key === 'A' || e.key === 'a') {
-                        this.setTheme(THEMES.AUTO);
-                    }
-                }
-            });
-        }
-        
-        /**
-         * Aggiorna lo stato dello switch in base al tema corrente
-         */
-        _updateToggleState() {
-            if (!themeToggle) return;
-            
-            const effectiveTheme = this._getEffectiveTheme();
-            themeToggle.checked = effectiveTheme === THEMES.DARK;
-            
-            // Aggiunge classe per indicare modalità AUTO
-            themeToggle.parentElement?.classList.toggle('auto-mode', this.currentTheme === THEMES.AUTO);
-            
-            // Aggiorna tooltip
-            const tooltip = themeToggle.parentElement?.querySelector('.tooltip-text');
-            if (tooltip) {
-                tooltip.textContent = this.currentTheme === THEMES.AUTO 
-                    ? 'Tema automatico (doppio click per cambiare)' 
-                    : (effectiveTheme === THEMES.DARK ? 'Passa al tema chiaro' : 'Passa al tema scuro');
-            }
-        }
-        
-        /**
-         * Determina il tema effettivo (risolve AUTO in LIGHT o DARK)
-         */
-        _getEffectiveTheme() {
-            if (this.currentTheme === THEMES.AUTO) {
-                return this.systemPrefersDark ? THEMES.DARK : THEMES.LIGHT;
-            }
-            return this.currentTheme;
-        }
-        
-        /**
-         * Applica un tema con transizione
-         * @param {string} theme - Tema da applicare
-         * @param {boolean} animate - Se applicare animazione (default: true)
-         */
-        _applyTheme(theme, animate = true) {
-            if (this.isTransitioning) return;
-            
-            const effectiveTheme = theme === THEMES.AUTO 
-                ? (this.systemPrefersDark ? THEMES.DARK : THEMES.LIGHT)
-                : theme;
-            
-            // Se animazione richiesta
-            if (animate) {
-                this.isTransitioning = true;
-                
-                // Aggiungi classe per animazione fade-out
-                document.body.classList.add('theme-transition');
-                document.body.style.opacity = '0.92';
-                
-                // Attendi fine transizione
-                setTimeout(() => {
-                    // Applica il tema
-                    htmlElement.setAttribute(COLOR_MODE_KEY, effectiveTheme);
-                    this._updateMetaTags(effectiveTheme);
-                    
-                    // Animazione fade-in
-                    document.body.style.opacity = '1';
-                    
-                    // Rimuovi classe al termine
-                    setTimeout(() => {
-                        document.body.classList.remove('theme-transition');
-                        this.isTransitioning = false;
-                    }, TRANSITION_DURATION);
-                    
-                }, TRANSITION_DURATION / 2);
-            } else {
-                // Applica senza animazione
-                htmlElement.setAttribute(COLOR_MODE_KEY, effectiveTheme);
-                this._updateMetaTags(effectiveTheme);
-            }
-            
-            // Dispatch evento personalizzato
-            document.dispatchEvent(new CustomEvent('themeChanged', {
-                detail: {
-                    theme: theme,
-                    effectiveTheme: effectiveTheme
-                }
-            }));
-        }
-        
-        /**
-         * Aggiorna meta tag per la colorazione UI del browser
-         */
-        _updateMetaTags(theme) {
-            if (metaThemeColor) {
-                metaThemeColor.setAttribute('content', META_COLORS[theme] || META_COLORS[THEMES.LIGHT]);
-            }
-        }
-        
-        /**
-         * Salva il tema nel localStorage
-         */
-        _saveTheme(theme) {
-            try {
-                localStorage.setItem(THEME_STORAGE_KEY, theme);
-            } catch (e) {
-                console.error('Error saving theme preference:', e);
-            }
-        }
-        
-        /**
-         * API pubblica per impostare il tema
-         * @param {string} theme - Tema da impostare
-         */
-        setTheme(theme) {
-            if (!Object.values(THEMES).includes(theme)) {
-                console.error('Invalid theme:', theme);
-                return;
-            }
-            
-            this.currentTheme = theme;
-            this._applyTheme(theme);
-            this._saveTheme(theme);
-            this._updateToggleState();
-            
-            // Feedback visivo
-            this._showFeedback(theme);
-        }
-        
-        /**
-         * Mostra un feedback visivo per il cambio tema
-         */
-        _showFeedback(theme) {
-            // Crea elemento toast per feedback
-            const toastContainer = document.querySelector('.toast-container');
-            if (!toastContainer) return;
-            
-            const iconClass = {
-                [THEMES.LIGHT]: 'fa-sun',
-                [THEMES.DARK]: 'fa-moon',
-                [THEMES.AUTO]: 'fa-magic'
-            };
-            
-            const themeName = {
-                [THEMES.LIGHT]: 'chiaro',
-                [THEMES.DARK]: 'scuro',
-                [THEMES.AUTO]: 'automatico'
-            };
-            
-            const toastElement = document.createElement('div');
-            toastElement.className = 'toast align-items-center text-white bg-primary border-0';
-            toastElement.setAttribute('role', 'alert');
-            toastElement.setAttribute('aria-live', 'assertive');
-            toastElement.setAttribute('aria-atomic', 'true');
-            
-            toastElement.innerHTML = `
-                <div class="d-flex">
-                    <div class="toast-body">
-                        <i class="fas ${iconClass[theme] || 'fa-circle'} me-2"></i>
-                        Tema ${themeName[theme] || theme} attivato
-                    </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                </div>
-            `;
-            
-            toastContainer.appendChild(toastElement);
-            const toast = new bootstrap.Toast(toastElement, {
-                animation: true,
-                autohide: true,
-                delay: 2000
-            });
-            
-            toast.show();
-            
-            // Rimuovi elemento dopo che è nascosto
-            toastElement.addEventListener('hidden.bs.toast', () => {
-                toastElement.remove();
-            });
-        }
-        
-        /**
-         * Alterna tra tema chiaro e scuro
-         */
-        toggleTheme() {
-            const newTheme = this._getEffectiveTheme() === THEMES.DARK ? THEMES.LIGHT : THEMES.DARK;
-            this.setTheme(newTheme);
-        }
+document.addEventListener('DOMContentLoaded', function() {
+  // Inizializzazione del tema e impostazioni UI
+  initThemeSystem();
+  initUIEffects();
+  initParallaxEffects();
+  initAccessibilityFeatures();
+  observeElementsForAnimation();
+});
+
+/**
+ * Sistema di gestione del tema (chiaro/scuro)
+ */
+function initThemeSystem() {
+  const darkModeToggle = document.getElementById('darkModeToggle');
+  const htmlElement = document.documentElement;
+  const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+  
+  // Carica preferenza dal localStorage o usa la preferenza del sistema
+  const savedTheme = localStorage.getItem('theme');
+  
+  if (savedTheme) {
+    htmlElement.setAttribute('data-bs-theme', savedTheme);
+    if (darkModeToggle) {
+      darkModeToggle.checked = savedTheme === 'dark';
     }
-    
-    // Crea e inizializza il theme manager quando il DOM è pronto
-    document.addEventListener('DOMContentLoaded', () => {
-        window.themeManager = new ThemeManager();
-        window.themeManager.init();
+  } else if (prefersDarkScheme.matches) {
+    htmlElement.setAttribute('data-bs-theme', 'dark');
+    if (darkModeToggle) {
+      darkModeToggle.checked = true;
+    }
+  }
+  
+  // Aggiungi classe per transizione
+  document.body.classList.add('transition-colors');
+  
+  // Gestisci cambio tema con toggle
+  if (darkModeToggle) {
+    darkModeToggle.addEventListener('change', function() {
+      // Aggiungi classe per animazione
+      document.body.classList.add('theme-changing');
+      
+      // Imposta tema dopo breve delay per animazione
+      setTimeout(() => {
+        const newTheme = this.checked ? 'dark' : 'light';
+        htmlElement.setAttribute('data-bs-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
         
-        // Espone metodo globale per toggle tema
-        window.toggleTheme = () => window.themeManager.toggleTheme();
+        // Emetti evento personalizzato per il cambio tema
+        const event = new CustomEvent('themeChanged', { detail: { theme: newTheme } });
+        document.dispatchEvent(event);
+        
+        // Rimuovi classe animazione
+        setTimeout(() => {
+          document.body.classList.remove('theme-changing');
+        }, 300);
+      }, 50);
+    });
+  }
+  
+  // Osserva il cambiamento delle preferenze del sistema
+  prefersDarkScheme.addEventListener('change', function(e) {
+    if (!localStorage.getItem('theme')) {
+      htmlElement.setAttribute('data-bs-theme', e.matches ? 'dark' : 'light');
+      if (darkModeToggle) {
+        darkModeToggle.checked = e.matches;
+      }
+    }
+  });
+  
+  // Esponi API theme per altri script
+  window.themeSystem = {
+    getTheme: () => htmlElement.getAttribute('data-bs-theme'),
+    setTheme: (theme) => {
+      htmlElement.setAttribute('data-bs-theme', theme);
+      localStorage.setItem('theme', theme);
+      if (darkModeToggle) {
+        darkModeToggle.checked = theme === 'dark';
+      }
+      const event = new CustomEvent('themeChanged', { detail: { theme } });
+      document.dispatchEvent(event);
+    },
+    toggleTheme: () => {
+      const currentTheme = htmlElement.getAttribute('data-bs-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      htmlElement.setAttribute('data-bs-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      if (darkModeToggle) {
+        darkModeToggle.checked = newTheme === 'dark';
+      }
+      const event = new CustomEvent('themeChanged', { detail: { theme: newTheme } });
+      document.dispatchEvent(event);
+    }
+  };
+}
+
+/**
+ * Effetti UI migliorati
+ */
+function initUIEffects() {
+  // Gestione cards con hover effects
+  const hoverCards = document.querySelectorAll('.card-hover-lift, .hover-scale-shadow, .hover-lift');
+  
+  hoverCards.forEach(card => {
+    card.addEventListener('mouseenter', function() {
+      this.classList.add('hardware-accelerated');
     });
     
-    // Aggiungi stili CSS per transizione tema
-    const style = document.createElement('style');
-    style.textContent = `
-        .theme-transition {
-            transition: opacity ${TRANSITION_DURATION}ms ease;
+    card.addEventListener('mouseleave', function() {
+      // Mantieni hardware acceleration per un attimo dopo il mouseleave
+      setTimeout(() => {
+        this.classList.remove('hardware-accelerated');
+      }, 300);
+    });
+  });
+  
+  // Gestione ripple effect per pulsanti
+  initRippleEffect();
+  
+  // Gestione barra di navigazione con effetto glassmorphism
+  const navbar = document.querySelector('.navbar');
+  if (navbar) {
+    window.addEventListener('scroll', function() {
+      if (window.scrollY > 50) {
+        navbar.classList.add('navbar-scrolled');
+      } else {
+        navbar.classList.remove('navbar-scrolled');
+      }
+    });
+  }
+  
+  // Gestione bottoni con classe .btn-gradient-border
+  const gradientButtons = document.querySelectorAll('.btn-gradient-border');
+  gradientButtons.forEach(button => {
+    button.addEventListener('mousemove', function(e) {
+      const rect = this.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      
+      this.style.setProperty('--mouse-x', x + '%');
+      this.style.setProperty('--mouse-y', y + '%');
+    });
+  });
+  
+  // Pulsante "torna in cima"
+  initBackToTopButton();
+  
+  // Inizializza le notifiche toast
+  initToasts();
+}
+
+/**
+ * Effetto ripple per pulsanti
+ */
+function initRippleEffect() {
+  const buttons = document.querySelectorAll('.btn-ripple, .ripple-effect');
+  
+  buttons.forEach(button => {
+    button.addEventListener('click', function(e) {
+      // Verifica se è su mobile o su browser
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      // Crea l'elemento ripple
+      const ripple = document.createElement('span');
+      ripple.classList.add('ripple-element');
+      this.appendChild(ripple);
+      
+      // Posiziona l'elemento ripple
+      const rect = this.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height);
+      
+      ripple.style.width = ripple.style.height = size + 'px';
+      
+      // Posiziona diversamente per mobile e desktop
+      if (isMobile) {
+        ripple.style.top = '50%';
+        ripple.style.left = '50%';
+        ripple.style.transform = 'translate(-50%, -50%)';
+                } else {
+        ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+        ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+      }
+      
+      // Aggiungi classe per attivare l'animazione
+      ripple.classList.add('animate');
+      
+      // Rimuovi l'elemento dopo l'animazione
+      setTimeout(() => {
+        ripple.remove();
+      }, 600);
+    });
+  });
+}
+
+/**
+ * Effetti parallasse per elementi decorativi
+ */
+function initParallaxEffects() {
+  const parallaxElements = document.querySelectorAll('.parallax-element');
+  
+  if (parallaxElements.length > 0) {
+    // Verifica se usare reduced motion
+            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            
+    if (!prefersReducedMotion) {
+      window.addEventListener('mousemove', function(e) {
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
+        
+        parallaxElements.forEach(element => {
+          const speed = element.getAttribute('data-parallax-speed') || 0.05;
+          const rect = element.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          
+          const deltaX = (mouseX - centerX) * speed;
+          const deltaY = (mouseY - centerY) * speed;
+          
+          element.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+        });
+      });
+      
+      // Reset parallax elements on mouse leave
+      document.addEventListener('mouseleave', function() {
+        parallaxElements.forEach(element => {
+          element.style.transform = 'translate(0, 0)';
+        });
+      });
+    }
+  }
+}
+
+/**
+ * Funzionalità di accessibilità
+ */
+function initAccessibilityFeatures() {
+  // Toggle per alto contrasto
+  const highContrastToggle = document.getElementById('highContrastToggle');
+  if (highContrastToggle) {
+    // Carica preferenza salvata
+    const savedHighContrast = localStorage.getItem('highContrast') === 'true';
+    highContrastToggle.checked = savedHighContrast;
+    
+    if (savedHighContrast) {
+      document.documentElement.classList.add('high-contrast');
+    }
+    
+    highContrastToggle.addEventListener('change', function() {
+      if (this.checked) {
+        document.documentElement.classList.add('high-contrast');
+        localStorage.setItem('highContrast', 'true');
+      } else {
+        document.documentElement.classList.remove('high-contrast');
+        localStorage.setItem('highContrast', 'false');
+                }
+            });
         }
         
-        .switch .auto-mode .slider {
-            background: linear-gradient(135deg, #5e45e2, #34c3ff);
+  // Toggle per motion ridotto
+  const reducedMotionToggle = document.getElementById('reducedMotionToggle');
+  if (reducedMotionToggle) {
+    // Carica preferenza o usa la preferenza del sistema
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const savedReducedMotion = localStorage.getItem('reducedMotion');
+    
+    if (savedReducedMotion !== null) {
+      reducedMotionToggle.checked = savedReducedMotion === 'true';
+      document.documentElement.classList.toggle('reduced-motion', savedReducedMotion === 'true');
+            } else {
+      reducedMotionToggle.checked = prefersReducedMotion;
+      if (prefersReducedMotion) {
+        document.documentElement.classList.add('reduced-motion');
+      }
+    }
+    
+    reducedMotionToggle.addEventListener('change', function() {
+      document.documentElement.classList.toggle('reduced-motion', this.checked);
+      localStorage.setItem('reducedMotion', this.checked);
+    });
+  }
+  
+  // Dimensione testo
+  const textSizeSelect = document.getElementById('textSizeSelect');
+  if (textSizeSelect) {
+    // Carica preferenza salvata
+    const savedTextSize = localStorage.getItem('textSize') || 'normal';
+    textSizeSelect.value = savedTextSize;
+    
+    if (savedTextSize !== 'normal') {
+      document.documentElement.classList.add(`text-size-${savedTextSize}`);
+    }
+    
+    textSizeSelect.addEventListener('change', function() {
+      // Rimuovi tutte le classi esistenti di dimensione testo
+      document.documentElement.classList.remove('text-size-large', 'text-size-larger', 'text-size-largest');
+      
+      if (this.value !== 'normal') {
+        document.documentElement.classList.add(`text-size-${this.value}`);
+      }
+      
+      localStorage.setItem('textSize', this.value);
+    });
+  }
+}
+
+/**
+ * Animazioni di elementi basate su IntersectionObserver
+ */
+function observeElementsForAnimation() {
+  if ('IntersectionObserver' in window) {
+    const elementsToAnimate = document.querySelectorAll('.reveal-on-scroll');
+    
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          // Non osservare più questo elemento
+          observer.unobserve(entry.target);
         }
+      });
+    }, {
+      threshold: 0.1, // Elemento visibile al 10%
+      rootMargin: '0px 0px -50px 0px' // Trigger leggermente prima
+    });
+    
+    elementsToAnimate.forEach(element => {
+      observer.observe(element);
+    });
+    
+    // Gestione delle animazioni sequenziali
+    const staggerContainers = document.querySelectorAll('.stagger-items');
+    const staggerObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate');
+          staggerObserver.unobserve(entry.target);
+        }
+      });
+    }, {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    });
+    
+    staggerContainers.forEach(container => {
+      staggerObserver.observe(container);
+    });
+  } else {
+    // Fallback per browser che non supportano IntersectionObserver
+    document.querySelectorAll('.reveal-on-scroll').forEach(element => {
+      element.classList.add('visible');
+    });
+    
+    document.querySelectorAll('.stagger-items').forEach(container => {
+      container.classList.add('animate');
+    });
+  }
+}
+
+/**
+ * Sistema di notifiche toast
+ */
+function initToasts() {
+  // API globale per le notifiche toast
+  window.toastSystem = {
+    show: function(message, type = 'info', duration = 3000) {
+      const toastContainer = document.querySelector('.toast-container');
+      
+      if (!toastContainer) return;
+      
+      const toast = document.createElement('div');
+      toast.classList.add('toast', 'fade-in', `toast-${type}`);
+      toast.setAttribute('role', 'alert');
+      toast.setAttribute('aria-live', 'assertive');
+      toast.setAttribute('aria-atomic', 'true');
+      
+      let icon = 'info-circle';
+      if (type === 'success') icon = 'check-circle';
+      if (type === 'warning') icon = 'exclamation-triangle';
+      if (type === 'danger') icon = 'exclamation-circle';
+      
+      toast.innerHTML = `
+        <div class="toast-header">
+          <i class="fas fa-${icon} me-2"></i>
+          <strong class="me-auto">${type.charAt(0).toUpperCase() + type.slice(1)}</strong>
+          <button type="button" class="btn-close" aria-label="Chiudi"></button>
+        </div>
+        <div class="toast-body">
+          ${message}
+        </div>
+      `;
+      
+      toastContainer.appendChild(toast);
+      
+      // Aggiungi ascoltatore per chiusura
+      const closeButton = toast.querySelector('.btn-close');
+      closeButton.addEventListener('click', function() {
+        toast.classList.remove('fade-in');
+        toast.classList.add('fade-out');
         
-        @media (prefers-reduced-motion: reduce) {
-            .theme-transition {
-                transition: none;
-            }
-        }
-    `;
-    document.head.appendChild(style);
-})(); 
+        // Rimuovi dopo animazione
+        setTimeout(() => {
+          toast.remove();
+        }, 300);
+      });
+      
+      // Autochiusura dopo durata specificata
+      if (duration > 0) {
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.classList.remove('fade-in');
+            toast.classList.add('fade-out');
+            
+            setTimeout(() => {
+              if (toast.parentNode) {
+                toast.remove();
+              }
+            }, 300);
+          }
+        }, duration);
+      }
+    }
+  };
+}
+
+/**
+ * Button "Torna in cima"
+ */
+function initBackToTopButton() {
+  const toTopButton = document.getElementById('to-top-button');
+  
+  if (toTopButton) {
+    window.addEventListener('scroll', function() {
+      if (window.scrollY > 300) {
+        toTopButton.classList.add('visible');
+      } else {
+        toTopButton.classList.remove('visible');
+      }
+    });
+    
+    toTopButton.addEventListener('click', function() {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    });
+  }
+} 

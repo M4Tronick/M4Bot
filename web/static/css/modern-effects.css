@@ -1,0 +1,546 @@
+/**
+ * M4Bot - Effetti visivi moderni
+ * Implementa mesh gradients, parallasse, glassmorphism avanzato e altre tecniche visive moderne
+ * Versione 3.0
+ */
+
+/* ===== Mesh Gradients ===== */
+.mesh-gradient {
+  position: relative;
+  overflow: hidden;
+  background-attachment: fixed;
+  background-position: center;
+  background-size: cover;
+  z-index: 1;
+}
+
+.mesh-gradient::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(94, 69, 226, 0.4), transparent 40%),
+    radial-gradient(circle at 80% 30%, rgba(52, 195, 255, 0.4), transparent 40%),
+    radial-gradient(circle at 50% 80%, rgba(255, 107, 107, 0.4), transparent 40%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.mesh-gradient.primary {
+  background: 
+    radial-gradient(circle at 10% 10%, rgba(94, 69, 226, 0.5), transparent 40%),
+    radial-gradient(circle at 90% 20%, rgba(52, 195, 255, 0.5), transparent 40%),
+    radial-gradient(circle at 40% 90%, rgba(128, 103, 240, 0.5), transparent 40%);
+}
+
+.mesh-gradient.secondary {
+  background: 
+    radial-gradient(circle at 30% 20%, rgba(52, 195, 255, 0.5), transparent 40%),
+    radial-gradient(circle at 70% 60%, rgba(94, 69, 226, 0.3), transparent 40%),
+    radial-gradient(circle at 20% 80%, rgba(255, 107, 107, 0.4), transparent 40%);
+}
+
+.mesh-gradient.dark {
+  background: 
+    radial-gradient(circle at 30% 20%, rgba(94, 69, 226, 0.2), transparent 40%),
+    radial-gradient(circle at 70% 60%, rgba(52, 195, 255, 0.2), transparent 40%),
+    radial-gradient(circle at 20% 80%, rgba(255, 107, 107, 0.2), transparent 40%);
+}
+
+/* Hero section con mesh gradient */
+.hero-mesh {
+  position: relative;
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--background-color);
+}
+
+.hero-mesh::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(94, 69, 226, 0.5), transparent 40%),
+    radial-gradient(circle at 80% 30%, rgba(52, 195, 255, 0.5), transparent 40%),
+    radial-gradient(circle at 50% 80%, rgba(255, 107, 107, 0.5), transparent 40%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 3rem;
+  max-width: 900px;
+  backdrop-filter: blur(5px);
+}
+
+/* ===== Effetti Parallasse ===== */
+.parallax-container {
+  position: relative;
+  overflow: hidden;
+  height: 500px;
+}
+
+.parallax-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-position: center;
+  background-size: cover;
+  will-change: transform;
+}
+
+.parallax-layer-1 {
+  transform: translateY(var(--parallax-offset-1, 0));
+}
+
+.parallax-layer-2 {
+  transform: translateY(var(--parallax-offset-2, 0));
+}
+
+.parallax-layer-3 {
+  transform: translateY(var(--parallax-offset-3, 0));
+}
+
+.parallax-content {
+  position: relative;
+  z-index: 10;
+  padding: 2rem;
+}
+
+/* Implementazione JavaScript richiesta per il tracking dello scroll */
+.parallax-section {
+  position: relative;
+  min-height: 400px;
+  transform-style: preserve-3d;
+  transform: perspective(1000px);
+  overflow: hidden;
+}
+
+.parallax-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 120%;
+  background-position: center;
+  background-size: cover;
+  transform: translateZ(-10px) scale(2);
+}
+
+.parallax-content {
+  position: relative;
+  transform: translateZ(0);
+}
+
+/* ===== Glassmorphism Avanzato ===== */
+.glass-advanced {
+  background: var(--glass-background);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--glass-shadow);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.glass-advanced:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+.glass-advanced::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+}
+
+.glass-advanced.depth {
+  position: relative;
+}
+
+.glass-advanced.depth::after {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: -10px;
+  bottom: -10px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: inherit;
+  z-index: -1;
+  filter: blur(8px);
+  opacity: 0.5;
+  transition: opacity var(--transition-normal);
+}
+
+.glass-advanced.depth:hover::after {
+  opacity: 0.8;
+}
+
+/* ===== Neumorfismo Avanzato ===== */
+.neumorph-advanced {
+  background-color: var(--background-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--neumorphic-shadow);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+  overflow: hidden;
+  position: relative;
+}
+
+.neumorph-advanced:hover {
+  transform: scale(1.02);
+}
+
+.neumorph-advanced.inset {
+  box-shadow: inset 5px 5px 10px rgba(0, 0, 0, 0.1), 
+              inset -5px -5px 10px rgba(255, 255, 255, 0.1);
+}
+
+.neumorph-advanced.flat {
+  box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.1), 
+              -3px -3px 6px rgba(255, 255, 255, 0.1);
+}
+
+.neumorph-advanced.pressed {
+  box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.1), 
+              inset -2px -2px 5px rgba(255, 255, 255, 0.1);
+  transform: scale(0.98);
+}
+
+/* ===== Effetti di Testo Avanzati ===== */
+.text-gradient-animated {
+  background: linear-gradient(
+    90deg,
+    var(--primary-color) 0%,
+    var(--secondary-color) 25%,
+    var(--accent-color) 50%,
+    var(--secondary-color) 75%,
+    var(--primary-color) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-shift 5s linear infinite;
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.text-shadow-3d {
+  text-shadow: 1px 1px 0 rgba(255,255,255,0.1),
+               2px 2px 0 rgba(0,0,0,0.05),
+               3px 3px 0 rgba(0,0,0,0.05);
+}
+
+.text-glitch {
+  position: relative;
+  display: inline-block;
+}
+
+.text-glitch::before,
+.text-glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.8;
+}
+
+.text-glitch::before {
+  color: #f0f;
+  z-index: -1;
+  animation: glitch-effect-1 0.3s infinite;
+}
+
+.text-glitch::after {
+  color: #0ff;
+  z-index: -2;
+  animation: glitch-effect-2 0.3s infinite;
+}
+
+@keyframes glitch-effect-1 {
+  0% {
+    transform: translate(0);
+  }
+  20% {
+    transform: translate(-3px, 3px);
+  }
+  40% {
+    transform: translate(-3px, -3px);
+  }
+  60% {
+    transform: translate(3px, 3px);
+  }
+  80% {
+    transform: translate(3px, -3px);
+  }
+  100% {
+    transform: translate(0);
+  }
+}
+
+@keyframes glitch-effect-2 {
+  0% {
+    transform: translate(0);
+  }
+  20% {
+    transform: translate(3px, -3px);
+  }
+  40% {
+    transform: translate(3px, 3px);
+  }
+  60% {
+    transform: translate(-3px, -3px);
+  }
+  80% {
+    transform: translate(-3px, 3px);
+  }
+  100% {
+    transform: translate(0);
+  }
+}
+
+/* ===== Input e Button Avanzati ===== */
+.input-advanced,
+.textarea-advanced {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius-md);
+  padding: 1rem;
+  color: var(--text-color);
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.input-advanced:focus,
+.textarea-advanced:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 4px rgba(94, 69, 226, 0.2);
+}
+
+.btn-advanced {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  border-radius: var(--border-radius-md);
+  transition: all var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-advanced::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.btn-advanced:hover::before {
+  left: 100%;
+}
+
+.btn-advanced.primary {
+  background: var(--gradient-primary);
+  color: white;
+}
+
+.btn-advanced.secondary {
+  background: var(--gradient-accent);
+  color: white;
+}
+
+.btn-advanced.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ===== Decorazioni ===== */
+.decoration-blob {
+  position: absolute;
+  filter: blur(40px);
+  opacity: 0.4;
+  z-index: -1;
+  border-radius: 50%;
+  background: var(--primary-color);
+  animation: float 10s ease-in-out infinite;
+}
+
+.decoration-blob.primary {
+  background: var(--primary-color);
+}
+
+.decoration-blob.secondary {
+  background: var(--secondary-color);
+}
+
+.decoration-blob.accent {
+  background: var(--accent-color);
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(10px, -10px) scale(1.05);
+  }
+  50% {
+    transform: translate(20px, 0) scale(1);
+  }
+  75% {
+    transform: translate(10px, 10px) scale(0.95);
+  }
+}
+
+/* ===== Micro-animazioni ===== */
+.micro-hover {
+  transition: transform var(--transition-fast);
+}
+
+.micro-hover:hover {
+  transform: translateY(-3px);
+}
+
+.micro-click {
+  transition: transform var(--transition-fast);
+}
+
+.micro-click:active {
+  transform: scale(0.95);
+}
+
+.micro-focus {
+  transition: box-shadow var(--transition-fast);
+}
+
+.micro-focus:focus {
+  box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.3);
+}
+
+/* ===== Supporto per accessibilità ===== */
+.high-contrast {
+  --primary-color: #0074e4;
+  --secondary-color: #007e5c;
+  --accent-color: #d6001c;
+  --text-color: #000000;
+  --text-color-muted: #333333;
+  --background-color: #ffffff;
+  --background-color-alt: #f0f0f0;
+  --border-color: #000000;
+}
+
+.high-contrast-dark {
+  --primary-color: #3c9dff;
+  --secondary-color: #3cd0a4;
+  --accent-color: #ff5c5c;
+  --text-color: #ffffff;
+  --text-color-muted: #cccccc;
+  --background-color: #000000;
+  --background-color-alt: #222222;
+  --border-color: #ffffff;
+}
+
+/* ===== Media Queries ===== */
+@media (max-width: 992px) {
+  .hero-mesh {
+    min-height: 40vh;
+  }
+  
+  .glass-advanced.depth::after {
+    opacity: 0.3;
+    filter: blur(5px);
+  }
+  
+  .parallax-section {
+    min-height: 300px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-mesh {
+    min-height: 30vh;
+  }
+  
+  .text-gradient-animated {
+    background-size: 300% auto;
+  }
+  
+  .btn-advanced {
+    padding: 0.5rem 1rem;
+  }
+  
+  .parallax-section {
+    min-height: 200px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mesh-gradient::before,
+  .hero-mesh::before,
+  .parallax-layer,
+  .parallax-layer-1,
+  .parallax-layer-2,
+  .parallax-layer-3,
+  .text-gradient-animated,
+  .text-glitch::before,
+  .text-glitch::after,
+  .btn-advanced::before,
+  .decoration-blob {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* ===== Supporto per device ad alta densità di pixel ===== */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .glass-advanced {
+    backdrop-filter: blur(12px);
+  }
+  
+  .text-shadow-3d {
+    text-shadow: 1px 1px 0 rgba(255,255,255,0.1),
+                 2px 2px 0 rgba(0,0,0,0.03),
+                 3px 3px 0 rgba(0,0,0,0.03);
+  }
+} 

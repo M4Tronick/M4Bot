@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 
 # Inizializzazione del Blueprint e del logger
-timer = Blueprint('timer', __name__, url_prefix='/api/timer')
+timer = Blueprint('timer', __name__, url_prefix='/timer')
 logger = logging.getLogger(__name__)
 
 # Percorso del file per salvare i timer
@@ -91,7 +91,7 @@ def calculate_timer_status(timer):
     return timer
 
 # Pagina di gestione dei timer
-@timer.route('/page', methods=['GET'])
+@timer.route('/', methods=['GET'])
 def timer_manager_page():
     return render_template('timer_manager.html')
 
@@ -104,8 +104,10 @@ def obs_timer_overlay(timer_id):
     
     return render_template('obs_timer.html', timer_id=timer_id)
 
+# API ROUTES
+
 # Endpoint per creare un nuovo timer
-@timer.route('/', methods=['POST'])
+@timer.route('/api', methods=['POST'])
 def create_timer():
     try:
         data = request.json
@@ -162,7 +164,7 @@ def create_timer():
         return jsonify({"success": False, "error": str(e)}), 500
 
 # Endpoint per ottenere un timer specifico
-@timer.route('/<timer_id>', methods=['GET'])
+@timer.route('/api/<timer_id>', methods=['GET'])
 def get_timer(timer_id):
     timer_data = find_timer_by_id(timer_id)
     
@@ -176,7 +178,7 @@ def get_timer(timer_id):
     return jsonify({"success": True, "timer": timer_data})
 
 # Endpoint per gli aggiornamenti live di un timer (per OBS)
-@timer.route('/<timer_id>/live', methods=['GET'])
+@timer.route('/api/<timer_id>/live', methods=['GET'])
 def get_timer_live(timer_id):
     timer_data = find_timer_by_id(timer_id)
     
@@ -200,7 +202,7 @@ def get_timer_live(timer_id):
     return jsonify({"success": True, "timer": live_timer})
 
 # Endpoint per aggiornare un timer
-@timer.route('/<timer_id>', methods=['PUT', 'PATCH'])
+@timer.route('/api/<timer_id>', methods=['PUT', 'PATCH'])
 def update_timer_endpoint(timer_id):
     try:
         timer_data = find_timer_by_id(timer_id)
@@ -232,7 +234,7 @@ def update_timer_endpoint(timer_id):
         return jsonify({"success": False, "error": str(e)}), 500
 
 # Endpoint per avviare un timer
-@timer.route('/<timer_id>/start', methods=['POST'])
+@timer.route('/api/<timer_id>/start', methods=['POST'])
 def start_timer(timer_id):
     try:
         timer_data = find_timer_by_id(timer_id)
@@ -278,7 +280,7 @@ def start_timer(timer_id):
         return jsonify({"success": False, "error": str(e)}), 500
 
 # Endpoint per mettere in pausa un timer
-@timer.route('/<timer_id>/pause', methods=['POST'])
+@timer.route('/api/<timer_id>/pause', methods=['POST'])
 def pause_timer(timer_id):
     try:
         timer_data = find_timer_by_id(timer_id)
@@ -305,7 +307,7 @@ def pause_timer(timer_id):
         return jsonify({"success": False, "error": str(e)}), 500
 
 # Endpoint per fermare un timer
-@timer.route('/<timer_id>/stop', methods=['POST'])
+@timer.route('/api/<timer_id>/stop', methods=['POST'])
 def stop_timer(timer_id):
     try:
         timer_data = find_timer_by_id(timer_id)
@@ -331,7 +333,7 @@ def stop_timer(timer_id):
         return jsonify({"success": False, "error": str(e)}), 500
 
 # Endpoint per resettare un timer
-@timer.route('/<timer_id>/reset', methods=['POST'])
+@timer.route('/api/<timer_id>/reset', methods=['POST'])
 def reset_timer(timer_id):
     try:
         timer_data = find_timer_by_id(timer_id)
@@ -361,7 +363,7 @@ def reset_timer(timer_id):
         return jsonify({"success": False, "error": str(e)}), 500
 
 # Endpoint per eliminare un timer
-@timer.route('/<timer_id>', methods=['DELETE'])
+@timer.route('/api/<timer_id>', methods=['DELETE'])
 def delete_timer(timer_id):
     try:
         timers_data = load_timers()
@@ -388,7 +390,7 @@ def delete_timer(timer_id):
         return jsonify({"success": False, "error": str(e)}), 500
 
 # Endpoint per elencare tutti i timer
-@timer.route('/', methods=['GET'])
+@timer.route('/api', methods=['GET'])
 def list_timers():
     try:
         timers_data = load_timers()
@@ -447,9 +449,11 @@ def update_active_timers():
                         timer['time_remaining'] = 0
                         
                         # Aggiorna il timer nel file
-                        if timer_id in timers:
-                            timers[timer_id].update(timer)
-                            save_timers(timers)
+                        for i, t in enumerate(timers.get("timers", [])):
+                            if t.get("id") == timer_id:
+                                timers["timers"][i].update(timer)
+                                save_timers(timers)
+                                break
                 
                 elif timer['type'] == 'stopwatch':
                     # Calcola il tempo trascorso
@@ -461,12 +465,14 @@ def update_active_timers():
         
         # Aggiorna i timer nel file con lo stato attuale
         for timer_id, timer in active_timers.items():
-            if timer_id in timers:
-                timers[timer_id].update({
-                    'status': timer['status'],
-                    'time_remaining': timer.get('time_remaining', 0),
-                    'elapsed_time': timer.get('elapsed_time', 0)
-                })
+            for i, t in enumerate(timers.get("timers", [])):
+                if t.get("id") == timer_id:
+                    timers["timers"][i].update({
+                        'status': timer['status'],
+                        'time_remaining': timer.get('time_remaining', 0),
+                        'elapsed_time': timer.get('elapsed_time', 0)
+                    })
+                    break
         
         save_timers(timers)
 
@@ -484,63 +490,38 @@ def timer_updater():
 timer_thread = threading.Thread(target=timer_updater, daemon=True)
 timer_thread.start()
 
-# Rotta per la visualizzazione del timer in OBS
-@timer.route('/api/timer/obs/<timer_id>')
-def obs_timer(timer_id):
-    return render_template('obs_timer.html', timer_id=timer_id)
-
 # API per ottenere lo stato di un timer (per OBS)
-@timer.route('/api/timer/<timer_id>/status', methods=['GET'])
+@timer.route('/api/<timer_id>/status', methods=['GET'])
 def timer_status(timer_id):
     try:
-        timers = load_timers()
+        timer_data = find_timer_by_id(timer_id)
         
-        if timer_id not in timers:
+        if not timer_data:
             return jsonify({
                 'success': False,
                 'error': 'Timer non trovato'
             }), 404
         
-        timer = timers[timer_id]
-        
-        # Aggiorna i dati del timer se è attivo
-        if timer_id in active_timers:
-            current_time = time.time()
-            
-            if active_timers[timer_id]['status'] == 'running':
-                if timer['type'] == 'countdown':
-                    # Calcola il tempo rimanente
-                    elapsed = current_time - active_timers[timer_id]['start_time']
-                    remaining = max(0, active_timers[timer_id]['duration'] - elapsed)
-                    timer['time_remaining'] = remaining
-                    
-                    # Controlla se il countdown è terminato
-                    if remaining <= 0:
-                        timer['status'] = 'completed'
-                        timer['time_remaining'] = 0
-                else:  # stopwatch
-                    # Calcola il tempo trascorso
-                    elapsed = current_time - active_timers[timer_id]['start_time']
-                    timer['elapsed_time'] = active_timers[timer_id]['elapsed_time'] + elapsed
-            
-            timer['status'] = active_timers[timer_id]['status']
+        # Aggiorna i dati del timer
+        timer_data = calculate_timer_status(timer_data)
+        update_timer(timer_id, timer_data)
         
         # Prepara i dati per la risposta
         response_data = {
             'success': True,
             'id': timer_id,
-            'name': timer['name'],
-            'type': timer['type'],
-            'status': timer['status'],
-            'settings': timer['settings']
+            'name': timer_data['name'],
+            'type': timer_data['type'],
+            'status': timer_data['status'],
+            'settings': timer_data['settings']
         }
         
-        if timer['type'] == 'countdown':
-            response_data['time_remaining'] = timer.get('time_remaining', timer['duration'])
-            response_data['duration'] = timer['duration']
+        if timer_data['type'] == 'countdown':
+            response_data['time_remaining'] = timer_data.get('time_remaining', timer_data['duration'])
+            response_data['duration'] = timer_data['duration']
             
             # Aggiungi informazioni sugli avvisi
-            alert_at = timer['settings'].get('alert_at', [])
+            alert_at = timer_data['settings'].get('alert_at', [])
             alerts = []
             
             for alert_time in alert_at:
@@ -549,7 +530,7 @@ def timer_status(timer_id):
             
             response_data['alerts'] = alerts
         else:  # stopwatch
-            response_data['elapsed_time'] = timer.get('elapsed_time', 0)
+            response_data['elapsed_time'] = timer_data.get('elapsed_time', 0)
         
         return jsonify(response_data)
     except Exception as e:

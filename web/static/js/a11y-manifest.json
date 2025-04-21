@@ -1,0 +1,31 @@
+{
+  "name": "M4Bot Accessibility",
+  "version": "1.0.0",
+  "description": "Miglioramenti di accessibilità per M4Bot",
+  "scripts": [
+    {
+      "file": "a11y.js",
+      "description": "Migliora l'accessibilità dell'interfaccia utente",
+      "loadOnStart": true
+    },
+    {
+      "file": "axe.js",
+      "description": "Test di accessibilità con axe-core",
+      "loadOnStart": false,
+      "environment": ["development", "testing"]
+    },
+    {
+      "file": "performance.js",
+      "description": "Ottimizzazioni di performance",
+      "loadOnStart": true
+    }
+  ],
+  "stylesheets": [
+    {
+      "file": "a11y.css",
+      "description": "Stili per l'accessibilità",
+      "loadOnStart": true
+    }
+  ],
+  "dependencies": []
+} 

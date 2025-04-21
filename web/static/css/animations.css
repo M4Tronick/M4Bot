@@ -1,1014 +1,519 @@
 /**
- * M4Bot - Animazioni CSS Avanzate
- * File contenente tutte le animazioni ottimizzate utilizzate nell'applicazione
+ * M4Bot - Animazioni Avanzate
+ * Effetti visivi e transizioni per migliorare l'esperienza utente
+ * Versione 3.0 - Completamente rinnovata
  */
 
-/* ===== ACCELERAZIONE HARDWARE E OTTIMIZZAZIONI ===== */
+/* ===== TRANSIZIONI BASE ===== */
+
+.transition-all {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.transition-transform {
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.transition-opacity {
+  transition: opacity 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
 .hardware-accelerated {
+  will-change: transform;
   transform: translateZ(0);
-  will-change: transform, opacity;
   backface-visibility: hidden;
   perspective: 1000px;
 }
 
-.transition-optimized {
-  transition-property: transform, opacity;
-  transition-timing-function: cubic-bezier(0.4, 0.0, 0.2, 1);
-}
-
-/* ===== TRANSIZIONI DI BASE ===== */
-.transition-all {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: auto;
-}
-
-.transition-transform {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform;
-}
-
-.transition-opacity {
-  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: opacity;
-}
-
-.transition-colors {
-  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
 /* ===== ANIMAZIONI DI ENTRATA ===== */
+
+/* Fade In (apparizione graduale) */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px) translateZ(0);
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
+
+.fade-in {
+  animation: fadeIn 0.5s ease forwards;
+  }
+
+/* Slide in dall'alto */
+@keyframes slideInDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
   to {
+    transform: translateY(0);
     opacity: 1;
-    transform: translateY(0) translateZ(0);
   }
 }
 
-@keyframes fadeInUp {
+.slide-in-down {
+  animation: slideInDown 0.5s ease forwards;
+  }
+
+/* Slide in dal basso */
+@keyframes slideInUp {
   from {
+    transform: translateY(20px);
     opacity: 0;
-    transform: translateY(20px) translateZ(0);
   }
   to {
+    transform: translateY(0);
     opacity: 1;
-    transform: translateY(0) translateZ(0);
   }
 }
 
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) translateZ(0);
+.slide-in-up {
+  animation: slideInUp 0.5s ease forwards;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0) translateZ(0);
-  }
-}
 
-@keyframes fadeInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-20px) translateZ(0);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0) translateZ(0);
-  }
-}
-
-@keyframes fadeInRight {
-  from {
-    opacity: 0;
-    transform: translateX(20px) translateZ(0);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0) translateZ(0);
-  }
-}
-
-@keyframes zoomIn {
-  from {
-    opacity: 0;
-    transform: scale3d(0.95, 0.95, 0.95) translateZ(0);
-}
-  to {
-    opacity: 1;
-    transform: scale3d(1, 1, 1) translateZ(0);
-  }
-}
-
+/* Slide in da sinistra */
 @keyframes slideInLeft {
   from {
-    transform: translate3d(-100%, 0, 0);
-  }
-  to {
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes slideInRight {
-  from {
-    transform: translate3d(100%, 0, 0);
-  }
-  to {
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-/* ===== ANIMAZIONI DI USCITA ===== */
-@keyframes fadeOut {
-  from {
-    opacity: 1;
-    transform: translateY(0) translateZ(0);
-  }
-  to {
+    transform: translateX(-20px);
     opacity: 0;
-    transform: translateY(10px) translateZ(0);
   }
-}
-
-@keyframes fadeOutUp {
-  from {
+  to {
+    transform: translateX(0);
     opacity: 1;
-    transform: translateY(0) translateZ(0);
   }
-  to {
-    opacity: 0;
-    transform: translateY(-20px) translateZ(0);
-  }
-}
-
-@keyframes fadeOutDown {
-  from {
-    opacity: 1;
-    transform: translateY(0) translateZ(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(20px) translateZ(0);
-  }
-}
-
-@keyframes slideOutLeft {
-    from {
-    transform: translate3d(0, 0, 0);
-    }
-    to {
-    transform: translate3d(-100%, 0, 0);
-    }
-}
-
-@keyframes slideOutRight {
-    from {
-    transform: translate3d(0, 0, 0);
-    }
-    to {
-    transform: translate3d(100%, 0, 0);
-    }
-}
-
-@keyframes zoomOut {
-    from {
-    opacity: 1;
-    transform: scale3d(1, 1, 1) translateZ(0);
-  }
-  to {
-    opacity: 0;
-    transform: scale3d(0.95, 0.95, 0.95) translateZ(0);
-  }
-}
-
-/* ===== ANIMAZIONI DI ATTENZIONE ===== */
-@keyframes pulse {
-  0% {
-    transform: scale3d(1, 1, 1) translateZ(0);
-    box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0.7);
-  }
-  70% {
-    transform: scale3d(1.05, 1.05, 1.05) translateZ(0);
-    box-shadow: 0 0 0 10px rgba(var(--primary-rgb), 0);
-  }
-  100% {
-    transform: scale3d(1, 1, 1) translateZ(0);
-    box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0);
-  }
-}
-
-@keyframes shake {
-  0%, 100% {
-    transform: translate3d(0, 0, 0);
-  }
-  10%, 30%, 50%, 70%, 90% {
-    transform: translate3d(-5px, 0, 0);
-  }
-  20%, 40%, 60%, 80% {
-    transform: translate3d(5px, 0, 0);
-  }
-}
-
-@keyframes bounce {
-  0%, 20%, 50%, 80%, 100% {
-    transform: translate3d(0, 0, 0);
-  }
-  40% {
-    transform: translate3d(0, -10px, 0);
-  }
-  60% {
-    transform: translate3d(0, -5px, 0);
-  }
-}
-
-@keyframes flash {
-  0%, 50%, 100% {
-        opacity: 1;
-    }
-  25%, 75% {
-    opacity: 0.5;
-    }
-}
-
-/* ===== ANIMAZIONI LOADER ===== */
-@keyframes spin {
-    from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes dots {
-  0%, 20% {
-    color: rgba(0,0,0,0);
-    text-shadow: 0.25em 0 0 rgba(0,0,0,0), 0.5em 0 0 rgba(0,0,0,0);
-  }
-  40% {
-    color: currentColor;
-    text-shadow: 0.25em 0 0 rgba(0,0,0,0), 0.5em 0 0 rgba(0,0,0,0);
-  }
-  60% {
-    text-shadow: 0.25em 0 0 currentColor, 0.5em 0 0 rgba(0,0,0,0);
-  }
-  80%, 100% {
-    text-shadow: 0.25em 0 0 currentColor, 0.5em 0 0 currentColor;
-  }
-}
-
-/* ===== ANIMAZIONI NOTIFICHE ===== */
-@keyframes slideInUp {
-    from {
-    transform: translate3d(0, 100%, 0);
-    }
-    to {
-    transform: translate3d(0, 0, 0);
-    }
-}
-
-@keyframes slideInDown {
-    from {
-    transform: translate3d(0, -100%, 0);
-  }
-  to {
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-/* ===== ANIMAZIONE RIPPLE ===== */
-@keyframes ripple {
-  0% {
-    transform: scale3d(0, 0, 1);
-    opacity: 0.5;
-  }
-  100% {
-    transform: scale3d(2, 2, 1);
-        opacity: 0;
-    }
-}
-
-/* ===== NUOVE ANIMAZIONI AVANZATE ===== */
-@keyframes floatY {
-  0%, 100% {
-    transform: translateY(0) translateZ(0);
-  }
-  50% {
-    transform: translateY(-6px) translateZ(0);
-  }
-}
-
-@keyframes floatX {
-  0%, 100% {
-    transform: translateX(0) translateZ(0);
-  }
-  50% {
-    transform: translateX(6px) translateZ(0);
-    }
-}
-
-@keyframes rotateIn {
-    from {
-    transform: rotate3d(0, 0, 1, -15deg) scale3d(0.95, 0.95, 1);
-        opacity: 0;
-    }
-    to {
-    transform: rotate3d(0, 0, 1, 0deg) scale3d(1, 1, 1);
-        opacity: 1;
-    }
-}
-
-@keyframes perspectiveIn {
-  0% {
-    transform: perspective(800px) rotateY(25deg) scale(0.9);
-        opacity: 0;
-    }
-  100% {
-    transform: perspective(800px) rotateY(0) scale(1);
-        opacity: 1;
-    }
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -100% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-/* ===== CLASSI DI ANIMAZIONE ===== */
-.fade-in {
-  animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  will-change: transform, opacity;
-}
-
-.fade-in-up {
-  animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  will-change: transform, opacity;
-}
-
-.fade-in-down {
-  animation: fadeInDown 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  will-change: transform, opacity;
-}
-
-.fade-in-left {
-  animation: fadeInLeft 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  will-change: transform, opacity;
-}
-
-.fade-in-right {
-  animation: fadeInRight 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  will-change: transform, opacity;
-}
-
-.zoom-in {
-  animation: zoomIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  will-change: transform, opacity;
 }
 
 .slide-in-left {
-  animation: slideInLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  will-change: transform;
+  animation: slideInLeft 0.5s ease forwards;
+  }
+
+/* Slide in da destra */
+@keyframes slideInRight {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 .slide-in-right {
-  animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  will-change: transform;
+  animation: slideInRight 0.5s ease forwards;
 }
 
-.rotate-in {
-  animation: rotateIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  will-change: transform, opacity;
+/* Apparizione con zoom */
+@keyframes zoomIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+}
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
-.perspective-in {
-  animation: perspectiveIn 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  will-change: transform, opacity;
+.zoom-in {
+  animation: zoomIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
-.fade-out {
-  animation: fadeOut 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  will-change: transform, opacity;
-}
+/* ===== ANIMAZIONI DI ATTENZIONE ===== */
 
-.fade-out-up {
-  animation: fadeOutUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  will-change: transform, opacity;
-}
-
-.fade-out-down {
-  animation: fadeOutDown 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  will-change: transform, opacity;
-}
-
-.zoom-out {
-  animation: zoomOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  will-change: transform, opacity;
+/* Pulsazione */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
 }
 
 .pulse {
-  animation: pulse 2s ease-in-out infinite;
-  will-change: transform, box-shadow;
+  animation: pulse 1.5s ease infinite;
+}
+
+/* Tremolante */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
 }
 
 .shake {
-  animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-  transform: translate3d(0, 0, 0);
-  will-change: transform;
+  animation: shake 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  }
+
+/* Balzo */
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
 }
 
 .bounce {
-  animation: bounce 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform;
+  animation: bounce 1.5s ease infinite;
+}
+
+/* Effetto "tada" */
+@keyframes tada {
+  0% { transform: scale(1); }
+  10%, 20% { transform: scale(0.9) rotate(-3deg); }
+  30%, 50%, 70%, 90% { transform: scale(1.1) rotate(3deg); }
+  40%, 60%, 80% { transform: scale(1.1) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+.tada {
+  animation: tada 1.5s ease;
+}
+
+/* Flash */
+@keyframes flash {
+  0%, 50%, 100% { opacity: 1; }
+  25%, 75% { opacity: 0.5; }
 }
 
 .flash {
-  animation: flash 0.8s ease;
-  will-change: opacity;
+  animation: flash 1.5s ease;
+}
+
+/* Rotazione */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .spin {
-  animation: spin 1s linear infinite;
-  will-change: transform;
+  animation: spin 1.5s linear infinite;
 }
 
-.float-y {
-  animation: floatY 4s ease-in-out infinite;
-  will-change: transform;
+/* Caricamento a tre puntini */
+@keyframes loadingDots {
+  0% { content: "."; }
+  33% { content: ".."; }
+  66% { content: "..."; }
+  100% { content: "."; }
 }
 
-.float-x {
-  animation: floatX 4s ease-in-out infinite;
-  will-change: transform;
+.loading-dots::after {
+  content: ".";
+  animation: loadingDots 1.5s infinite steps(1);
 }
 
-.dots {
-  animation: dots 1.5s infinite;
+/* ===== ANIMAZIONI DI USCITA ===== */
+
+/* Dissolvenza */
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
-/* ===== EFFETTI DI PARALLASSE ===== */
-.parallax-container {
-  perspective: 1000px;
-  overflow: hidden;
+.fade-out {
+  animation: fadeOut 0.5s ease forwards;
+  }
+
+/* Uscita verso l'alto */
+@keyframes slideOutUp {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
 }
 
-.parallax-layer {
-  transform-style: preserve-3d;
-  position: relative;
-  will-change: transform;
+.slide-out-up {
+  animation: slideOutUp 0.5s ease forwards;
+  }
+
+/* Uscita verso il basso */
+@keyframes slideOutDown {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(20px);
+    opacity: 0;
+  }
 }
 
-.parallax-layer-1 {
-  transform: translateZ(-100px) scale(1.15);
+.slide-out-down {
+  animation: slideOutDown 0.5s ease forwards;
+    }
+
+/* Riduzione con zoom */
+@keyframes zoomOut {
+    from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.95);
+    opacity: 0;
+  }
 }
 
-.parallax-layer-2 {
-  transform: translateZ(-50px) scale(1.1);
+.zoom-out {
+  animation: zoomOut 0.5s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards;
 }
 
-.parallax-layer-3 {
-  transform: translateZ(0) scale(1);
+/* ===== ANIMAZIONI DI SFONDO ===== */
+
+/* Sfondo con gradiente animato */
+@keyframes gradientFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-.parallax-layer-4 {
-  transform: translateZ(50px) scale(0.95);
+.gradient-flow {
+  background: linear-gradient(270deg, var(--primary-color), var(--secondary-color), var(--accent-color));
+  background-size: 600% 600%;
+  animation: gradientFlow 15s ease infinite;
 }
 
-/* ===== LOADER COMPONENTS ===== */
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(var(--primary-rgb), 0.3);
-  border-radius: 50%;
-  border-top-color: var(--primary);
-  animation: spin 1s linear infinite;
-  will-change: transform;
+/* ===== ANIMAZIONI PER ELEMENTI SPECIFICI ===== */
+
+/* Card che si alza al passaggio del mouse */
+.card-hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.dots-loader::after {
-  content: '.';
-  animation: dots 1.5s infinite;
+.card-hover-lift:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
 }
 
-/* ===== EFFETTI DI SHIMMER (SCHELETRO DI CARICAMENTO) ===== */
-.shimmer {
-  background: linear-gradient(
-    90deg,
-    var(--hover-bg) 0%,
-    var(--surface-bg) 50%,
-    var(--hover-bg) 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  will-change: background-position;
-}
-
-/* ===== EFFETTO RIPPLE ===== */
-.ripple-effect {
-  position: absolute;
-  background-color: rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  width: 100px;
-  height: 100px;
-  margin-top: -50px;
-  margin-left: -50px;
-  animation: ripple 0.6s linear;
-  pointer-events: none;
-  z-index: 10;
-  transform: translate3d(0, 0, 0);
-  will-change: transform, opacity;
-}
-
-[data-theme="dark"] .ripple-effect {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-/* ===== ANIMAZIONI UI ===== */
-.slide-in {
-  animation: slideInLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  will-change: transform;
-}
-
-.slide-out {
-  animation: slideOutRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  will-change: transform;
-}
-
-/* ===== ANIMAZIONI TOAST ===== */
-.toast-container {
-  position: fixed;
-  right: 20px;
-  top: 80px;
-  z-index: var(--z-toast);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-width: 350px;
-  pointer-events: none;
-}
-
-.toast {
-  opacity: 0;
-  transform: translate3d(100%, 0, 0);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform, opacity;
-  pointer-events: auto;
-}
-
-.toast.show {
-        opacity: 1;
-  transform: translate3d(0, 0, 0);
-}
-
-.toast.hiding {
-  opacity: 0;
-  transform: translate3d(100%, 0, 0);
-}
-
-/* ===== ANIMAZIONI SIDEBAR ===== */
-.sidebar {
-  transform: translate3d(-100%, 0, 0);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform;
-}
-
-.sidebar.show,
-.sidebar.slide-in {
-  transform: translate3d(0, 0, 0);
-}
-
-/* ===== ANIMAZIONI DIALOG ===== */
-.confirmation-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: var(--z-modal);
-  opacity: 0;
-  visibility: hidden;
+/* Pulsante che si espande al passaggio del mouse */
+.btn-hover-expand {
   transition: all 0.3s ease;
 }
 
-.confirmation-overlay.show {
-  opacity: 1;
-  visibility: visible;
+.btn-hover-expand:hover {
+  transform: scale(1.05);
+  letter-spacing: 0.5px;
 }
 
-.confirmation-dialog {
-  background-color: var(--surface-bg);
-  border-radius: var(--radius-lg);
-  width: 100%;
-  max-width: 400px;
-  box-shadow: var(--shadow-lg);
-  transform: translate3d(0, -20px, 0) scale(0.9);
+/* Rotazione lenta di icone */
+.icon-rotate {
+  transition: transform 0.5s ease;
+}
+
+.icon-rotate:hover {
+  transform: rotate(15deg);
+}
+
+/* Effetto ripple (onde) per pulsanti */
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-ripple::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.5);
   opacity: 0;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  will-change: transform, opacity;
+  border-radius: 100%;
+  transform: scale(1) translate(-50%, -50%);
+  transform-origin: top left;
 }
 
-.confirmation-dialog.show {
-  transform: translate3d(0, 0, 0) scale(1);
-  opacity: 1;
+.btn-ripple:active::after {
+  animation: ripple 0.6s ease-out;
 }
 
-/* ===== ANIMAZIONI BASATE SULLO SCROLL ===== */
-.reveal-on-scroll {
+@keyframes ripple {
+  0% {
+        opacity: 1;
+    transform: scale(0) translate(-50%, -50%);
+}
+  100% {
   opacity: 0;
-  transform: translateY(30px);
-  transition: opacity 0.6s ease, transform 0.6s ease;
-  will-change: transform, opacity;
+    transform: scale(25) translate(-50%, -50%);
+  }
 }
 
-.reveal-on-scroll.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
+/* ===== ANIMAZIONI SEQUENZIALI ===== */
 
-/* ===== STAGGERED ANIMATIONS ===== */
+/* Animazioni ritardate in sequenza */
 .stagger-items > * {
   opacity: 0;
   transform: translateY(10px);
-  will-change: transform, opacity;
+  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
+              opacity 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-.stagger-items.animate > * {
-  animation: fadeInUp 0.5s ease forwards;
-}
-
-.stagger-items.animate > *:nth-child(1) { animation-delay: 0.05s; }
-.stagger-items.animate > *:nth-child(2) { animation-delay: 0.1s; }
-.stagger-items.animate > *:nth-child(3) { animation-delay: 0.15s; }
-.stagger-items.animate > *:nth-child(4) { animation-delay: 0.2s; }
-.stagger-items.animate > *:nth-child(5) { animation-delay: 0.25s; }
-.stagger-items.animate > *:nth-child(6) { animation-delay: 0.3s; }
-.stagger-items.animate > *:nth-child(7) { animation-delay: 0.35s; }
-.stagger-items.animate > *:nth-child(8) { animation-delay: 0.4s; }
-.stagger-items.animate > *:nth-child(9) { animation-delay: 0.45s; }
-.stagger-items.animate > *:nth-child(10) { animation-delay: 0.5s; }
-
-/* ===== LOADING OVERLAY ===== */
-.loader-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: var(--surface-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  opacity: 1;
-  transition: opacity 0.3s ease;
-}
-
-.loader-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-  transform: translateY(10px);
-  animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.loader-content .spinner {
-  width: 60px;
-  height: 60px;
-}
-
-.loader-content p {
-  color: var(--text-secondary);
-  font-size: var(--font-size-md);
-  margin: 0;
-}
-
-/* ===== APP BANNER ===== */
-.app-banner {
-  position: fixed;
-  left: 0;
-  right: 0;
-  background-color: var(--surface-bg);
-  padding: 12px 0;
-  box-shadow: var(--shadow-md);
-  z-index: var(--z-banner);
-  transform: translateY(-100%);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform;
-}
-
-.app-banner.app-banner-top {
-  top: 0;
-  transform: translateY(-100%);
-}
-
-.app-banner.app-banner-bottom {
-  bottom: 0;
-  transform: translateY(100%);
-}
-
-.app-banner.show {
-        transform: translateY(0);
-    }
-
-.app-banner-success {
-  background-color: var(--success);
-  color: white;
-}
-
-.app-banner-warning {
-  background-color: var(--warning);
-  color: white;
-}
-
-.app-banner-danger {
-  background-color: var(--danger);
-  color: white;
-}
-
-.app-banner-info {
-  background-color: var(--info);
-  color: white;
-}
-
-.banner-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.banner-content .btn-close {
-  background: transparent;
-  border: none;
-  color: currentColor;
-  opacity: 0.7;
-  cursor: pointer;
-  padding: 0;
-  font-size: 1.2rem;
-}
-
-.banner-content .btn-close:hover {
-  opacity: 1;
-}
-
-/* ===== TRANSIZIONI DI PAGINA ===== */
-.page-transition {
-  position: relative;
-  opacity: 0;
-  transform: translateY(10px);
-  transition: opacity 0.4s ease, transform 0.4s ease;
-  will-change: transform, opacity;
-}
-
-.page-transition.active {
+.stagger-items.animate > *:nth-child(1) {
   opacity: 1;
   transform: translateY(0);
+  transition-delay: 0.1s;
 }
 
-/* Animazioni per feedback azioni */
-.action-feedback {
-    position: fixed;
-    top: 60px;
-    left: 50%;
-    transform: translateX(-50%) translateY(-100%);
-    background-color: rgba(33, 37, 41, 0.9);
-    color: white;
-    padding: 0.75rem 1.25rem;
-    border-radius: 4px;
-    z-index: 1080;
+.stagger-items.animate > *:nth-child(2) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.2s;
+}
+
+.stagger-items.animate > *:nth-child(3) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.3s;
+}
+
+.stagger-items.animate > *:nth-child(4) {
+  opacity: 1;
+        transform: translateY(0);
+  transition-delay: 0.4s;
+}
+
+.stagger-items.animate > *:nth-child(5) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.5s;
+}
+
+.stagger-items.animate > *:nth-child(n+6) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.6s;
+}
+
+/* ===== ANIMAZIONI DI PAGINA ===== */
+
+.page-transition {
+  animation: pageFadeIn 0.5s ease;
+}
+
+@keyframes pageFadeIn {
+  from {
     opacity: 0;
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
-                opacity 0.3s ease;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    display: flex;
-    align-items: center;
-    font-weight: 500;
-    max-width: calc(100% - 2rem);
-}
-
-.action-feedback.show {
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(10px);
+  }
+  to {
     opacity: 1;
-}
-
-.action-feedback.success {
-    background-color: rgba(var(--success-rgb), 0.9);
-}
-
-.action-feedback.error {
-    background-color: rgba(var(--danger-rgb), 0.9);
-}
-
-.action-feedback.warning {
-    background-color: rgba(var(--warning-rgb), 0.9);
-}
-
-.action-feedback.info {
-    background-color: rgba(var(--primary-rgb), 0.9);
-}
-
-/* Componente PWA Install */
-.pwa-install-prompt {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: var(--bs-body-bg);
-    border-top: 1px solid var(--border-color);
-    z-index: 1040;
-    padding: 1rem;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-    transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.pwa-install-prompt:not(.d-none) {
     transform: translateY(0);
 }
-
-/* Animazioni per barra di ricerca globale */
-.global-search-results {
-    max-height: 400px;
-    overflow-y: auto;
 }
 
-.global-search .search-shortcut {
-    opacity: 0.5;
-    transition: opacity 0.3s ease;
+/* ===== ANIMAZIONI LOADER ===== */
+
+/* Spinner di caricamento */
+.loader-spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-left-color: var(--primary-color);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spinner 1s linear infinite;
 }
 
-.global-search:hover .search-shortcut {
-    opacity: 1;
+@keyframes spinner {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-.global-search .form-control:focus ~ .search-shortcut {
-    opacity: 0;
-    pointer-events: none;
-}
-
-.global-search kbd {
-    background: none;
-    font-size: 0.75rem;
-    padding: 0;
-    border: none;
-}
-
-/* Automazioni multi-step */
-.step-flow {
+/* Caricamento con puntini */
+.loader-dots {
     display: flex;
-    flex-wrap: wrap;
+  justify-content: center;
     align-items: center;
-    margin-bottom: 2rem;
 }
 
-.step-item {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
+.loader-dots span {
+  width: 8px;
+  height: 8px;
+  margin: 0 3px;
     border-radius: 50%;
-    background-color: var(--bs-tertiary-bg);
-    color: var(--bs-secondary-color);
-    font-weight: 600;
-    transition: all 0.3s ease;
-    position: relative;
-    z-index: 1;
+  background-color: var(--primary-color);
+  opacity: 0.6;
 }
 
-.step-connector {
-    flex: 1;
-    height: 2px;
-    background-color: var(--bs-tertiary-bg);
-    transition: background-color 0.3s ease;
-    margin: 0 0.5rem;
-    min-width: 2rem;
+.loader-dots span:nth-child(1) {
+  animation: dots 1.4s infinite ease-in-out;
 }
 
-.step-item.active {
-    background-color: var(--primary);
-    color: white;
-    box-shadow: 0 0 0 5px rgba(var(--primary-rgb), 0.2);
+.loader-dots span:nth-child(2) {
+  animation: dots 1.4s infinite ease-in-out 0.2s;
 }
 
-.step-item.completed {
-    background-color: var(--success);
-    color: white;
+.loader-dots span:nth-child(3) {
+  animation: dots 1.4s infinite ease-in-out 0.4s;
 }
 
-.step-connector.active {
-    background-color: var(--primary);
+@keyframes dots {
+  0%, 80%, 100% { 
+    transform: scale(0); 
+    opacity: 0.3;
 }
-
-/* Animazione di entrata per gli step */
-@keyframes slideInStep {
-    from {
-        opacity: 0;
-        transform: translateX(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-.step-content {
-    display: none;
-    opacity: 0;
-}
-
-.step-content.active {
-    display: block;
-    animation: slideInStep 0.5s forwards;
-}
-
-/* Effetti di transizione tra step */
-.fade-transition-enter {
-    opacity: 0;
-}
-
-.fade-transition-enter-active {
-    opacity: 1;
-    transition: opacity 200ms;
-}
-
-.fade-transition-exit {
+  40% { 
+    transform: scale(1); 
     opacity: 1;
 }
-
-.fade-transition-exit-active {
-    opacity: 0;
-    transition: opacity 200ms;
 }
 
-/* Gesture controls per dispositivi touch */
-.swipeable-card {
-    touch-action: pan-y;
+/* Barra di progresso */
+.progress-bar-animated {
     position: relative;
-    transition: transform 0.3s ease;
+  overflow: hidden;
+  height: 4px;
+  background-color: rgba(var(--primary-rgb), 0.2);
+  border-radius: 2px;
 }
 
-.swipeable-card::after {
-    content: "";
+.progress-bar-animated::after {
+  content: '';
     position: absolute;
+  top: 0;
     left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), 
-                rgba(255, 255, 255, 0.1), 
-                transparent 80%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
+  height: 100%;
+  width: 30%;
+  background-color: var(--primary-color);
+  border-radius: 2px;
+  animation: progressBar 2s ease-in-out infinite;
 }
 
-.swipeable-card:hover::after {
-    opacity: 1;
+@keyframes progressBar {
+  0% {
+    left: -30%;
+  }
+  100% {
+    left: 100%;
+  }
 }
 
-/* Supporto lazy loading con animazioni */
-.lazy-load-container {
-    position: relative;
-    min-height: 200px;
+/* ===== MIGLIORAMENTO ACCESSIBILITÀ ===== */
+
+/* Riduci animazioni per utenti con motion sensitivity */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .hardware-accelerated,
+  .transition-all,
+  .transition-transform,
+  .transition-opacity {
+    transition: none !important;
 }
 
-.lazy-load-placeholder {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--bs-tertiary-bg);
-    border-radius: var(--border-radius);
-    transition: opacity 0.3s ease;
+  .stagger-items > * {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+    transition: none !important;
 }
 
-.lazy-load-content {
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.lazy-loaded .lazy-load-placeholder {
-    opacity: 0;
-    pointer-events: none;
-}
-
-.lazy-loaded .lazy-load-content {
-    opacity: 1;
+  .loader-dots span,
+  .progress-bar-animated::after {
+    animation: none !important;
+  }
 } 
