@@ -179,12 +179,12 @@ class KickWebSocketClient:
     async def _send_message(self, message: Dict):
         """Invia un messaggio tramite la connessione WebSocket."""
         if self.ws and self.connected:
-        try:
-            await self.ws.send(json.dumps(message))
-            return True
-        except Exception as e:
-            logger.error(f"Errore nell'invio del messaggio WebSocket: {e}")
-            self.connected = False
+            try:
+                await self.ws.send(json.dumps(message))
+                return True
+            except Exception as e:
+                logger.error(f"Errore nell'invio del messaggio WebSocket: {e}")
+                self.connected = False
                 await self._reconnect()
                 return False
         else:
@@ -270,6 +270,9 @@ class KickWebSocketClient:
                     user["is_moderator"],
                     user["is_vip"]
                 )
+                
+            # Passa il messaggio al metodo handle_message di M4Bot per i giochi
+            await self.bot.handle_message(channel_id, channel_name, user, content)
                 
             # Se è un comando, passalo al gestore comandi
             if content.startswith("!"):

@@ -1,0 +1,83 @@
+{
+  "services": {
+    "web": {
+      "type": "systemd",
+      "unit": "m4bot-web.service",
+      "check_type": "systemd",
+      "max_restarts": 5,
+      "failure_threshold": 3,
+      "description": "Servizio web principale di M4Bot"
+    },
+    "bot": {
+      "type": "systemd",
+      "unit": "m4bot-bot.service",
+      "check_type": "systemd",
+      "max_restarts": 5,
+      "failure_threshold": 3,
+      "description": "Servizio bot di M4Bot"
+    },
+    "database": {
+      "type": "systemd",
+      "unit": "postgresql.service",
+      "check_type": "systemd",
+      "max_restarts": 3,
+      "failure_threshold": 2,
+      "description": "Database PostgreSQL"
+    },
+    "redis": {
+      "type": "systemd",
+      "unit": "redis.service",
+      "check_type": "systemd",
+      "max_restarts": 3,
+      "failure_threshold": 2,
+      "description": "Redis per caching e code"
+    },
+    "nginx": {
+      "type": "systemd",
+      "unit": "nginx.service",
+      "check_type": "systemd",
+      "max_restarts": 3,
+      "failure_threshold": 2,
+      "description": "Server web Nginx"
+    },
+    "api": {
+      "type": "api",
+      "url": "http://localhost:8000/api/v1/status",
+      "expected_status": 200,
+      "max_restarts": 5,
+      "failure_threshold": 3,
+      "description": "API M4Bot"
+    }
+  },
+  "system": {
+    "check_interval": 60,
+    "service_check_interval": 30,
+    "cleanup_interval": 3600,
+    "max_restarts": 5,
+    "restart_window": 300,
+    "critical_cpu_threshold": 90,
+    "critical_memory_threshold": 90,
+    "critical_disk_threshold": 90,
+    "warning_cpu_threshold": 75,
+    "warning_memory_threshold": 75,
+    "warning_disk_threshold": 75
+  },
+  "notifications": {
+    "email": {
+      "enabled": true,
+      "recipients": ["admin@example.com"],
+      "min_severity": "warning"
+    },
+    "telegram": {
+      "enabled": false,
+      "bot_token": "",
+      "chat_id": "",
+      "min_severity": "critical"
+    },
+    "webhooks": {
+      "enabled": false,
+      "url": "https://example.com/webhook",
+      "min_severity": "critical"
+    }
+  }
+} 

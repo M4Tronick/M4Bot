@@ -31,7 +31,7 @@ class TranslationManager:
         self.config = config
         self.default_language = config.get("default_language", "it")
         self.languages_dir = config.get("languages_dir", "languages")
-        self.available_languages = config.get("available_languages", ["it", "en"])
+        self.available_languages = config.get("available_languages", ["it", "en", "es", "fr", "de"])
         self.translations = {}
         self.user_languages = {}
         

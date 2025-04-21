@@ -31,6 +31,7 @@ from bot.config import *
 
 # Importazione dei moduli
 from bot.kick_channel_points import KickChannelPoints
+from stability.monitoring.integrated_monitor import IntegratedMonitor
 
 # Assicurati che tutte le directory necessarie esistano
 directories_to_check = [
@@ -455,18 +456,40 @@ class Encryption:
             key: Chiave di crittografia (Fernet key)
         """
         # Assicurati che la chiave sia di 32 byte base64-encoded
+        self.temp_key_used = False
+        self.key = key
+        
         try:
+            if not key:
+                raise ValueError("La chiave di crittografia non può essere vuota")
+                
             if not isinstance(key, bytes):
                 key = key.encode('utf-8')
+                
             # Verifica se la chiave è già una chiave Fernet valida
             base64.urlsafe_b64decode(key + b'=' * (4 - len(key) % 4))
             self.fernet = Fernet(key)
+            logger.info("Inizializzazione crittografia completata con la chiave fornita")
         except Exception as e:
-            logger.error(f"Errore nell'inizializzazione della chiave Fernet: {e}")
+            logger.critical(f"Errore nell'inizializzazione della chiave Fernet: {e}")
+            logger.critical("ATTENZIONE: Utilizzo di una chiave temporanea. I dati crittografati non saranno recuperabili al riavvio!")
+            
             # Genera una nuova chiave Fernet valida
             from cryptography.fernet import Fernet
-            self.fernet = Fernet(Fernet.generate_key())
-            logger.warning("Utilizzando una chiave Fernet temporanea generata automaticamente")
+            temp_key = Fernet.generate_key()
+            self.fernet = Fernet(temp_key)
+            self.temp_key_used = True
+            
+            # Scrivi nel log la chiave generata per consentire un possibile recupero
+            logger.critical(f"Chiave temporanea generata: {temp_key.decode('utf-8')}")
+            logger.critical("Salvare questa chiave e impostarla come ENCRYPTION_KEY per recuperare i dati!")
+            
+            # Aggiungi al file di log per il recupero di emergenza
+            try:
+                with open("logs/security/encryption_emergency.log", "a") as f:
+                    f.write(f"{datetime.datetime.now().isoformat()} - CHIAVE TEMPORANEA: {temp_key.decode('utf-8')}\n")
+            except Exception as log_error:
+                logger.critical(f"Impossibile salvare la chiave temporanea nel log di emergenza: {log_error}")
     
     def encrypt(self, data: str) -> str:
         """
@@ -478,11 +501,24 @@ class Encryption:
         Returns:
             str: Dato criptato (base64)
         """
+        if self.temp_key_used:
+            logger.warning("Crittografia con chiave temporanea. I dati potrebbero non essere recuperabili al riavvio!")
+            
+        if not data:
+            logger.error("Tentativo di crittografare dati vuoti")
+            return ""
+            
         try:
             return self.fernet.encrypt(data.encode('utf-8')).decode('utf-8')
         except Exception as e:
-            logger.error(f"Errore nella crittografia dei dati: {e}")
-            return ""
+            error_msg = f"Errore nella crittografia dei dati: {e}"
+            logger.error(error_msg)
+            
+            # Registra l'errore in un file separato con più dettagli per il debug
+            self._log_encryption_error("encrypt", error_msg)
+            
+            # Rilancia l'eccezione per consentire all'applicazione di gestirla
+            raise EncryptionError(f"Impossibile crittografare i dati: {e}")
     
     def decrypt(self, encrypted_data: str) -> str:
         """
@@ -494,11 +530,53 @@ class Encryption:
         Returns:
             str: Dato decriptato
         """
+        if self.temp_key_used:
+            logger.warning("Decrittografia con chiave temporanea. I dati potrebbero non essere recuperabili al riavvio!")
+            
+        if not encrypted_data:
+            logger.error("Tentativo di decrittografare dati vuoti")
+            return ""
+            
         try:
             return self.fernet.decrypt(encrypted_data.encode('utf-8')).decode('utf-8')
         except Exception as e:
-            logger.error(f"Errore nella decrittografia dei dati: {e}")
-            return ""
+            error_msg = f"Errore nella decrittografia dei dati: {e}"
+            logger.error(error_msg)
+            
+            # Registra l'errore in un file separato per il debug
+            self._log_encryption_error("decrypt", error_msg)
+            
+            # Rilancia l'eccezione per consentire all'applicazione di gestirla
+            raise EncryptionError(f"Impossibile decrittografare i dati: {e}")
+    
+    def is_using_temp_key(self) -> bool:
+        """
+        Verifica se si sta utilizzando una chiave temporanea
+        
+        Returns:
+            bool: True se si sta utilizzando una chiave temporanea
+        """
+        return self.temp_key_used
+    
+    def _log_encryption_error(self, operation: str, error_msg: str):
+        """
+        Registra un errore di crittografia in un file separato
+        
+        Args:
+            operation: Operazione che ha causato l'errore (encrypt/decrypt)
+            error_msg: Messaggio di errore
+        """
+        try:
+            os.makedirs("logs/security", exist_ok=True)
+            
+            with open("logs/security/encryption_errors.log", "a") as f:
+                f.write(f"{datetime.datetime.now().isoformat()} - {operation.upper()}: {error_msg}\n")
+        except Exception as log_error:
+            logger.error(f"Impossibile registrare l'errore di crittografia nel file di log: {log_error}")
+
+class EncryptionError(Exception):
+    """Eccezione per errori di crittografia/decrittografia"""
+    pass
 
 class CommandHandler:
     """Gestisce i comandi del bot."""
@@ -728,6 +806,410 @@ class DiceGame(ChatGame):
                     f"{user['username']} si è unito al gioco dei dadi! 🎲"
                 )
 
+class MarbleGame(ChatGame):
+    """Implementazione di un gioco marble in chat."""
+    
+    def __init__(self, bot, channel_id: int, channel_name: str):
+        super().__init__(bot, channel_id, channel_name)
+        self.track_length = 10  # Lunghezza del percorso
+        self.marble_positions = {}  # Posizioni delle biglie
+        self.finished_marbles = []  # Biglie che hanno completato il percorso
+        self.race_active = False  # Indica se la gara è attualmente in corso
+        self.duration = 60  # Durata in secondi per le iscrizioni
+        self.betting_phase = False  # Indica se le scommesse sono aperte
+        self.betting_duration = 30  # Durata in secondi della fase di scommesse
+        self.bets = {}  # Scommesse degli utenti {better_id: {"target_id": id, "amount": punti}}
+        
+    async def start(self):
+        """Avvia il gioco marble."""
+        await super().start()
+        
+        # Annuncia l'inizio del gioco
+        await self.bot.api.send_chat_message(
+            self.channel_id, 
+            self.channel_name,
+            "🔮 Gioco Marble iniziato! Scrivi !marble per far partecipare la tua biglia alla gara. Hai 60 secondi per iscriverti!"
+        )
+        
+        # Attende il tempo stabilito per le partecipazioni
+        await asyncio.sleep(self.duration)
+        
+        # Inizia la gara se ci sono partecipanti
+        if not self.participants:
+            await self.bot.api.send_chat_message(
+                self.channel_id,
+                self.channel_name,
+                "Nessuno ha iscritto la propria biglia! La gara è annullata. 😢"
+            )
+            await self.stop()
+            return
+            
+        # Apri le scommesse se ci sono almeno 2 partecipanti
+        if len(self.participants) >= 2:
+            await self.open_betting()
+        else:
+            # Se c'è un solo partecipante, vai direttamente alla gara
+            await self.start_race()
+        
+    async def open_betting(self):
+        """Apre la fase di scommesse."""
+        self.betting_phase = True
+        
+        # Crea una lista di partecipanti per scommettere
+        participants_list = "\n".join([
+            f"{i+1}. {info['username']}" 
+            for i, (_, info) in enumerate(self.participants.items())
+        ])
+        
+        # Annuncia l'apertura delle scommesse
+        await self.bot.api.send_chat_message(
+            self.channel_id,
+            self.channel_name,
+            f"💰 Fase di scommesse aperta! Scrivi !bet [numero] [punti] per scommettere.\n\nPartecipanti:\n{participants_list}\n\nHai {self.betting_duration} secondi per scommettere!"
+        )
+        
+        # Attende il tempo stabilito per le scommesse
+        await asyncio.sleep(self.betting_duration)
+        
+        # Chiude la fase di scommesse
+        self.betting_phase = False
+        
+        # Annuncia la fine delle scommesse
+        await self.bot.api.send_chat_message(
+            self.channel_id,
+            self.channel_name,
+            "💰 Fase di scommesse chiusa! La gara sta per iniziare..."
+        )
+        
+        # Inizia la gara
+        await self.start_race()
+        
+    async def start_race(self):
+        """Inizia la gara delle biglie."""
+        self.race_active = True
+        
+        # Inizializza le posizioni
+        for user_id in self.participants:
+            self.marble_positions[user_id] = 0
+            
+        # Annuncia l'inizio della gara
+        participants_count = len(self.participants)
+        await self.bot.api.send_chat_message(
+            self.channel_id,
+            self.channel_name,
+            f"🏁 La gara di biglie inizia! {participants_count} biglie sono sulla linea di partenza!"
+        )
+        
+        # Simula la gara con aggiornamenti periodici
+        round_count = 0
+        max_rounds = 10  # Limite massimo di round per evitare gare infinite
+        
+        while self.race_active and round_count < max_rounds:
+            round_count += 1
+            
+            # Muovi le biglie
+            await self.update_race()
+            
+            # Mostra lo stato della gara
+            await self.show_race_status()
+            
+            # Verifica se la gara è finita
+            if len(self.finished_marbles) >= len(self.participants) or round_count >= max_rounds:
+                self.race_active = False
+            else:
+                # Piccola pausa tra i round
+                await asyncio.sleep(2)
+        
+        # Annuncia i risultati finali
+        await self.announce_results()
+        
+        # Distribuisci le vincite delle scommesse
+        await self.payout_bets()
+        
+        # Termina il gioco
+        await self.stop()
+        
+    async def update_race(self):
+        """Aggiorna le posizioni delle biglie nella gara."""
+        # Per ogni biglia ancora in gara
+        for user_id, position in list(self.marble_positions.items()):
+            if user_id in self.marble_positions and position < self.track_length:
+                # Calcola un movimento casuale per la biglia (1-3 spazi)
+                move = random.randint(1, 3)
+                new_position = position + move
+                
+                # Aggiorna la posizione
+                if new_position >= self.track_length:
+                    # La biglia ha raggiunto il traguardo
+                    self.marble_positions[user_id] = self.track_length
+                    self.finished_marbles.append(user_id)
+                else:
+                    self.marble_positions[user_id] = new_position
+    
+    async def show_race_status(self):
+        """Mostra lo stato attuale della gara."""
+        # Crea una rappresentazione visiva della gara
+        status_lines = []
+        
+        for user_id, position in sorted(self.marble_positions.items(), 
+                                       key=lambda x: x[1], 
+                                       reverse=True):
+            username = self.participants[user_id]["username"]
+            progress = position / self.track_length * 100
+            
+            if user_id in self.finished_marbles:
+                # Biglia che ha completato il percorso
+                status = f"{username}: 🏁 ARRIVATO! ({progress:.0f}%)"
+            else:
+                # Biglia ancora in gara
+                track = "▒" * position + "░" * (self.track_length - position)
+                marble = "🔮"
+                status = f"{username}: {marble}{track} ({progress:.0f}%)"
+                
+            status_lines.append(status)
+            
+        # Invia l'aggiornamento in chat
+        status_message = "\n".join(status_lines)
+        await self.bot.api.send_chat_message(
+            self.channel_id,
+            self.channel_name,
+            f"Stato della gara di biglie:\n{status_message}"
+        )
+        
+    async def announce_results(self):
+        """Annuncia i risultati finali della gara."""
+        if not self.finished_marbles and not self.participants:
+            await self.bot.api.send_chat_message(
+                self.channel_id,
+                self.channel_name,
+                "La gara è terminata, ma nessuna biglia ha completato il percorso!"
+            )
+            return
+            
+        # Prepara i risultati
+        results = []
+        position = 1
+        
+        # Prima i giocatori che hanno completato il percorso
+        for user_id in self.finished_marbles:
+            username = self.participants[user_id]["username"]
+            results.append(f"{position}° posto: {username}")
+            position += 1
+            
+        # Poi i giocatori ancora in gara, ordinati per posizione
+        remaining = [(user_id, pos) for user_id, pos in self.marble_positions.items() 
+                    if user_id not in self.finished_marbles]
+        remaining.sort(key=lambda x: x[1], reverse=True)
+        
+        for user_id, _ in remaining:
+            username = self.participants[user_id]["username"]
+            results.append(f"{position}° posto: {username}")
+            position += 1
+            
+        # Invia i risultati in chat
+        results_message = "\n".join(results)
+        await self.bot.api.send_chat_message(
+            self.channel_id,
+            self.channel_name,
+            f"🏆 Risultati finali della gara di biglie:\n{results_message}"
+        )
+        
+        # Assegna punti ai vincitori
+        if self.finished_marbles:
+            winner_id = self.finished_marbles[0]
+            winner_name = self.participants[winner_id]["username"]
+            
+            # Assegna punti al vincitore
+            await self.bot.update_user_points(
+                self.channel_id,
+                winner_id,
+                100  # Punti da assegnare al vincitore
+            )
+            
+            await self.bot.api.send_chat_message(
+                self.channel_id,
+                self.channel_name,
+                f"Congratulazioni {winner_name}! Hai vinto 100 punti come vincitore della gara di biglie! 🎉"
+            )
+            
+            # Assegna punti anche al secondo e terzo posto, se presenti
+            if len(self.finished_marbles) > 1:
+                second_id = self.finished_marbles[1]
+                second_name = self.participants[second_id]["username"]
+                await self.bot.update_user_points(
+                    self.channel_id,
+                    second_id,
+                    50  # Punti da assegnare al secondo posto
+                )
+                await self.bot.api.send_chat_message(
+                    self.channel_id,
+                    self.channel_name,
+                    f"Complimenti a {second_name}! Hai guadagnato 50 punti per il secondo posto! 🥈"
+                )
+                
+            if len(self.finished_marbles) > 2:
+                third_id = self.finished_marbles[2]
+                third_name = self.participants[third_id]["username"]
+                await self.bot.update_user_points(
+                    self.channel_id,
+                    third_id,
+                    25  # Punti da assegnare al terzo posto
+                )
+                await self.bot.api.send_chat_message(
+                    self.channel_id,
+                    self.channel_name,
+                    f"Complimenti a {third_name}! Hai guadagnato 25 punti per il terzo posto! 🥉"
+                )
+    
+    async def payout_bets(self):
+        """Paga le scommesse vincenti."""
+        if not self.bets or not self.finished_marbles:
+            return
+            
+        # Crea una lista dei vincitori delle scommesse
+        bet_winners = []
+        
+        # Per ogni scommessa
+        for better_id, bet_info in self.bets.items():
+            target_id = bet_info["target_id"]
+            amount = bet_info["amount"]
+            
+            # Verifica se il bersaglio della scommessa è arrivato primo
+            if target_id in self.finished_marbles and self.finished_marbles[0] == target_id:
+                # Calcola la vincita (2.5x la scommessa)
+                winnings = int(amount * 2.5)
+                
+                # Assegna i punti
+                await self.bot.update_user_points(
+                    self.channel_id,
+                    better_id,
+                    winnings
+                )
+                
+                # Aggiungi alla lista dei vincitori
+                better_name = bet_info.get("better_name", "Scommettitore")
+                bet_winners.append(f"{better_name} (+{winnings} punti)")
+            
+            # Se il bersaglio è arrivato secondo (1.5x)
+            elif len(self.finished_marbles) > 1 and target_id in self.finished_marbles and self.finished_marbles[1] == target_id:
+                winnings = int(amount * 1.5)
+                await self.bot.update_user_points(
+                    self.channel_id,
+                    better_id,
+                    winnings
+                )
+                better_name = bet_info.get("better_name", "Scommettitore")
+                bet_winners.append(f"{better_name} (+{winnings} punti)")
+                
+            # Se il bersaglio è arrivato terzo (1.2x)
+            elif len(self.finished_marbles) > 2 and target_id in self.finished_marbles and self.finished_marbles[2] == target_id:
+                winnings = int(amount * 1.2)
+                await self.bot.update_user_points(
+                    self.channel_id,
+                    better_id,
+                    winnings
+                )
+                better_name = bet_info.get("better_name", "Scommettitore")
+                bet_winners.append(f"{better_name} (+{winnings} punti)")
+                
+        # Annuncia i vincitori delle scommesse, se ce ne sono
+        if bet_winners:
+            winners_message = "\n".join(bet_winners)
+            await self.bot.api.send_chat_message(
+                self.channel_id,
+                self.channel_name,
+                f"💰 Vincitori delle scommesse:\n{winners_message}"
+            )
+        
+    async def handle_message(self, user: dict, message: str):
+        """Gestisce i messaggi durante il gioco marble."""
+        if not self.active:
+            return
+            
+        message_parts = message.strip().lower().split()
+        
+        # Gestione comando !marble per partecipare
+        if message_parts[0] == "!marble":
+            # Non accetta più partecipanti se la gara è già iniziata o se sono in corso le scommesse
+            if self.race_active or self.betting_phase:
+                return
+                
+            # Aggiungi l'utente ai partecipanti
+            if user["id"] not in self.participants:
+                self.participants[user["id"]] = {
+                    "id": user["id"],
+                    "username": user["username"]
+                }
+                
+                await self.bot.api.send_chat_message(
+                    self.channel_id,
+                    self.channel_name,
+                    f"{user['username']} ha iscritto la sua biglia alla gara! 🔮"
+                )
+                
+        # Gestione comando !bet per scommettere
+        elif self.betting_phase and message_parts[0] == "!bet" and len(message_parts) >= 3:
+            try:
+                # Estrai il numero del partecipante e l'importo della scommessa
+                participant_num = int(message_parts[1])
+                bet_amount = int(message_parts[2])
+                
+                # Verifica se il numero del partecipante è valido
+                if participant_num < 1 or participant_num > len(self.participants):
+                    await self.bot.api.send_chat_message(
+                        self.channel_id,
+                        self.channel_name,
+                        f"{user['username']}, il numero del partecipante non è valido. Usa un numero da 1 a {len(self.participants)}."
+                    )
+                    return
+                    
+                # Verifica se l'importo della scommessa è valido
+                if bet_amount < 10:
+                    await self.bot.api.send_chat_message(
+                        self.channel_id,
+                        self.channel_name,
+                        f"{user['username']}, la scommessa minima è di 10 punti."
+                    )
+                    return
+                    
+                # Verifica se l'utente ha abbastanza punti
+                user_points = await self.bot.point_system.get_user_points(self.channel_id, user["id"])
+                if user_points < bet_amount:
+                    await self.bot.api.send_chat_message(
+                        self.channel_id,
+                        self.channel_name,
+                        f"{user['username']}, non hai abbastanza punti per questa scommessa. Hai {user_points} punti."
+                    )
+                    return
+                
+                # Ottieni l'ID del partecipante selezionato
+                participant_id = list(self.participants.keys())[participant_num - 1]
+                participant_name = self.participants[participant_id]["username"]
+                
+                # Rimuovi i punti scommessi
+                await self.bot.update_user_points(self.channel_id, user["id"], -bet_amount)
+                
+                # Salva la scommessa
+                self.bets[user["id"]] = {
+                    "target_id": participant_id,
+                    "amount": bet_amount,
+                    "better_name": user["username"]
+                }
+                
+                # Conferma la scommessa
+                await self.bot.api.send_chat_message(
+                    self.channel_id,
+                    self.channel_name,
+                    f"💰 {user['username']} ha scommesso {bet_amount} punti su {participant_name}!"
+                )
+                
+            except (ValueError, IndexError):
+                await self.bot.api.send_chat_message(
+                    self.channel_id,
+                    self.channel_name,
+                    f"{user['username']}, formato scommessa non valido. Usa !bet [numero] [punti]"
+                )
+
 class PointSystem:
     """Gestisce il sistema di punti del canale."""
     
@@ -794,6 +1276,7 @@ class M4Bot:
         self.timed_tasks = {}
         self.start_time = time.time()
         self.channels = {}  # Dizionario per tracciare i canali connessi
+        self.monitor = None  # Sistema di monitoraggio integrato
         
     async def initialize(self):
         """Inizializza il bot e si connette alle risorse necessarie."""
@@ -815,6 +1298,16 @@ class M4Bot:
             self.kick_channel_points = KickChannelPoints(self)
             await self.kick_channel_points.setup_database()
             
+            # Inizializzazione del sistema di monitoraggio integrato
+            config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
+                                     "config", "monitoring.json")
+            schema_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
+                                    "config", "schemas")
+            
+            self.monitor = IntegratedMonitor(config_path, schema_dir)
+            await self.monitor.start()
+            logger.info("Sistema di monitoraggio integrato avviato")
+            
             logger.info("Inizializzazione del bot completata")
             return True
         except Exception as e:
@@ -835,6 +1328,11 @@ class M4Bot:
         if self.kick_channel_points:
             for channel_id in list(self.kick_channel_points.update_tasks.keys()):
                 await self.kick_channel_points.stop_points_tracker(channel_id)
+        
+        # Ferma il sistema di monitoraggio integrato
+        if self.monitor:
+            await self.monitor.stop()
+            logger.info("Sistema di monitoraggio integrato arrestato")
                 
         logger.info("Shutdown del bot completato")
         
@@ -874,6 +1372,8 @@ class M4Bot:
         # Crea un nuovo gioco
         if game_type.lower() == "dadi":
             game = DiceGame(self, channel_id, channel_name)
+        elif game_type.lower() == "marble":
+            game = MarbleGame(self, channel_id, channel_name)
         else:
             logger.error(f"Tipo di gioco non supportato: {game_type}")
             return False
@@ -958,6 +1458,12 @@ class M4Bot:
             "database": {
                 "connected": self.db.pool is not None if hasattr(self, 'db') else False,
                 "status": "Connesso" if self.db.pool is not None else "Disconnesso" if hasattr(self, 'db') else "Non inizializzato"
+            },
+            "monitoring": {
+                "active": self.monitor is not None and self.monitor.running if hasattr(self, 'monitor') else False,
+                "metrics_count": len(self.monitor.metrics) if hasattr(self, 'monitor') and self.monitor else 0,
+                "services_monitored": len(self.monitor.services_status) if hasattr(self, 'monitor') and self.monitor else 0,
+                "configs_validated": len(self.monitor.config_status) if hasattr(self, 'monitor') and self.monitor else 0
             }
         }
         
@@ -987,7 +1493,39 @@ class M4Bot:
                 "count": len(webhooks)
             }
         
+        # Aggiungi le metriche di sistema dal monitor se attivo
+        if self.monitor and self.monitor.running:
+            # Aggiungi le metriche principali
+            if "system.cpu.usage_percent" in self.monitor.metrics:
+                status["monitoring"]["cpu_usage"] = self.monitor.metrics["system.cpu.usage_percent"].value
+            
+            if "system.memory.usage_percent" in self.monitor.metrics:
+                status["monitoring"]["memory_usage"] = self.monitor.metrics["system.memory.usage_percent"].value
+            
+            if "system.disk.usage_percent" in self.monitor.metrics:
+                status["monitoring"]["disk_usage"] = self.monitor.metrics["system.disk.usage_percent"].value
+        
         return status
+
+    async def handle_message(self, channel_id: int, channel_name: str, user: dict, message: str):
+        """Gestisce un messaggio ricevuto."""
+        # Controlla se c'è un gioco attivo in questo canale
+        if channel_id in self.active_games and self.active_games[channel_id].active:
+            # Passa il messaggio al gestore del gioco
+            await self.active_games[channel_id].handle_message(user, message)
+            
+            # Controlla se è un comando !bet e il gioco è Marble
+            msg_parts = message.strip().lower().split()
+            if len(msg_parts) > 0 and msg_parts[0] == "!bet" and isinstance(self.active_games[channel_id], MarbleGame):
+                # Questo messaggio è già gestito dal gioco, qui possiamo fare log o altre operazioni supplementari
+                logger.info(f"Scommessa ricevuta da {user['username']} nel canale {channel_name}")
+            
+            # Se è un comando, non elaborarlo di nuovo
+            if message.startswith("!"):
+                return
+        
+        # Tenta di gestire il messaggio come un comando
+        await self.command_handler.handle_command(channel_id, channel_name, user, message)
 
 async def main():
     """Funzione principale per l'avvio del bot."""
