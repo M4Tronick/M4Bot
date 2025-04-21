@@ -64,10 +64,19 @@ try:
                         logger.info(f"Creata directory traduzioni: {base_path}")
                     except Exception as e:
                         logger.warning(f"Impossibile creare directory traduzioni {base_path}: {e}")
-                
-            # Chiama il metodo originale di FlaskBabel
-            super().init_app(app, **kwargs)
             
+            # Patch per compatibilità con Flask-Babel 4.0.0+
+            try:
+                # Chiama il metodo originale di FlaskBabel
+                super().init_app(app, **kwargs)
+            except Exception as e:
+                logger.warning(f"Errore nell'inizializzazione standard di Flask-Babel: {e}")
+                # Configurazione fallback per compatibilità
+                app.config.setdefault('BABEL_DEFAULT_LOCALE', self._default_locale)
+                app.config.setdefault('BABEL_DEFAULT_TIMEZONE', self._default_timezone)
+                app.extensions = getattr(app, 'extensions', {})
+                app.extensions['babel'] = self
+                
             # Applica patch per supportare funzioni async in Quart
             self._patch_for_quart()
             
@@ -115,6 +124,18 @@ try:
             self.localeselector = async_locale_selector.__get__(self, type(self))
             self.select_locale = self.localeselector
             
+            # Metodo per verificare se l'estensione babel è presente
+            def ensure_babel_extension(app):
+                """Assicura che l'estensione babel sia registrata nell'app"""
+                if not hasattr(app, 'extensions'):
+                    app.extensions = {}
+                if 'babel' not in app.extensions:
+                    app.extensions['babel'] = self
+                    logger.info("Registrata estensione 'babel' nell'app")
+                return True
+            
+            self.ensure_babel_extension = ensure_babel_extension
+            
             # Aggiungi metodo per ricaricare le traduzioni
             def reload_translations(babel_instance):
                 if hasattr(babel_instance, '_get_translations_cache'):
@@ -143,6 +164,16 @@ except ImportError as e:
         def init_app(self, app):
             self.app = app
             
+            # Configurazione fallback
+            app.config.setdefault('BABEL_DEFAULT_LOCALE', self._default_locale)
+            app.config.setdefault('BABEL_DEFAULT_TIMEZONE', self._default_timezone)
+            
+            # Assicurati che l'estensione sia registrata
+            if not hasattr(app, 'extensions'):
+                app.extensions = {}
+            app.extensions['babel'] = self
+            logger.info("Registrata estensione 'babel' nell'app (fallback)")
+            
         def localeselector(self, f):
             return f
             
@@ -150,4 +181,11 @@ except ImportError as e:
         
         def reload_translations(self):
             logger.warning("Impossibile ricaricare traduzioni: flask-babel non disponibile")
-            return False 
+            return False
+            
+        def ensure_babel_extension(self, app):
+            if not hasattr(app, 'extensions'):
+                app.extensions = {}
+            if 'babel' not in app.extensions:
+                app.extensions['babel'] = self
+            return True 
