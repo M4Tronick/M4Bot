@@ -1,125 +1,230 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
-{% block title %}{{ _('M4Bot - Il Bot per Kick.com') }}{% endblock %}
+{% block title %}M4Bot - Gestione Streaming e Community{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modern-effects.css') }}">
+{% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<section class="py-5 text-center">
-    <div class="row py-lg-5">
-        <div class="col-lg-8 col-md-10 mx-auto">
-            <h1 class="fw-bold">M4Bot</h1>
-            <p class="lead text-muted">{{ _('Il bot più completo e personalizzabile per Kick.com') }}</p>
-            <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4">
-                <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg px-4 gap-3">{{ _('Inizia Ora') }}</a>
-                <a href="#features" class="btn btn-outline-secondary btn-lg px-4">{{ _('Scopri di più') }}</a>
+<!-- Hero Section con Mesh Gradient -->
+<section class="hero-mesh">
+    <div class="hero-content">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 text-center">
+                    <h1 class="display-4 mb-4 text-gradient-animated" data-text="M4Bot">M4Bot</h1>
+                    <p class="lead mb-5">Piattaforma avanzata per la gestione di bot, community, integrazioni multipiattaforma e strumenti di streaming.</p>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="{{ url_for('login') }}" class="btn-advanced primary micro-click">Accedi</a>
+                        <a href="#features" class="btn-advanced secondary micro-click">Scopri di più</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Decorazioni blob -->
+    <div class="decoration-blob primary" style="width:300px; height:300px; top:10%; left:10%;"></div>
+    <div class="decoration-blob secondary" style="width:200px; height:200px; bottom:20%; right:15%;"></div>
+</section>
+
+<!-- Sezione Funzionalità con Cards Glassmorphism -->
+<section class="py-5" id="features">
+    <div class="container">
+        <div class="row text-center mb-5">
+            <div class="col-lg-8 mx-auto">
+                <h2 class="text-shadow-3d mb-4">Funzionalità Principali</h2>
+                <p class="lead">Tutto ciò di cui hai bisogno per gestire la tua community e i tuoi stream.</p>
+            </div>
+        </div>
+        
+        <div class="row g-4 stagger-items">
+            <!-- Card 1 -->
+            <div class="col-md-6 col-lg-4">
+                <div class="glass-advanced depth p-4 h-100">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-users fa-3x text-primary"></i>
+                    </div>
+                    <h3 class="h5">Gestione Community</h3>
+                    <p>Sistema completo di gestione community con punti canale, ricompense, sondaggi e predizioni.</p>
+                </div>
+            </div>
+            
+            <!-- Card 2 -->
+            <div class="col-md-6 col-lg-4">
+                <div class="glass-advanced depth p-4 h-100">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-robot fa-3x text-primary"></i>
+                    </div>
+                    <h3 class="h5">Bot Multi-Piattaforma</h3>
+                    <p>Integrazione con Kick, Twitch, YouTube, TikTok e altre piattaforme di streaming.</p>
+                </div>
+            </div>
+            
+            <!-- Card 3 -->
+            <div class="col-md-6 col-lg-4">
+                <div class="glass-advanced depth p-4 h-100">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-chart-line fa-3x text-primary"></i>
+                    </div>
+                    <h3 class="h5">Analytics Avanzate</h3>
+                    <p>Statistiche dettagliate, visualizzazioni interattive e report personalizzati.</p>
+                </div>
+            </div>
+            
+            <!-- Card 4 -->
+            <div class="col-md-6 col-lg-4">
+                <div class="glass-advanced depth p-4 h-100">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-cogs fa-3x text-primary"></i>
+                    </div>
+                    <h3 class="h5">Automazioni</h3>
+                    <p>Editor visuale per automazioni complesse e flussi di lavoro personalizzati.</p>
+                </div>
+            </div>
+            
+            <!-- Card 5 -->
+            <div class="col-md-6 col-lg-4">
+                <div class="glass-advanced depth p-4 h-100">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-shield-alt fa-3x text-primary"></i>
+                    </div>
+                    <h3 class="h5">Sicurezza Avanzata</h3>
+                    <p>Protezione DDoS, WAF, rilevamento intrusioni e backup crittografati.</p>
+                </div>
+            </div>
+            
+            <!-- Card 6 -->
+            <div class="col-md-6 col-lg-4">
+                <div class="glass-advanced depth p-4 h-100">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-mobile-alt fa-3x text-primary"></i>
+                    </div>
+                    <h3 class="h5">PWA Installabile</h3>
+                    <p>App installabile su qualsiasi dispositivo con supporto offline e notifiche push.</p>
+                </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Features Section -->
-<section id="features" class="py-5 bg-light">
+<!-- Sezione Parallasse -->
+<section class="parallax-container my-5">
+    <div class="parallax-layer parallax-layer-1" style="background-image: url('/static/img/parallax-bg-1.jpg');"></div>
+    <div class="parallax-layer parallax-layer-2" style="background-image: url('/static/img/parallax-bg-2.png'); opacity: 0.8;"></div>
+    <div class="parallax-layer parallax-layer-3" style="background-image: url('/static/img/parallax-bg-3.png'); opacity: 0.6;"></div>
+    <div class="parallax-content">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-6 offset-lg-6">
+                    <div class="glass-advanced p-4">
+                        <h2 class="text-shadow-3d mb-4">Integrazione Completa</h2>
+                        <p class="lead mb-3">M4Bot si integra perfettamente con tutti i tuoi strumenti di streaming preferiti.</p>
+                        <ul class="list-unstyled">
+                            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> OBS Studio</li>
+                            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Streamlabs</li>
+                            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> StreamElements</li>
+                            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Discord</li>
+                            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Telegram</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Sezione Neumorfismo -->
+<section class="py-5 bg-light">
     <div class="container">
-        <h2 class="text-center mb-5">{{ _('Funzionalità') }}</h2>
+        <div class="row justify-content-center mb-5">
+            <div class="col-lg-8 text-center">
+                <h2 class="mb-4">Design Moderno e Accessibile</h2>
+                <p class="lead">Interfaccia utente elegante con supporto per tema chiaro/scuro e modalità alto contrasto.</p>
+            </div>
+        </div>
+        
         <div class="row g-4">
             <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body text-center">
-                        <i class="fas fa-comments fa-3x text-primary mb-3"></i>
-                        <h5 class="card-title">{{ _('Comandi Personalizzati') }}</h5>
-                        <p class="card-text">{{ _('Crea e gestisci comandi personalizzati per la tua chat con cooldown, permessi e risposte dinamiche.') }}</p>
-                    </div>
+                <div class="neumorph-advanced p-4 text-center">
+                    <i class="fas fa-moon fa-3x mb-3 text-primary"></i>
+                    <h3 class="h5">Tema Scuro</h3>
+                    <p>Tema scuro automatico basato sulle preferenze di sistema.</p>
                 </div>
             </div>
+            
             <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body text-center">
-                        <i class="fas fa-gamepad fa-3x text-primary mb-3"></i>
-                        <h5 class="card-title">{{ _('Giochi in Chat') }}</h5>
-                        <p class="card-text">{{ _('Intrattieni i tuoi spettatori con giochi interattivi come dadi, trivia, slot e molto altro.') }}</p>
-                    </div>
+                <div class="neumorph-advanced p-4 text-center">
+                    <i class="fas fa-universal-access fa-3x mb-3 text-primary"></i>
+                    <h3 class="h5">Accessibilità WCAG</h3>
+                    <p>Conformità agli standard di accessibilità WCAG AA.</p>
                 </div>
             </div>
+            
             <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body text-center">
-                        <i class="fas fa-shield-alt fa-3x text-primary mb-3"></i>
-                        <h5 class="card-title">{{ _('Moderazione') }}</h5>
-                        <p class="card-text">{{ _('Mantieni la tua chat pulita con strumenti di moderazione automatici e filtri personalizzabili.') }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body text-center">
-                        <i class="fas fa-coins fa-3x text-primary mb-3"></i>
-                        <h5 class="card-title">{{ _('Sistema di Punti') }}</h5>
-                        <p class="card-text">{{ _('Premia i tuoi spettatori con un sistema di punti personalizzato e classifiche competitive.') }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body text-center">
-                        <i class="fas fa-chart-bar fa-3x text-primary mb-3"></i>
-                        <h5 class="card-title">{{ _('Statistiche') }}</h5>
-                        <p class="card-text">{{ _('Analizza l'attività della tua chat con statistiche dettagliate e report personalizzati.') }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body text-center">
-                        <i class="fas fa-cogs fa-3x text-primary mb-3"></i>
-                        <h5 class="card-title">{{ _('Integrazioni') }}</h5>
-                        <p class="card-text">{{ _('Integra il tuo bot con OBS e altri strumenti per migliorare la tua esperienza di streaming.') }}</p>
-                    </div>
+                <div class="neumorph-advanced p-4 text-center">
+                    <i class="fas fa-palette fa-3x mb-3 text-primary"></i>
+                    <h3 class="h5">Personalizzabile</h3>
+                    <p>Dashboard personalizzabile con widget drag-and-drop.</p>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- How It Works Section -->
-<section class="py-5">
+<!-- Sezione CTA -->
+<section class="py-5 mesh-gradient primary" data-dynamic-mesh="true">
     <div class="container">
-        <h2 class="text-center mb-5">{{ _('Come Funziona') }}</h2>
-        <div class="row align-items-center mb-5">
-            <div class="col-md-6">
-                <h3>{{ _('1. Registrati e Connetti il Tuo Canale') }}</h3>
-                <p>{{ _('Crea un account su M4Bot e connetti il tuo canale Kick.com tramite l'autenticazione OAuth sicura.') }}</p>
-            </div>
-            <div class="col-md-6">
-                <img src="{{ url_for('static', filename='img/step1.png') }}" alt="Registrazione" class="img-fluid rounded shadow">
-            </div>
-        </div>
-        <div class="row align-items-center mb-5">
-            <div class="col-md-6 order-md-2">
-                <h3>{{ _('2. Personalizza il Tuo Bot') }}</h3>
-                <p>{{ _('Configura comandi personalizzati, giochi, moderazione e altre funzionalità attraverso il nostro pannello di controllo intuitivo.') }}</p>
-            </div>
-            <div class="col-md-6 order-md-1">
-                <img src="{{ url_for('static', filename='img/step2.png') }}" alt="Personalizzazione" class="img-fluid rounded shadow">
-            </div>
-        </div>
-        <div class="row align-items-center">
-            <div class="col-md-6">
-                <h3>{{ _('3. Avvia il Bot e Goditi lo Streaming') }}</h3>
-                <p>{{ _('Avvia il bot e concentrati sul tuo streaming mentre M4Bot si occupa della gestione della chat e dell'intrattenimento degli spettatori.') }}</p>
-            </div>
-            <div class="col-md-6">
-                <img src="{{ url_for('static', filename='img/step3.png') }}" alt="Avvio" class="img-fluid rounded shadow">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center text-white">
+                <h2 class="mb-4">Inizia Subito</h2>
+                <p class="lead mb-5">Crea il tuo account M4Bot e scopri tutte le funzionalità premium.</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{{ url_for('register') }}" class="btn-advanced glass micro-click">Registrati</a>
+                    <a href="/features" class="btn-advanced glass micro-click">Scopri tutte le funzionalità</a>
+                </div>
             </div>
         </div>
     </div>
 </section>
+{% endblock %}
 
-<!-- CTA Section -->
-<section class="py-5 text-center">
-    <div class="container">
-        <h2>{{ _('Pronto a Migliorare le Tue Live?') }}</h2>
-        <p class="lead mb-4">{{ _('Unisciti a M4Bot per migliorare le loro live su Kick.com') }}</p>
-        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">{{ _('Registrati Ora') }}</a>
-    </div>
-</section>
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/modern-effects.js') }}"></script>
+<script>
+    // Registrazione del service worker per supporto PWA
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/static/js/service-worker.js')
+                .then(registration => {
+                    console.log('Service Worker registrato con successo:', registration.scope);
+                })
+                .catch(error => {
+                    console.error('Errore nella registrazione del Service Worker:', error);
+                });
+        });
+    }
+
+    // Gestione aggiornamenti Service Worker
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+        }
+    });
+
+    // Messaggi al Service Worker
+    function updateServiceWorker() {
+        navigator.serviceWorker.ready.then(registration => {
+            registration.update();
+        });
+    }
+
+    // Controlla aggiornamenti ogni ora
+    setInterval(() => {
+        updateServiceWorker();
+    }, 60 * 60 * 1000);
+</script>
 {% endblock %}

@@ -1,0 +1,815 @@
+{% extends "layout.html" %}
+
+{% block title %}Configurazione Autenticazione a Due Fattori{% endblock %}
+
+{% block styles %}
+<style>
+    .setup-container {
+        max-width: 720px;
+        margin: 0 auto;
+    }
+    
+    .step-container {
+        transition: all 0.3s ease;
+        opacity: 1;
+    }
+    
+    .step-container.disabled {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+    
+    .step-number {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 15px;
+    }
+    
+    .step-title {
+        font-weight: 600;
+        font-size: 1.2rem;
+        margin-bottom: 0;
+    }
+    
+    .qr-container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        max-width: 280px;
+        margin: 0 auto;
+    }
+    
+    .qr-container:hover {
+        transform: scale(1.02);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+    }
+    
+    .qr-code {
+        width: 220px;
+        height: 220px;
+        margin: 0 auto;
+    }
+    
+    .auth-app-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-top: 15px;
+    }
+    
+    .auth-app {
+        flex: 1 1 120px;
+        text-align: center;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px 10px;
+        background-color: white;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    
+    .auth-app:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        border-color: var(--primary-color);
+    }
+    
+    .auth-app img {
+        height: 40px;
+        width: auto;
+        margin-bottom: 10px;
+    }
+    
+    .secret-key {
+        font-family: 'Courier New', monospace;
+        letter-spacing: 1px;
+        background-color: #f8f9fa;
+        border: 1px dashed #ced4da;
+        border-radius: 4px;
+        padding: 10px;
+        margin: 10px 0;
+        position: relative;
+        text-align: center;
+        font-size: 16px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        cursor: pointer;
+    }
+    
+    .secret-key:hover {
+        background-color: #e9ecef;
+    }
+    
+    .secret-key::after {
+        content: "Clicca per copiare";
+        position: absolute;
+        right: 10px;
+        bottom: -22px;
+        font-size: 12px;
+        color: #6c757d;
+        font-family: sans-serif;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+    
+    .secret-key:hover::after {
+        opacity: 1;
+    }
+    
+    .copy-tooltip {
+        position: absolute;
+        top: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+    }
+    
+    .copy-tooltip.show {
+        opacity: 1;
+    }
+    
+    .otp-input-container {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin: 25px 0;
+    }
+    
+    .otp-input {
+        width: 40px;
+        height: 50px;
+        text-align: center;
+        font-size: 24px;
+        font-weight: 500;
+        border: 2px solid #ced4da;
+        border-radius: 5px;
+        background-color: white;
+        transition: all 0.2s ease;
+    }
+    
+    .otp-input:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(var(--primary-color-rgb), 0.25);
+        outline: none;
+    }
+    
+    .progress-indicator {
+        display: flex;
+        justify-content: space-between;
+        margin: 40px 0 20px;
+        position: relative;
+    }
+    
+    .progress-indicator::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: #dee2e6;
+        transform: translateY(-50%);
+        z-index: 0;
+    }
+    
+    .progress-step {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 2px solid #dee2e6;
+        background-color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        position: relative;
+        z-index: 1;
+        transition: all 0.3s ease;
+    }
+    
+    .progress-step.active {
+        border-color: var(--primary-color);
+        background-color: var(--primary-color);
+        color: white;
+    }
+    
+    .progress-step.completed {
+        border-color: #28a745;
+        background-color: #28a745;
+        color: white;
+    }
+    
+    .progress-step i {
+        font-size: 14px;
+    }
+    
+    .animated-check {
+        stroke-dasharray: 100;
+        stroke-dashoffset: 100;
+        animation: draw 1s linear forwards;
+    }
+    
+    @keyframes draw {
+        to {
+            stroke-dashoffset: 0;
+        }
+    }
+    
+    .verified-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 12px;
+        background-color: #28a745;
+        color: white;
+        border-radius: 30px;
+        font-weight: 600;
+        animation: fadeInUp 0.5s ease forwards;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .next-step-btn {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(var(--primary-color-rgb), 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(var(--primary-color-rgb), 0); }
+        100% { box-shadow: 0 0 0 0 rgba(var(--primary-color-rgb), 0); }
+    }
+    
+    .setup-mode-tabs {
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5 setup-container">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white py-3">
+            <h3 class="mb-0">
+                <i class="fas fa-shield-alt me-2"></i>
+                Configurazione Autenticazione a Due Fattori
+            </h3>
+        </div>
+        <div class="card-body p-4">
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show mb-4">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'warning' %}exclamation-triangle{% elif category == 'error' %}times-circle{% else %}info-circle{% endif %} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Chiudi"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            <div class="progress-indicator">
+                <div class="progress-step active" id="step1">
+                    <span>1</span>
+                </div>
+                <div class="progress-step" id="step2">
+                    <span>2</span>
+                </div>
+                <div class="progress-step" id="step3">
+                    <span>3</span>
+                </div>
+            </div>
+            
+            <div id="setupContent">
+                <!-- Passo 1: Scan QR code -->
+                <div class="step-container" id="step1Container">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="step-number">1</div>
+                        <h4 class="step-title">Installa un'app di autenticazione</h4>
+                    </div>
+                    
+                    <p class="text-muted mb-4">Per configurare l'autenticazione a due fattori, avrai bisogno di un'app di autenticazione sul tuo dispositivo mobile o desktop. Queste app generano codici temporanei che utilizzerai per verificare la tua identità.</p>
+                    
+                    <div class="card bg-light mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-mobile-alt me-2"></i>
+                                App consigliate
+                            </h5>
+                            <div class="auth-app-list">
+                                <div class="auth-app" data-bs-toggle="tooltip" title="Google Authenticator">
+                                    <img src="https://play-lh.googleusercontent.com/HPc5gptPzRw3wFhJE1ZCnTqlvEvuVFBAsV9etfouOcRlSnZGSkfQqNXHGo7qwCHBZw" alt="Google Authenticator">
+                                    <div>Google Authenticator</div>
+                                </div>
+                                <div class="auth-app" data-bs-toggle="tooltip" title="Microsoft Authenticator">
+                                    <img src="https://play-lh.googleusercontent.com/B5cNBA15IxjCT-8UTXEWgiPcGkJ1T_1exUrbxkIPtQc65NtVg1eVpL5VGSCP0pEZ0bTI" alt="Microsoft Authenticator">
+                                    <div>Microsoft Authenticator</div>
+                                </div>
+                                <div class="auth-app" data-bs-toggle="tooltip" title="Authy">
+                                    <img src="https://play-lh.googleusercontent.com/pu2WMAnbgNGdxnZBqFs_ZNKxMHVAIp_JqJQedPxXtEiO0wnbcyIPO0xW7vNK7eECqVs" alt="Authy">
+                                    <div>Authy</div>
+                                </div>
+                                <div class="auth-app" data-bs-toggle="tooltip" title="Aegis Authenticator">
+                                    <img src="https://play-lh.googleusercontent.com/SoV6klmtKK8TNk-HfGUHuavZAJ4U7sm-l7E5GmrJKZbQR68bYkXFv41And-OgbCfi3A" alt="Aegis">
+                                    <div>Aegis</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <button id="nextToStep2" class="btn btn-primary next-step-btn">
+                            Ho installato un'app <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Passo 2: Scan QR Code -->
+                <div class="step-container d-none" id="step2Container">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="step-number">2</div>
+                        <h4 class="step-title">Scansiona il codice QR</h4>
+                    </div>
+                    
+                    <p class="text-muted mb-4">Apri l'app di autenticazione e scansiona il codice QR qui sotto. Se non puoi scansionare il codice, puoi anche inserire la chiave segreta manualmente.</p>
+                    
+                    <div class="row align-items-center">
+                        <div class="col-md-6 mb-4 mb-md-0">
+                            <div class="qr-container">
+                                <img src="{{ qr_code }}" alt="QR Code" class="qr-code img-fluid">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <i class="fas fa-key me-2"></i>
+                                        Inserimento manuale
+                                    </h5>
+                                    <p class="card-text">Se non puoi scansionare il codice QR, inserisci questi dettagli nell'app:</p>
+                                    
+                                    <div class="mb-2">
+                                        <strong>Account:</strong> {{ email }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Emittente:</strong> {{ issuer_name }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Chiave:</strong>
+                                        <div class="secret-key position-relative" id="secretKey">
+                                            {{ secret }}
+                                            <span class="copy-tooltip" id="copyTooltip">Copiato!</span>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted"><i class="fas fa-info-circle me-1"></i> Tipo: Time-based (TOTP)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button id="nextToStep3" class="btn btn-primary next-step-btn">
+                            Ho scansionato il codice <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Passo 3: Verifica -->
+                <div class="step-container d-none" id="step3Container">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="step-number">3</div>
+                        <h4 class="step-title">Verifica la configurazione</h4>
+                    </div>
+                    
+                    <p class="text-muted mb-4">Inserisci il codice generato dalla tua app di autenticazione per verificare che tutto sia configurato correttamente.</p>
+                    
+                    <form method="POST" id="verifyForm" action="{{ url_for('two_factor.setup') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="secret" value="{{ secret }}">
+                        
+                        <div class="otp-input-container">
+                            <input type="tel" maxlength="1" pattern="[0-9]" class="form-control otp-input" id="code1" inputmode="numeric" required>
+                            <input type="tel" maxlength="1" pattern="[0-9]" class="form-control otp-input" id="code2" inputmode="numeric" required>
+                            <input type="tel" maxlength="1" pattern="[0-9]" class="form-control otp-input" id="code3" inputmode="numeric" required>
+                            <input type="tel" maxlength="1" pattern="[0-9]" class="form-control otp-input" id="code4" inputmode="numeric" required>
+                            <input type="tel" maxlength="1" pattern="[0-9]" class="form-control otp-input" id="code5" inputmode="numeric" required>
+                            <input type="tel" maxlength="1" pattern="[0-9]" class="form-control otp-input" id="code6" inputmode="numeric" required>
+                        </div>
+                        
+                        <input type="hidden" name="code" id="fullCode">
+                        
+                        <div class="text-center mb-4" id="verificationStatus"></div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="button" id="backToStep2" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i> Indietro
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check-circle me-2"></i> Verifica e attiva
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Passo 4: Completato (Visualizzato dopo il submit del form) -->
+                <div class="step-container d-none" id="successContainer">
+                    <div class="text-center py-4">
+                        <div class="mb-4">
+                            <svg width="80" height="80" viewBox="0 0 80 80">
+                                <circle cx="40" cy="40" r="36" fill="#28a745" />
+                                <path class="animated-check" d="M25,40 L35,50 L55,30" stroke="#FFFFFF" stroke-width="6" fill="none" />
+                            </svg>
+                        </div>
+                        
+                        <h3 class="mb-3">Autenticazione a due fattori attivata!</h3>
+                        <p class="text-muted mb-4">La tua sicurezza è stata notevolmente migliorata. Da ora in poi, avrai bisogno sia della password che di un codice dalla tua app di autenticazione per accedere al tuo account.</p>
+                        
+                        <div class="alert alert-warning">
+                            <div class="d-flex">
+                                <div class="me-3">
+                                    <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                                </div>
+                                <div class="text-start">
+                                    <h5 class="alert-heading">Non perdere l'accesso!</h5>
+                                    <p class="mb-1">È fortemente consigliato configurare dei codici di backup nel caso in cui perda l'accesso alla tua app di autenticazione.</p>
+                                    <a href="{{ url_for('two_factor.backup_codes') }}" class="btn btn-warning mt-2">
+                                        <i class="fas fa-key me-2"></i> Genera codici di backup
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <a href="{{ url_for('two_factor.manage') }}" class="btn btn-primary">
+                                <i class="fas fa-cog me-2"></i> Gestisci impostazioni 2FA
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="{{ url_for('security.settings') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i> Torna alle impostazioni
+            </a>
+        </div>
+    </div>
+    
+    <!-- Modale con istruzioni dettagliate -->
+    <div class="modal fade" id="instructionsModal" tabindex="-1" aria-labelledby="instructionsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="instructionsModalLabel">Istruzioni dettagliate</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="setup-mode-tabs">
+                        <ul class="nav nav-tabs" id="instructionsTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="google-tab" data-bs-toggle="tab" data-bs-target="#google" type="button" role="tab" aria-controls="google" aria-selected="true">Google Authenticator</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="microsoft-tab" data-bs-toggle="tab" data-bs-target="#microsoft" type="button" role="tab" aria-controls="microsoft" aria-selected="false">Microsoft Authenticator</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="authy-tab" data-bs-toggle="tab" data-bs-target="#authy" type="button" role="tab" aria-controls="authy" aria-selected="false">Authy</button>
+                            </li>
+                        </ul>
+                        <div class="tab-content pt-3" id="instructionsTabsContent">
+                            <div class="tab-pane fade show active" id="google" role="tabpanel" aria-labelledby="google-tab">
+                                <ol class="mb-0">
+                                    <li class="mb-3">Scarica e installa <strong>Google Authenticator</strong> dall'App Store o dal Google Play Store.</li>
+                                    <li class="mb-3">Apri l'app e tocca il simbolo "<strong>+</strong>" o "<strong>Aggiungi</strong>".</li>
+                                    <li class="mb-3">Seleziona "<strong>Scansiona un codice QR</strong>" e inquadra il codice QR mostrato su questa pagina.</li>
+                                    <li class="mb-3">L'app aggiungerà automaticamente il tuo account e inizierà a generare i codici.</li>
+                                    <li>Inserisci il codice a 6 cifre mostrato nell'app per completare la configurazione.</li>
+                                </ol>
+                            </div>
+                            <div class="tab-pane fade" id="microsoft" role="tabpanel" aria-labelledby="microsoft-tab">
+                                <ol class="mb-0">
+                                    <li class="mb-3">Scarica e installa <strong>Microsoft Authenticator</strong> dall'App Store o dal Google Play Store.</li>
+                                    <li class="mb-3">Apri l'app e tocca i tre puntini in alto a destra, poi "<strong>Aggiungi account</strong>".</li>
+                                    <li class="mb-3">Seleziona "<strong>Account di altro tipo</strong>".</li>
+                                    <li class="mb-3">Scansiona il codice QR mostrato su questa pagina.</li>
+                                    <li>L'app aggiungerà il tuo account e mostrerà un codice a 6 cifre che cambia ogni 30 secondi. Inserisci questo codice per completare la configurazione.</li>
+                                </ol>
+                            </div>
+                            <div class="tab-pane fade" id="authy" role="tabpanel" aria-labelledby="authy-tab">
+                                <ol class="mb-0">
+                                    <li class="mb-3">Scarica e installa <strong>Authy</strong> dall'App Store o dal Google Play Store.</li>
+                                    <li class="mb-3">Configura Authy con il tuo numero di telefono e verifica il tuo dispositivo.</li>
+                                    <li class="mb-3">Nella schermata principale, tocca il simbolo "<strong>+</strong>" per aggiungere un nuovo account.</li>
+                                    <li class="mb-3">Seleziona "<strong>Scan QR Code</strong>" e inquadra il codice QR mostrato su questa pagina.</li>
+                                    <li>Inserisci un nome per l'account e tocca "<strong>Save</strong>". L'app genererà un codice a 6 cifre che cambia ogni 30 secondi. Inserisci questo codice per completare la configurazione.</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Ho capito</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Seleziona gli elementi
+        const step1Container = document.getElementById('step1Container');
+        const step2Container = document.getElementById('step2Container');
+        const step3Container = document.getElementById('step3Container');
+        const successContainer = document.getElementById('successContainer');
+        
+        const step1Indicator = document.getElementById('step1');
+        const step2Indicator = document.getElementById('step2');
+        const step3Indicator = document.getElementById('step3');
+        
+        const nextToStep2Btn = document.getElementById('nextToStep2');
+        const nextToStep3Btn = document.getElementById('nextToStep3');
+        const backToStep2Btn = document.getElementById('backToStep2');
+        
+        const secretKeyElement = document.getElementById('secretKey');
+        const copyTooltip = document.getElementById('copyTooltip');
+        
+        const verifyForm = document.getElementById('verifyForm');
+        const fullCodeInput = document.getElementById('fullCode');
+        const otpInputs = document.querySelectorAll('.otp-input');
+        const verificationStatus = document.getElementById('verificationStatus');
+        
+        const authApps = document.querySelectorAll('.auth-app');
+        
+        // Bootstrap tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Gesione della navigazione tra i passaggi
+        if (nextToStep2Btn) {
+            nextToStep2Btn.addEventListener('click', function() {
+                step1Container.classList.add('d-none');
+                step2Container.classList.remove('d-none');
+                
+                step1Indicator.classList.remove('active');
+                step1Indicator.classList.add('completed');
+                step1Indicator.innerHTML = '<i class="fas fa-check"></i>';
+                
+                step2Indicator.classList.add('active');
+            });
+        }
+        
+        if (nextToStep3Btn) {
+            nextToStep3Btn.addEventListener('click', function() {
+                step2Container.classList.add('d-none');
+                step3Container.classList.remove('d-none');
+                
+                step2Indicator.classList.remove('active');
+                step2Indicator.classList.add('completed');
+                step2Indicator.innerHTML = '<i class="fas fa-check"></i>';
+                
+                step3Indicator.classList.add('active');
+                
+                // Focus sul primo input del codice
+                if (otpInputs.length > 0) {
+                    otpInputs[0].focus();
+                }
+            });
+        }
+        
+        if (backToStep2Btn) {
+            backToStep2Btn.addEventListener('click', function() {
+                step3Container.classList.add('d-none');
+                step2Container.classList.remove('d-none');
+                
+                step3Indicator.classList.remove('active');
+                step2Indicator.classList.remove('completed');
+                step2Indicator.innerHTML = '2';
+                
+                step2Indicator.classList.add('active');
+            });
+        }
+        
+        // Copia della chiave segreta
+        if (secretKeyElement) {
+            secretKeyElement.addEventListener('click', function() {
+                const secretKey = this.textContent.trim();
+                
+                navigator.clipboard.writeText(secretKey).then(function() {
+                    copyTooltip.classList.add('show');
+                    
+                    setTimeout(function() {
+                        copyTooltip.classList.remove('show');
+                    }, 2000);
+                }).catch(function(err) {
+                    console.error('Errore durante la copia: ', err);
+                    alert('Non è stato possibile copiare la chiave. Prova a selezionarla manualmente.');
+                });
+            });
+        }
+        
+        // Gestione input OTP
+        if (otpInputs.length > 0) {
+            // Permetti solo cifre
+            otpInputs.forEach(function(input, index) {
+                input.addEventListener('keydown', function(e) {
+                    // Consenti: numeri, backspace, tab, delete, frecce
+                    if (
+                        !/^\d$/.test(e.key) && 
+                        e.key !== 'Backspace' && 
+                        e.key !== 'Tab' && 
+                        e.key !== 'Delete' && 
+                        e.key !== 'ArrowLeft' && 
+                        e.key !== 'ArrowRight'
+                    ) {
+                        e.preventDefault();
+                    }
+                });
+                
+                input.addEventListener('input', function(e) {
+                    const value = e.target.value;
+                    
+                    // Assicurati che ci sia solo una cifra nell'input
+                    if (value.length > 0) {
+                        // Passa al campo successivo
+                        if (index < otpInputs.length - 1) {
+                            otpInputs[index + 1].focus();
+                        }
+                    }
+                    
+                    // Aggiorna il valore completo del codice
+                    updateFullCode();
+                });
+                
+                // Gestisci il backspace per tornare al campo precedente
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && e.target.value === '' && index > 0) {
+                        otpInputs[index - 1].focus();
+                    }
+                });
+            });
+            
+            // Gestisci l'incolla per distribuire il codice tra i campi
+            otpInputs[0].addEventListener('paste', function(e) {
+                e.preventDefault();
+                
+                // Ottieni il testo incollato
+                const pasteData = (e.clipboardData || window.clipboardData).getData('text');
+                const pasteDigits = pasteData.replace(/\D/g, '').substring(0, 6);
+                
+                if (pasteDigits.length > 0) {
+                    // Distribuisci le cifre tra i campi
+                    for (let i = 0; i < Math.min(pasteDigits.length, otpInputs.length); i++) {
+                        otpInputs[i].value = pasteDigits[i];
+                    }
+                    
+                    // Focus sull'ultimo campo popolato
+                    const lastIndex = Math.min(pasteDigits.length - 1, otpInputs.length - 1);
+                    otpInputs[lastIndex].focus();
+                    
+                    // Aggiorna il valore completo del codice
+                    updateFullCode();
+                    
+                    // Invia automaticamente se il codice è completo
+                    if (pasteDigits.length === 6) {
+                        verifyForm.submit();
+                    }
+                }
+            });
+        }
+        
+        // Funzione per aggiornare il valore completo del codice
+        function updateFullCode() {
+            let code = '';
+            otpInputs.forEach(function(input) {
+                code += input.value;
+            });
+            
+            if (fullCodeInput) {
+                fullCodeInput.value = code;
+            }
+            
+            // Verifica automatica quando tutti i campi sono pieni
+            if (code.length === 6) {
+                verificationStatus.innerHTML = `
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Verifica in corso...</span>
+                    </div>
+                    <div class="mt-2">Verifica in corso...</div>
+                `;
+                
+                setTimeout(function() {
+                    verifyForm.submit();
+                }, 500);
+            }
+        }
+        
+        // Apri la modale con le istruzioni quando si clicca su un'app
+        authApps.forEach(function(app) {
+            app.addEventListener('click', function() {
+                const appName = this.querySelector('div').textContent.trim();
+                let tabId = '';
+                
+                // Determina quale tab attivare in base all'app
+                if (appName.includes('Google')) {
+                    tabId = 'google-tab';
+                } else if (appName.includes('Microsoft')) {
+                    tabId = 'microsoft-tab';
+                } else if (appName.includes('Authy')) {
+                    tabId = 'authy-tab';
+                }
+                
+                // Apri la modale e attiva il tab corretto
+                const instructionsModal = new bootstrap.Modal(document.getElementById('instructionsModal'));
+                instructionsModal.show();
+                
+                if (tabId) {
+                    const tabElement = document.getElementById(tabId);
+                    if (tabElement) {
+                        const tab = new bootstrap.Tab(tabElement);
+                        tab.show();
+                    }
+                }
+            });
+        });
+        
+        // Se ci sono errori nei messaggi, mostra automaticamente il passo 3
+        if (document.querySelector('.alert-danger, .alert-error')) {
+            step1Container.classList.add('d-none');
+            step2Container.classList.add('d-none');
+            step3Container.classList.remove('d-none');
+            
+            step1Indicator.classList.remove('active');
+            step1Indicator.classList.add('completed');
+            step1Indicator.innerHTML = '<i class="fas fa-check"></i>';
+            
+            step2Indicator.classList.remove('active');
+            step2Indicator.classList.add('completed');
+            step2Indicator.innerHTML = '<i class="fas fa-check"></i>';
+            
+            step3Indicator.classList.add('active');
+            
+            // Focus sul primo input del codice
+            if (otpInputs.length > 0) {
+                otpInputs[0].focus();
+            }
+            
+            // Aggiungi un messaggio di errore
+            verificationStatus.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-times-circle me-2"></i>
+                    Codice errato o scaduto. Riprova con un nuovo codice dalla tua app.
+                </div>
+            `;
+        }
+        
+        // Se ci sono messaggi di successo, mostra il container di successo
+        if (document.querySelector('.alert-success')) {
+            step1Container.classList.add('d-none');
+            step2Container.classList.add('d-none');
+            step3Container.classList.add('d-none');
+            successContainer.classList.remove('d-none');
+            
+            step1Indicator.classList.remove('active');
+            step1Indicator.classList.add('completed');
+            step1Indicator.innerHTML = '<i class="fas fa-check"></i>';
+            
+            step2Indicator.classList.remove('active');
+            step2Indicator.classList.add('completed');
+            step2Indicator.innerHTML = '<i class="fas fa-check"></i>';
+            
+            step3Indicator.classList.remove('active');
+            step3Indicator.classList.add('completed');
+            step3Indicator.innerHTML = '<i class="fas fa-check"></i>';
+        }
+    });
+</script>
+{% endblock %} 

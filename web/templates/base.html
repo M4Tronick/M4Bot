@@ -1,50 +1,76 @@
 <!DOCTYPE html>
-<html lang="it" data-bs-theme="light" class="hardware-accelerated">
+<html lang="{{ current_language|default('it') }}" data-bs-theme="light" class="hardware-accelerated">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="M4Bot - Una soluzione completa per la gestione dei bot per la tua community">
-    <meta name="theme-color" content="#5e45e2">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="M4Bot - Sistema Intelligente per automazione e monitoraggio">
+    <meta name="theme-color" content="#ffffff">
     <meta name="color-scheme" content="light dark">
-    <title>{% block title %}M4Bot{% endblock %}</title>
-    <!-- Favicon -->
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" crossorigin="anonymous">
-    <!-- Google Fonts -->
+    
+    <!-- Preconnect per risorse esterne -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Animate.css per animazioni aggiuntive -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" crossorigin="anonymous">
-    <!-- Modern Theme -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern-theme.css') }}">
-    <!-- Animations CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
-    <!-- Stili personalizzati -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <!-- Stili per le icone -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/icons.css') }}">
-    {% block head %}{% endblock %}
-    {% block extra_css %}{% endblock %}
-    
-    <!-- Precaricamento dei componenti principali -->
-    <link rel="preload" href="{{ url_for('static', filename='js/theme.js') }}" as="script">
-    <link rel="preload" href="{{ url_for('static', filename='js/notifications.js') }}" as="script">
-    <link rel="preload" href="{{ url_for('static', filename='js/main.js') }}" as="script">
-    <link rel="preload" href="{{ url_for('static', filename='js/push-notifications.js') }}" as="script">
-    
-    <!-- Precaricamento risorse critiche -->
-    <link rel="preload" href="{{ url_for('static', filename='img/logo.png') }}" as="image">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     
     <!-- Progressive Web App -->
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="M4Bot">
+    
+    <!-- Registrazione Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('{{ url_for('static', filename='service-worker.js') }}')
+                    .then(registration => {
+                        console.log('Service Worker registrato con successo:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Errore durante la registrazione del Service Worker:', error);
+                    });
+            });
+        }
+    </script>
+    
+    <title>{% block title %}M4Bot - Sistema Intelligente{% endblock %}</title>
+    
+    <!-- Favicon e icone -->
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='icons/favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
+    
+    <!-- Bootstrap CSS ottimizzato -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    
+    <!-- Font Awesome con solo icone necessarie -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" crossorigin="anonymous">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Stili principali (ordine importante) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/utilities.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/icons.css') }}">
+    
+    <!-- Stili aggiuntivi specifici -->
+    {% block head %}{% endblock %}
+    {% block extra_css %}{% endblock %}
+    
+    <!-- Precaricamento dei componenti principali JS -->
+    <link rel="preload" href="{{ url_for('static', filename='js/theme.js') }}" as="script">
+    <link rel="preload" href="{{ url_for('static', filename='js/main.js') }}" as="script">
+    
+    <!-- Precaricamento risorse critiche -->
+    <link rel="preload" href="{{ url_for('static', filename='img/logo.png') }}" as="image">
+    
+    <!-- PWA assets -->
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192x192.png') }}">
     <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='icons/splash-640x1136.png') }}" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)">
     <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='icons/splash-750x1334.png') }}" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)">
@@ -53,12 +79,22 @@
     <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='icons/splash-1536x2048.png') }}" media="(min-device-width: 768px) and (max-device-width: 1024px) and (-webkit-device-pixel-ratio: 2)">
     <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='icons/splash-1668x2224.png') }}" media="(min-device-width: 834px) and (max-device-width: 834px) and (-webkit-device-pixel-ratio: 2)">
     <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='icons/splash-2048x2732.png') }}" media="(min-device-width: 1024px) and (max-device-width: 1024px) and (-webkit-device-pixel-ratio: 2)">
+    
+    {% block extra_head %}{% endblock %}
+
+    <link rel="stylesheet" href="/static/css/a11y.css">
 </head>
 <body class="hardware-accelerated">
+    <!-- Per annunci di accessibilità -->
+    <div id="a11y-announce" class="sr-only" aria-live="polite"></div>
+    
+    <!-- Link per accessibilità - Skip Navigation -->
+    <a href="#main-content" class="skip-link focus-ring">Vai al contenuto principale</a>
+
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="loader-overlay" role="status" aria-live="polite">
         <div class="loader-content">
-            <div class="spinner" aria-hidden="true"></div>
+            <div class="loader-spinner" aria-hidden="true"></div>
             <p>Caricamento...</p>
         </div>
     </div>
@@ -68,7 +104,7 @@
     <div class="decoration-blob hardware-accelerated parallax-element" data-parallax-speed="0.03" style="width: 400px; height: 400px; bottom: 10%; left: -200px;" aria-hidden="true"></div>
 
     <!-- Barra superiore di stato -->
-    <div class="app-status-bar transition-colors gpu-accelerated">
+    <div class="app-status-bar transition-colors hardware-accelerated">
         <div class="container-fluid">
             <div class="d-flex justify-content-between align-items-center py-2">
                 <div class="d-flex align-items-center">
@@ -82,7 +118,7 @@
                         </span>
                     </div>
                 </div>
-                <div class="d-flex align-items-center gap-md">
+                <div class="d-flex align-items-center gap-3">
                     <!-- Barra di ricerca globale -->
                     <div class="global-search">
                         <form id="global-search-form" class="position-relative">
@@ -90,7 +126,7 @@
                                 <span class="input-group-text bg-transparent border-end-0">
                                     <i class="fas fa-search" aria-hidden="true"></i>
                                 </span>
-                                <input type="search" id="global-search-input" class="form-control form-control-sm border-start-0" 
+                                <input type="search" id="global-search-input" class="form-control form-control-sm border-start-0 focus-ring" 
                                        placeholder="Cerca..." aria-label="Ricerca globale" 
                                        data-bs-toggle="dropdown" aria-expanded="false"
                                        autocomplete="off">
@@ -108,11 +144,58 @@
                         </form>
                     </div>
                     
+                    <!-- Preferenze di accessibilità -->
                     <div class="dropdown">
-                        <a class="dropdown-toggle text-decoration-none" href="#" id="langDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button class="btn btn-link text-body p-0 me-2 focus-ring" type="button" id="accessibilityMenuButton" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Preferenze di accessibilità">
+                            <i class="fas fa-universal-access" aria-hidden="true"></i>
+                            <span class="sr-only">Impostazioni di accessibilità</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end p-3 glass-card" aria-labelledby="accessibilityMenuButton">
+                            <h6 class="dropdown-header">Preferenze di accessibilità</h6>
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input focus-ring" type="checkbox" id="highContrastToggle">
+                                    <label class="form-check-label" for="highContrastToggle">Alto contrasto</label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input focus-ring" type="checkbox" id="reducedMotionToggle">
+                                    <label class="form-check-label" for="reducedMotionToggle">Riduci animazioni</label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="textSizeSelect" class="form-label">Dimensione testo</label>
+                                <select class="form-select focus-ring" id="textSizeSelect">
+                                    <option value="normal">Normale</option>
+                                    <option value="large">Grande</option>
+                                    <option value="larger">Più grande</option>
+                                    <option value="largest">Massima</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input focus-ring" type="checkbox" id="privacyMode">
+                                    <label class="form-check-label" for="privacyMode">Modalità privacy</label>
+                                </div>
+                            </div>
+                            <div class="d-grid">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="resetAccessibility">
+                                    <i class="fas fa-undo-alt me-1"></i> Ripristina impostazioni
+                                </button>
+                            </div>
+                            <div class="mt-2 border-top pt-2">
+                                <small class="text-muted">Scorciatoia tastiera: Alt+A</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Selettore lingua -->
+                    <div class="dropdown">
+                        <a class="dropdown-toggle text-decoration-none focus-ring" href="#" id="langDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-globe me-1" aria-hidden="true"></i><span>{{ current_language_name }}</span>
                         </a>
-                        <div class="dropdown-menu dropdown-menu-end hardware-accelerated">
+                        <div class="dropdown-menu dropdown-menu-end glass-card hardware-accelerated">
                             {% for code, name in available_languages.items() %}
                             <a class="dropdown-item {% if current_language == code %}active{% endif %}" href="{{ url_for(request.endpoint, lang=code, **request.view_args) }}" data-language="{{ code }}">
                                 <i class="fas fa-check me-1 {% if current_language != code %}invisible{% endif %}" aria-hidden="true"></i>{{ name }}
@@ -120,13 +203,64 @@
                             {% endfor %}
                         </div>
                     </div>
+                    
+                    <!-- Toggle tema dark/light -->
                     <div class="theme-toggle hardware-accelerated">
                         <label class="switch has-tooltip" aria-label="Cambia tema">
-                            <input type="checkbox" id="darkModeToggle" aria-label="Attiva/disattiva tema scuro">
+                            <input type="checkbox" id="darkModeToggle" class="focus-ring" aria-label="Attiva/disattiva tema scuro">
                             <span class="slider transition-all"></span>
                             <span class="tooltip-text">Cambia tema</span>
                         </label>
                     </div>
+                    
+                    <!-- Notifiche -->
+                    {% if session.get('user_id') %}
+                    <div class="dropdown">
+                        <button class="btn btn-link text-body p-0 position-relative focus-ring" type="button" id="notificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifiche">
+                            <i class="fas fa-bell" aria-hidden="true"></i>
+                            {% if session.get('unread_notifications', 0) > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger pulse">
+                                {{ session.get('unread_notifications') }}
+                                <span class="visually-hidden">notifiche non lette</span>
+                            </span>
+                            {% endif %}
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end p-0 glass-card" aria-labelledby="notificationsDropdown" style="width: 320px; max-height: 400px; overflow-y: auto;">
+                            <div class="p-2 border-bottom d-flex justify-content-between align-items-center">
+                                <h6 class="m-0">Notifiche</h6>
+                                <button id="mark-all-read" class="btn btn-sm btn-link" type="button">Segna tutto come letto</button>
+                            </div>
+                            <div id="notifications-container">
+                                {% if session.get('notifications', []) %}
+                                    {% for notification in session.get('notifications', [])[:5] %}
+                                    <div class="notification-item p-2 border-bottom {% if not notification.read %}unread bg-light{% endif %}">
+                                        <div class="d-flex">
+                                            <div class="flex-shrink-0">
+                                                <i class="fas fa-{{ notification.icon|default('info-circle') }} text-{{ notification.type|default('primary') }} me-2"></i>
+                                            </div>
+                                            <div class="flex-grow-1 ms-2">
+                                                <p class="m-0 fw-medium">{{ notification.title }}</p>
+                                                <small class="text-muted">{{ notification.time }}</small>
+                                                <p class="mt-1 mb-0 small">{{ notification.message }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                <div class="p-3 text-center text-muted">
+                                    <i class="fas fa-bell-slash mb-2 d-block" style="font-size: 24px;"></i>
+                                    <p class="mb-0">Nessuna notifica</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% if session.get('notifications', [])|length > 5 %}
+                            <div class="p-2 text-center">
+                                <a href="{{ url_for('notifications') }}" class="btn btn-link btn-sm">Visualizza tutte</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -135,11 +269,11 @@
     <!-- Sidebar -->
     <aside class="sidebar hardware-accelerated" role="navigation" aria-label="Menu di navigazione principale">
         <div class="sidebar-header">
-            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+            <a class="navbar-brand d-flex align-items-center animated-underline" href="{{ url_for('index') }}">
                 <i class="fas fa-robot me-2 brand-icon" aria-hidden="true"></i>
                 <span class="brand-text">M4Bot</span>
             </a>
-            <button class="btn btn-icon sidebar-toggler d-lg-none" aria-label="Chiudi menu">
+            <button class="btn btn-icon sidebar-toggler d-lg-none focus-ring" aria-label="Chiudi menu">
                 <i class="fas fa-times" aria-hidden="true"></i>
             </button>
         </div>
@@ -218,6 +352,30 @@
                     <span class="badge bg-primary pulse" aria-label="Nuova funzionalità">New</span>
                 </a>
             </li>
+
+            {% if session.get('is_admin') %}
+            <div class="sidebar-label">
+                <span>Amministrazione</span>
+            </div>
+            <li class="sidebar-item">
+                <a class="sidebar-link hardware-accelerated {% if request.endpoint == 'admin_panel' %}active{% endif %}" href="{{ url_for('admin_panel') }}">
+                    <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                    <span>{{ _('Pannello Admin') }}</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link hardware-accelerated {% if request.endpoint == 'backup_management' %}active{% endif %}" href="{{ url_for('backup_management') }}">
+                    <i class="fas fa-database" aria-hidden="true"></i>
+                    <span>{{ _('Backup') }}</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link hardware-accelerated {% if request.endpoint == 'system_health' %}active{% endif %}" href="{{ url_for('system_health') }}">
+                    <i class="fas fa-heartbeat" aria-hidden="true"></i>
+                    <span>{{ _('Stato Sistema') }}</span>
+                </a>
+            </li>
+            {% endif %}
             {% endif %}
             
             {% if not session.get('user_id') %}
@@ -265,12 +423,12 @@
         
         {% if session.get('user_id') %}
         <div class="sidebar-footer transition-colors">
-            <div class="user-info d-flex align-items-center gap-md">
+            <div class="user-info d-flex align-items-center gap-3">
                 <div class="avatar hardware-accelerated">
                     {{ session.get('username', 'Utente')[0] | upper }}
                 </div>
                 <div class="user-details">
-                    <h6 class="mb-0">{{ session.get('username', 'Utente') }}</h6>
+                    <h6 class="mb-0 font-semibold">{{ session.get('username', 'Utente') }}</h6>
                     <small class="text-secondary">{{ session.get('email', '') }}</small>
                 </div>
             </div>
@@ -279,15 +437,32 @@
     </aside>
 
     <!-- Navbar Mobile -->
-    <nav class="navbar navbar-expand-lg d-lg-none transition-colors">
+    <nav class="navbar navbar-expand-lg d-lg-none fixed-top transition-colors glass-card">
         <div class="container-fluid">
-            <a class="navbar-brand hardware-accelerated" href="{{ url_for('index') }}">
+            <a class="navbar-brand d-flex align-items-center hardware-accelerated" href="{{ url_for('index') }}">
                 <i class="fas fa-robot me-2 brand-icon" aria-hidden="true"></i>
-                <span class="brand-text">M4Bot</span>
+                <span class="gradient-text brand-text">M4Bot</span>
             </a>
-            <button class="navbar-toggler sidebar-toggle" type="button" aria-label="Menu">
+            <div class="d-flex align-items-center">
+                {% if session.get('user_id') %}
+                <button class="btn btn-icon me-2 position-relative" type="button" id="notificationsButton" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-bell" aria-hidden="true"></i>
+                    {% if session.get('unread_notifications', 0) > 0 %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        {{ session.get('unread_notifications') }}
+                    </span>
+                    {% endif %}
+                    <span class="sr-only">Notifiche</span>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end glass-card" aria-labelledby="notificationsButton">
+                    <!-- Contenuto simile a quello desktop -->
+                </div>
+                {% endif %}
+                
+                <button class="navbar-toggler sidebar-toggle focus-ring" type="button" aria-label="Menu">
                 <i class="fas fa-bars" aria-hidden="true"></i>
             </button>
+            </div>
         </div>
     </nav>
 
@@ -296,7 +471,7 @@
         <div class="container-fluid">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb m-0 py-2">
-                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}" class="animated-underline">Home</a></li>
                     {% block breadcrumbs %}{% endblock %}
                 </ol>
             </nav>
@@ -304,13 +479,13 @@
     </div>
 
     <!-- Main Content -->
-    <main class="main-content page-transition hardware-accelerated" role="main">
+    <main class="main-content page-transition hardware-accelerated" role="main" id="main-content">
         <div class="container-fluid py-4">
             <!-- Alerts globali -->
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert" aria-live="assertive">
+                        <div class="alert alert-{{ category }} alert-dismissible fade show glass-card" role="alert" aria-live="assertive">
                             <div class="d-flex align-items-center">
                                 {% if category == 'success' %}
                                     <i class="fas fa-check-circle me-2" aria-hidden="true"></i>
@@ -333,19 +508,75 @@
         </div>
     </main>
 
-    <!-- Toast Notifications -->
+    <!-- Footer -->
+    <footer class="footer transition-colors">
+        <div class="container-fluid">
+            <div class="row gy-4">
+                <div class="col-md-4">
+                    <h5 class="mb-3 hardware-accelerated gradient-text"><i class="fas fa-robot me-2" aria-hidden="true"></i>M4Bot</h5>
+                    <p class="mb-3">Una soluzione completa per la gestione dei bot per la tua community.</p>
+                    <div class="social-links">
+                        <a href="#" class="me-2 social-link hardware-accelerated btn-ripple" aria-label="Twitter">
+                            <i class="fab fa-twitter" aria-hidden="true"></i>
+                        </a>
+                        <a href="#" class="me-2 social-link hardware-accelerated btn-ripple" aria-label="Discord">
+                            <i class="fab fa-discord" aria-hidden="true"></i>
+                        </a>
+                        <a href="#" class="me-2 social-link hardware-accelerated btn-ripple" aria-label="GitHub">
+                            <i class="fab fa-github" aria-hidden="true"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <h5 class="mb-3">Link Utili</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ url_for('index') }}" class="footer-link hardware-accelerated animated-underline">Home</a></li>
+                        <li><a href="{{ url_for('features') }}" class="footer-link hardware-accelerated animated-underline">Funzionalità</a></li>
+                        {% if not session.get('user_id') %}
+                        <li><a href="{{ url_for('login') }}" class="footer-link hardware-accelerated animated-underline">Accedi</a></li>
+                        <li><a href="{{ url_for('register') }}" class="footer-link hardware-accelerated animated-underline">Registrati</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5 class="mb-3">Supporto</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="footer-link hardware-accelerated animated-underline">FAQ</a></li>
+                        <li><a href="#" class="footer-link hardware-accelerated animated-underline">Documentazione</a></li>
+                        <li><a href="#" class="footer-link hardware-accelerated animated-underline">Contatti</a></li>
+                        <li><a href="{{ url_for('privacy_policy') }}" class="footer-link hardware-accelerated animated-underline">Privacy Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="row mt-4 pt-3 border-top">
+                <div class="col-md-6">
+                    <p class="mb-0 text-muted">© {{ now.year }} M4Bot. Tutti i diritti riservati.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0 text-muted">
+                        <span id="enable-notifications" class="btn btn-sm btn-outline-secondary me-2">
+                            <i class="fas fa-bell me-1"></i> Attiva notifiche
+                        </span>
+                        <span>Version 3.0</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Toast Notifications Container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" aria-live="polite" aria-atomic="true"></div>
 
     <!-- Feedback animato per azioni -->
     <div id="action-feedback" class="action-feedback" aria-hidden="true"></div>
 
     <!-- To Top Button -->
-    <button id="to-top-button" class="to-top-button hardware-accelerated" aria-label="Torna in cima">
+    <button id="to-top-button" class="to-top-button hardware-accelerated btn-ripple" aria-label="Torna in cima">
         <i class="fas fa-arrow-up" aria-hidden="true"></i>
     </button>
 
     <!-- PWA Install Prompt -->
-    <div class="pwa-install-prompt d-none" id="pwa-install-prompt">
+    <div class="pwa-install-prompt glass-card d-none" id="pwa-install-prompt">
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-md-8">
@@ -358,253 +589,96 @@
                     </div>
                 </div>
                 <div class="col-md-4 text-end mt-3 mt-md-0">
-                    <button class="btn btn-light me-2" id="pwa-cancel">Non ora</button>
-                    <button class="btn btn-primary" id="pwa-install">Installa</button>
+                    <button class="btn btn-outline-secondary me-2 focus-ring" id="pwa-cancel">Non ora</button>
+                    <button class="btn btn-primary focus-ring" id="pwa-install">Installa</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="footer transition-colors">
-        <div class="container-fluid">
-            <div class="row gy-4">
-                <div class="col-md-4">
-                    <h5 class="mb-3 hardware-accelerated"><i class="fas fa-robot me-2" aria-hidden="true"></i>M4Bot</h5>
-                    <p class="mb-3">Una soluzione completa per la gestione dei bot per la tua community.</p>
-                    <div class="social-links">
-                        <a href="#" class="me-2 social-link hardware-accelerated" aria-label="Twitter">
-                            <i class="fab fa-twitter" aria-hidden="true"></i>
-                        </a>
-                        <a href="#" class="me-2 social-link hardware-accelerated" aria-label="Discord">
-                            <i class="fab fa-discord" aria-hidden="true"></i>
-                        </a>
-                        <a href="#" class="me-2 social-link hardware-accelerated" aria-label="GitHub">
-                            <i class="fab fa-github" aria-hidden="true"></i>
-                        </a>
+    <!-- Modal di aiuto -->
+    <div class="modal fade" id="help-modal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content glass-card">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="helpModalLabel">Guida Rapida</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>Scorciatoie da tastiera</h6>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Combinazione</th>
+                                    <th>Funzione</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><kbd>Alt</kbd> + <kbd>1</kbd></td>
+                                    <td>Dashboard</td>
+                                </tr>
+                                <tr>
+                                    <td><kbd>Alt</kbd> + <kbd>2</kbd></td>
+                                    <td>Profilo</td>
+                                </tr>
+                                <tr>
+                                    <td><kbd>Alt</kbd> + <kbd>3</kbd></td>
+                                    <td>Impostazioni</td>
+                                </tr>
+                                <tr>
+                                    <td><kbd>Alt</kbd> + <kbd>S</kbd></td>
+                                    <td>Ricerca</td>
+                                </tr>
+                                <tr>
+                                    <td><kbd>Alt</kbd> + <kbd>T</kbd></td>
+                                    <td>Cambia tema</td>
+                                </tr>
+                                <tr>
+                                    <td><kbd>Alt</kbd> + <kbd>A</kbd></td>
+                                    <td>Accessibilità</td>
+                                </tr>
+                                <tr>
+                                    <td><kbd>Alt</kbd> + <kbd>H</kbd></td>
+                                    <td>Questo aiuto</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <h5 class="mb-3">Link Utili</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="{{ url_for('index') }}" class="footer-link hardware-accelerated">Home</a></li>
-                        <li><a href="{{ url_for('features') }}" class="footer-link hardware-accelerated">Funzionalità</a></li>
-                        {% if not session.get('user_id') %}
-                        <li><a href="{{ url_for('login') }}" class="footer-link hardware-accelerated">Accedi</a></li>
-                        <li><a href="{{ url_for('register') }}" class="footer-link hardware-accelerated">Registrati</a></li>
-                        {% endif %}
-                    </ul>
-                </div>
-                <div class="col-md-4">
-                    <h5 class="mb-3">Supporto</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="#" class="footer-link hardware-accelerated">FAQ</a></li>
-                        <li><a href="#" class="footer-link hardware-accelerated">Documentazione</a></li>
-                        <li><a href="#" class="footer-link hardware-accelerated">Contattaci</a></li>
-                        <li><a href="{{ url_for('privacy_center') }}" class="footer-link hardware-accelerated">Centro Privacy</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-12 text-center mt-4">
-                    <p class="mb-0"><i class="far fa-copyright me-1" aria-hidden="true"></i>2023 M4Bot. Tutti i diritti riservati.</p>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                    <a href="#" class="btn btn-primary">Documentazione completa</a>
                 </div>
             </div>
         </div>
-    </footer>
+    </div>
 
-    <!-- Bootstrap JS -->
+    <!-- Controlli per modalità a una mano (mobile) -->
+    <div class="one-hand-controls fixed-bottom mb-4 me-4 end-0 d-none" style="z-index: 1040;">
+        <button class="btn btn-primary rounded-circle shadow" id="one-hand-toggle" aria-label="Modalità una mano">
+            <i class="fas fa-hand-point-up"></i>
+        </button>
+    </div>
+
+    <!-- JavaScript Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.3.min.js" crossorigin="anonymous"></script>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Intersection Observer Polyfill per supporto animazioni basate sullo scroll -->
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=IntersectionObserver"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sortablejs/1.14.0/Sortable.min.js" crossorigin="anonymous"></script>
     
-    <!-- Custom JS -->
-    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/theme.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/notifications.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/push-notifications.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/global-search.js') }}" defer></script>
+    <!-- Chart.js solo nelle pagine che lo necessitano -->
+    {% if request.endpoint in ['dashboard', 'channel_stats', 'advanced_analytics'] %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js" crossorigin="anonymous"></script>
+    {% endif %}
+    
+    <!-- Core JavaScript -->
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- Altri script specifici -->
     {% block scripts %}{% endblock %}
-    {% block extra_js %}{% endblock %}
-    
-    <script>
-        // Attivazione animazioni per elementi con scroll
-        document.addEventListener('DOMContentLoaded', function() {
-            const animateElements = document.querySelectorAll('.reveal-on-scroll');
-            
-            if ('IntersectionObserver' in window) {
-                const observer = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            entry.target.classList.add('visible');
-                            observer.unobserve(entry.target);
-                        }
-                    });
-                }, { threshold: 0.1 });
-                
-                animateElements.forEach(el => observer.observe(el));
-            } else {
-                // Fallback per browser che non supportano IntersectionObserver
-                animateElements.forEach(el => el.classList.add('visible'));
-            }
-            
-            // Attiva animazioni staggered per sidebar
-            setTimeout(() => {
-                document.querySelector('.sidebar-menu').classList.add('animate');
-            }, 100);
-            
-            // Parallax effect per elementi decorativi
-            const parallaxElements = document.querySelectorAll('.parallax-element');
-            
-            if (parallaxElements.length > 0) {
-                window.addEventListener('mousemove', function(e) {
-                    const mouseX = e.clientX / window.innerWidth;
-                    const mouseY = e.clientY / window.innerHeight;
-                    
-                    parallaxElements.forEach(el => {
-                        const speed = parseFloat(el.getAttribute('data-parallax-speed')) || 0.05;
-                        const moveX = (mouseX - 0.5) * speed * 100;
-                        const moveY = (mouseY - 0.5) * speed * 100;
-                        
-                        el.style.transform = `translate(${moveX}px, ${moveY}px)`;
-                    });
-                });
-            }
-            
-            // To top button
-            const toTopButton = document.getElementById('to-top-button');
-            if (toTopButton) {
-                window.addEventListener('scroll', function() {
-                    if (window.scrollY > 300) {
-                        toTopButton.classList.add('visible');
-                    } else {
-                        toTopButton.classList.remove('visible');
-                    }
-                });
-                
-                toTopButton.addEventListener('click', function() {
-                    window.scrollTo({
-                        top: 0,
-                        behavior: 'smooth'
-                    });
-                });
-            }
-            
-            // Registra il service worker per PWA
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('/static/js/service-worker.js')
-                        .then(function(registration) {
-                            console.log('Service Worker registrato con successo:', registration.scope);
-                        })
-                        .catch(function(error) {
-                            console.log('Registrazione Service Worker fallita:', error);
-                        });
-                });
-            }
-            
-            // Variabile per memorizzare l'evento di installazione
-            let deferredPrompt;
-            
-            // Ascoltatore evento beforeinstallprompt
-            window.addEventListener('beforeinstallprompt', (e) => {
-                // Previeni il prompt automatico
-                e.preventDefault();
-                // Salva l'evento per usarlo dopo
-                deferredPrompt = e;
-                // Mostra l'interfaccia personalizzata
-                const pwaInstallPrompt = document.getElementById('pwa-install-prompt');
-                if (pwaInstallPrompt) {
-                    // Verifica se è già stato mostrato recentemente
-                    const lastPrompt = localStorage.getItem('pwaPromptLastShown');
-                    const now = Date.now();
-                    
-                    // Mostra solo se non è stato mostrato nelle ultime 24 ore
-                    if (!lastPrompt || (now - parseInt(lastPrompt, 10) > 86400000)) {
-                        setTimeout(() => {
-                            pwaInstallPrompt.classList.remove('d-none');
-                        }, 5000); // Mostra dopo 5 secondi per non disturbare subito
-                    }
-                }
-            });
-            
-            // Gestione pulsanti
-            const pwaInstallPrompt = document.getElementById('pwa-install-prompt');
-            const pwaInstallButton = document.getElementById('pwa-install');
-            const pwaCancelButton = document.getElementById('pwa-cancel');
-            
-            if (pwaInstallButton) {
-                pwaInstallButton.addEventListener('click', (e) => {
-                    // Nascondi il nostro prompt
-                    pwaInstallPrompt.classList.add('d-none');
-                    // Mostra il prompt nativo di installazione
-                    deferredPrompt.prompt();
-                    // Attendi che l'utente risponda al prompt
-                    deferredPrompt.userChoice.then((choiceResult) => {
-                        if (choiceResult.outcome === 'accepted') {
-                            console.log('Utente ha accettato l\'installazione di PWA');
-                            // Mostra feedback
-                            showActionFeedback('success', 'Installazione avviata');
-                        } else {
-                            console.log('Utente ha rifiutato l\'installazione di PWA');
-                        }
-                        deferredPrompt = null;
-                    });
-                });
-            }
-            
-            if (pwaCancelButton) {
-                pwaCancelButton.addEventListener('click', (e) => {
-                    // Nascondi il nostro prompt
-                    pwaInstallPrompt.classList.add('d-none');
-                    // Memorizza quando è stato nascosto
-                    localStorage.setItem('pwaPromptLastShown', Date.now().toString());
-                });
-            }
-            
-            // Apre la ricerca globale con scorciatoia da tastiera
-            document.addEventListener('keydown', function(e) {
-                if (e.key === '/' && !e.ctrlKey && !e.metaKey && 
-                    !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
-                    e.preventDefault();
-                    document.getElementById('global-search-input').focus();
-                }
-            });
-            
-            // Feedback animato per azioni
-            window.showActionFeedback = function(type, message) {
-                const feedbackElement = document.getElementById('action-feedback');
-                if (!feedbackElement) return;
-                
-                feedbackElement.className = 'action-feedback';
-                feedbackElement.classList.add(type);
-                
-                let icon = '';
-                switch (type) {
-                    case 'success':
-                        icon = '<i class="fas fa-check-circle me-2"></i>';
-                        break;
-                    case 'error':
-                        icon = '<i class="fas fa-times-circle me-2"></i>';
-                        break;
-                    case 'warning':
-                        icon = '<i class="fas fa-exclamation-triangle me-2"></i>';
-                        break;
-                    case 'info':
-                        icon = '<i class="fas fa-info-circle me-2"></i>';
-                        break;
-                }
-                
-                feedbackElement.innerHTML = icon + message;
-                feedbackElement.classList.add('show');
-                
-                setTimeout(() => {
-                    feedbackElement.classList.remove('show');
-                }, 3000);
-            };
-        });
-    </script>
+
+    <script src="/static/js/a11y.js"></script>
+    <script src="/static/js/performance.js"></script>
 </body>
 </html>

@@ -1,0 +1,629 @@
+{% extends "layout.html" %}
+
+{% block title %}Codici di Backup 2FA{% endblock %}
+
+{% block styles %}
+<style>
+    .backup-code {
+        font-family: 'Courier New', monospace;
+        font-size: 1.1rem;
+        letter-spacing: 1px;
+        transition: all 0.2s ease;
+        user-select: all;
+    }
+    
+    .backup-code-container {
+        border-radius: 8px;
+        padding: 10px;
+        transition: all 0.2s ease;
+        border: 1px solid #dee2e6;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .backup-code-container:hover {
+        box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+        border-color: var(--primary-color);
+    }
+    
+    .backup-code-container.used {
+        opacity: 0.6;
+    }
+    
+    .backup-code-container .badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        transform: translateY(-50%);
+    }
+
+    .used-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(255, 255, 255, 0.8);
+        z-index: 1;
+    }
+    
+    .used-overlay-text {
+        font-weight: bold;
+        color: #6c757d;
+        transform: rotate(-15deg);
+        border: 2px solid #6c757d;
+        padding: 5px 10px;
+        border-radius: 5px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .fade-in {
+        opacity: 0;
+        animation: fadeIn 0.5s ease forwards;
+    }
+    
+    .filter-btn.active {
+        background-color: var(--primary-color) !important;
+        color: white !important;
+        border-color: var(--primary-color) !important;
+    }
+    
+    .copy-tooltip {
+        position: absolute;
+        bottom: 105%;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+        z-index: 10;
+    }
+    
+    .copy-tooltip.show {
+        opacity: 1;
+    }
+    
+    .copy-tooltip:after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+    }
+    
+    .code-card {
+        cursor: pointer;
+        user-select: all;
+    }
+    
+    .code-container {
+        min-height: 300px;
+    }
+    
+    .action-btn {
+        border-radius: 50px;
+        padding: 8px 16px;
+    }
+    
+    .check-icon-animation {
+        animation: checkmark 0.5s ease-in-out forwards;
+    }
+    
+    @keyframes checkmark {
+        0% { transform: scale(0); opacity: 0; }
+        50% { transform: scale(1.2); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0">
+                            <i class="fas fa-key me-2"></i>
+                            Codici di Backup 2FA
+                        </h3>
+                        <span class="badge bg-light text-dark" id="codesCounter">
+                            {% if backup_codes %}
+                                {{ backup_codes|selectattr('used', 'equalto', false)|list|length }}/{{ backup_codes|length }} disponibili
+                            {% else %}
+                                0/0 disponibili
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show">
+                                <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'warning' %}exclamation-triangle{% elif category == 'error' %}times-circle{% else %}info-circle{% endif %} me-2"></i>
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Chiudi"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <div class="alert alert-warning" role="alert">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                            </div>
+                            <div>
+                                <h5 class="alert-heading">Importante!</h5>
+                                <p>I codici di backup sono l'unico modo per recuperare l'accesso al tuo account se perdi l'accesso al tuo dispositivo di autenticazione principale.</p>
+                                <ul class="mb-0">
+                                    <li>Ogni codice può essere utilizzato <strong>una sola volta</strong>.</li>
+                                    <li>Conserva questi codici in un luogo sicuro, ma separato dal tuo dispositivo principale.</li>
+                                    <li>Se ti rimangono pochi codici, considera la possibilità di rigenerarli.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        {% if backup_codes %}
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="btn-group" role="group" aria-label="Filtri codici di backup">
+                                    <button type="button" class="btn btn-outline-secondary filter-btn active" data-filter="all">
+                                        Tutti ({{ backup_codes|length }})
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary filter-btn" data-filter="available">
+                                        Disponibili ({{ backup_codes|selectattr('used', 'equalto', false)|list|length }})
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary filter-btn" data-filter="used">
+                                        Utilizzati ({{ backup_codes|selectattr('used', 'equalto', true)|list|length }})
+                                    </button>
+                                </div>
+                                
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="showCodesToggle">
+                                    <label class="form-check-label" for="showCodesToggle">Mostra codici</label>
+                                </div>
+                            </div>
+                            
+                            <div class="code-container">
+                                <div class="row row-cols-1 row-cols-md-2 g-3" id="backupCodesContainer">
+                                    {% for code in backup_codes %}
+                                        <div class="col fade-in backup-code-item" style="animation-delay: {{ loop.index0 * 0.1 }}s" data-status="{{ 'used' if code.used else 'available' }}">
+                                            <div class="backup-code-container p-3 text-center code-card bg-white position-relative {{ 'used' if code.used }}">
+                                                {% if code.used %}
+                                                    <div class="used-overlay">
+                                                        <div class="used-overlay-text">Utilizzato</div>
+                                                    </div>
+                                                {% endif %}
+                                                <div class="copy-tooltip">Copiato!</div>
+                                                <div class="backup-code" data-code="{{ code.code }}">
+                                                    <span class="code-mask">•••••••••••</span>
+                                                    <span class="code-text" style="display: none;">{{ code.code }}</span>
+                                                </div>
+                                                {% if code.used_at %}
+                                                    <div class="mt-2 small text-muted">
+                                                        Utilizzato il {{ code.used_at.strftime('%d/%m/%Y') }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                
+                                <div id="noCodesMessage" class="alert alert-info text-center mt-3" style="display: none;">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <span id="noCodesText">Nessun codice corrisponde al filtro selezionato.</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <i class="fas fa-download me-2"></i>
+                                            Esporta i tuoi codici
+                                        </h5>
+                                        <p class="card-text small text-muted">Salva i tuoi codici di backup in un formato sicuro per utilizzi futuri.</p>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <button type="button" class="btn btn-outline-primary action-btn" id="copyCodesBtn">
+                                                <i class="fas fa-copy me-2"></i> Copia tutti
+                                            </button>
+                                            <button type="button" class="btn btn-outline-primary action-btn" id="printCodesBtn">
+                                                <i class="fas fa-print me-2"></i> Stampa
+                                            </button>
+                                            <button type="button" class="btn btn-outline-primary action-btn" id="downloadCodesBtn">
+                                                <i class="fas fa-file-download me-2"></i> Scarica .txt
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <div class="mb-3">
+                                    <i class="fas fa-key fa-3x text-muted"></i>
+                                </div>
+                                <h5>Nessun codice di backup disponibile</h5>
+                                <p class="text-muted mb-4">Non hai ancora generato codici di backup per il tuo account.</p>
+                                <form method="POST" action="{{ url_for('two_factor.generate_backup_codes') }}" id="generateCodesForm">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-plus-circle me-2"></i> Genera codici di backup
+                                    </button>
+                                </form>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if backup_codes %}
+                        <div class="mt-4 pt-3 border-top">
+                            <h5 class="mb-3">
+                                <i class="fas fa-sync-alt me-2"></i>
+                                Rigenera codici
+                            </h5>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <span>Rigenerando i codici di backup, tutti i codici precedenti saranno invalidati. Assicurati di scaricare o stampare i nuovi codici.</span>
+                            </div>
+                            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#regenerateModal">
+                                <i class="fas fa-sync-alt me-2"></i> Rigenera tutti i codici
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('two_factor.manage') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i> Torna a Gestione 2FA
+                        </a>
+                        <div>
+                            <span class="text-muted small">Ultimo aggiornamento: {{ generation_date|default('N/A') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal di conferma rigenerazione -->
+{% if backup_codes %}
+<div class="modal fade" id="regenerateModal" tabindex="-1" aria-labelledby="regenerateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="regenerateModalLabel">Conferma rigenerazione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Attenzione!</strong> Tutti i codici di backup esistenti saranno invalidati.
+                </div>
+                <p>Rigenerando i codici di backup:</p>
+                <ul>
+                    <li>I codici attuali non funzioneranno più</li>
+                    <li>Dovrai salvare i nuovi codici in un luogo sicuro</li>
+                    <li>Riceverai {{ backup_codes_total|default('10') }} nuovi codici</li>
+                </ul>
+                <p>Confermi di voler procedere con la rigenerazione?</p>
+                {% if requires_password %}
+                    <form id="regenerateForm" method="POST" action="{{ url_for('two_factor.regenerate_backup_codes') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Per confermare, inserisci la tua password:</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                    </form>
+                {% else %}
+                    <form id="regenerateForm" method="POST" action="{{ url_for('two_factor.regenerate_backup_codes') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    </form>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="submit" form="regenerateForm" class="btn btn-danger">
+                    <i class="fas fa-sync-alt me-2"></i> Rigenera
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Template per la stampa -->
+<div id="printTemplate" style="display: none;">
+    <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+        <h1 style="text-align: center; margin-bottom: 20px; color: #333;">Codici di Backup per l'Autenticazione a Due Fattori</h1>
+        <div style="border: 2px solid #f0ad4e; padding: 15px; margin-bottom: 20px; background-color: #fcf8e3; border-radius: 4px;">
+            <h2 style="margin-top: 0; color: #8a6d3b;">Importante!</h2>
+            <p>Questi codici di backup sono l'unico modo per accedere al tuo account se perdi l'accesso al tuo dispositivo di autenticazione. Ogni codice può essere utilizzato una sola volta.</p>
+            <p><strong>Conserva questi codici in un luogo sicuro e non condividerli con nessuno.</strong></p>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 10px;">I tuoi codici di backup:</h3>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 15px;">
+                {% for code in backup_codes %}
+                    {% if not code.used %}
+                        <div style="font-family: monospace; font-size: 18px; padding: 12px; border: 1px dashed #aaa; text-align: center; background-color: #f9f9f9; border-radius: 4px;">{{ code.code }}</div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px; color: #666; font-size: 14px;">
+            <p><strong>Account:</strong> {{ user_email|default('Il tuo account') }}</p>
+            <p><strong>Data di generazione:</strong> {{ generation_date|default('Oggi') }}</p>
+            <p><strong>Validità:</strong> Questi codici sono validi finché non ne generi di nuovi o disabiliti l'autenticazione a due fattori.</p>
+            <p style="text-align: center; margin-top: 20px;">Per la tua sicurezza, il sistema di autenticazione a due fattori è conforme agli standard di sicurezza TOTP.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const backupCodesContainer = document.getElementById('backupCodesContainer');
+        const codeCards = document.querySelectorAll('.code-card');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const showCodesToggle = document.getElementById('showCodesToggle');
+        const noCodesMessage = document.getElementById('noCodesMessage');
+        const noCodesText = document.getElementById('noCodesText');
+        const codeMasks = document.querySelectorAll('.code-mask');
+        const codeTexts = document.querySelectorAll('.code-text');
+        
+        // Funzione per applicare i filtri
+        function applyFilter(filter) {
+            const codeItems = document.querySelectorAll('.backup-code-item');
+            let visibleCount = 0;
+            
+            codeItems.forEach(item => {
+                const status = item.getAttribute('data-status');
+                if (filter === 'all' || status === filter) {
+                    item.style.display = '';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            // Mostra/nascondi messaggio "nessun codice"
+            if (visibleCount === 0) {
+                noCodesMessage.style.display = 'block';
+                switch(filter) {
+                    case 'available':
+                        noCodesText.textContent = 'Non hai codici di backup disponibili. Considera la rigenerazione.';
+                        break;
+                    case 'used':
+                        noCodesText.textContent = 'Non hai ancora utilizzato nessun codice di backup.';
+                        break;
+                    default:
+                        noCodesText.textContent = 'Nessun codice di backup trovato.';
+                }
+            } else {
+                noCodesMessage.style.display = 'none';
+            }
+        }
+        
+        // Filtro iniziale
+        applyFilter('all');
+        
+        // Event listener per i pulsanti di filtro
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Rimuovi la classe active da tutti i pulsanti
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                
+                // Aggiungi la classe active al pulsante cliccato
+                this.classList.add('active');
+                
+                // Applica il filtro
+                const filter = this.getAttribute('data-filter');
+                applyFilter(filter);
+            });
+        });
+        
+        // Event listener per lo switch "Mostra codici"
+        if (showCodesToggle) {
+            showCodesToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    codeMasks.forEach(mask => mask.style.display = 'none');
+                    codeTexts.forEach(text => text.style.display = 'inline');
+                } else {
+                    codeMasks.forEach(mask => mask.style.display = 'inline');
+                    codeTexts.forEach(text => text.style.display = 'none');
+                }
+            });
+        }
+        
+        // Copia singolo codice al click
+        codeCards.forEach(card => {
+            card.addEventListener('click', function() {
+                if (this.querySelector('.used-overlay')) return; // Non copiare codici già utilizzati
+                
+                const codeElement = this.querySelector('.backup-code');
+                const code = codeElement.getAttribute('data-code');
+                const tooltip = this.querySelector('.copy-tooltip');
+                
+                // Copia il codice negli appunti
+                navigator.clipboard.writeText(code).then(() => {
+                    // Mostra il tooltip
+                    tooltip.classList.add('show');
+                    
+                    // Nascondi il tooltip dopo 2 secondi
+                    setTimeout(() => {
+                        tooltip.classList.remove('show');
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Errore durante la copia:', err);
+                    alert('Non è stato possibile copiare il codice. Prova a selezionarlo manualmente.');
+                });
+            });
+        });
+        
+        // Gestione pulsante "Copia tutti"
+        const copyCodesBtn = document.getElementById('copyCodesBtn');
+        if (copyCodesBtn) {
+            copyCodesBtn.addEventListener('click', function() {
+                // Raccogli solo i codici disponibili
+                const codes = [];
+                document.querySelectorAll('.backup-code-item[data-status="available"] .backup-code').forEach(el => {
+                    codes.push(el.getAttribute('data-code'));
+                });
+                
+                if (codes.length === 0) {
+                    alert('Non ci sono codici disponibili da copiare.');
+                    return;
+                }
+                
+                const textToCopy = `CODICI DI BACKUP 2FA
+=================
+${codes.join('\n')}
+
+Generati il: {{ generation_date|default('Oggi') }}
+Account: {{ user_email|default('Il tuo account') }}`;
+                
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    // Feedback visivo
+                    const originalText = copyCodesBtn.innerHTML;
+                    copyCodesBtn.innerHTML = '<i class="fas fa-check me-2 check-icon-animation"></i> Copiati!';
+                    copyCodesBtn.classList.add('btn-success');
+                    copyCodesBtn.classList.remove('btn-outline-primary');
+                    
+                    setTimeout(() => {
+                        copyCodesBtn.innerHTML = originalText;
+                        copyCodesBtn.classList.remove('btn-success');
+                        copyCodesBtn.classList.add('btn-outline-primary');
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Errore durante la copia:', err);
+                    alert('Non è stato possibile copiare i codici. Prova un altro metodo di esportazione.');
+                });
+            });
+        }
+        
+        // Gestione pulsante "Stampa"
+        const printCodesBtn = document.getElementById('printCodesBtn');
+        if (printCodesBtn) {
+            printCodesBtn.addEventListener('click', function() {
+                const printContent = document.getElementById('printTemplate').innerHTML;
+                const printWindow = window.open('', '_blank');
+                
+                printWindow.document.write(`
+                    <html>
+                        <head>
+                            <title>Codici di Backup 2FA</title>
+                            <style>
+                                @media print {
+                                    body { font-size: 12pt; color: #000; }
+                                    h1 { font-size: 18pt; }
+                                    h2 { font-size: 16pt; }
+                                    h3 { font-size: 14pt; }
+                                }
+                            </style>
+                        
+    <link rel="stylesheet" href="/static/css/a11y.css">
+</head>
+                        <body>
+                            ${printContent}
+                            <script>
+                                window.onload = function() {
+                                    window.print();
+                                    setTimeout(function() { window.close(); }, 500);
+                                };
+                            <\/script>
+                        
+    <script src="/static/js/a11y.js"></script>
+    <script src="/static/js/performance.js"></script>
+</body>
+                    </html>
+                `);
+                
+                printWindow.document.close();
+            });
+        }
+        
+        // Gestione pulsante "Download .txt"
+        const downloadCodesBtn = document.getElementById('downloadCodesBtn');
+        if (downloadCodesBtn) {
+            downloadCodesBtn.addEventListener('click', function() {
+                // Raccogli solo i codici disponibili
+                const codes = [];
+                document.querySelectorAll('.backup-code-item[data-status="available"] .backup-code').forEach(el => {
+                    codes.push(el.getAttribute('data-code'));
+                });
+                
+                if (codes.length === 0) {
+                    alert('Non ci sono codici disponibili da scaricare.');
+                    return;
+                }
+                
+                const content = `CODICI DI BACKUP PER L'AUTENTICAZIONE A DUE FATTORI
+=================================================
+
+Account: {{ user_email|default('Il tuo account') }}
+Data di generazione: {{ generation_date|default('Oggi') }}
+
+IMPORTANTE: Questi codici possono essere utilizzati UNA SOLA VOLTA ciascuno.
+Conservali in un luogo sicuro e non condividerli con nessuno.
+
+Codici disponibili (${codes.length}):
+${codes.join('\n')}
+
+=================================================
+Questi codici sono validi finché non ne generi di nuovi o
+disabiliti l'autenticazione a due fattori.`;
+                
+                const blob = new Blob([content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                
+                a.href = url;
+                a.download = 'codici_backup_2fa.txt';
+                document.body.appendChild(a);
+                a.click();
+                
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                    // Feedback visivo
+                    const originalText = downloadCodesBtn.innerHTML;
+                    downloadCodesBtn.innerHTML = '<i class="fas fa-check me-2 check-icon-animation"></i> Scaricato!';
+                    downloadCodesBtn.classList.add('btn-success');
+                    downloadCodesBtn.classList.remove('btn-outline-primary');
+                    
+                    setTimeout(() => {
+                        downloadCodesBtn.innerHTML = originalText;
+                        downloadCodesBtn.classList.remove('btn-success');
+                        downloadCodesBtn.classList.add('btn-outline-primary');
+                    }, 2000);
+                }, 100);
+            });
+        }
+    });
+</script>
+{% endblock %} 

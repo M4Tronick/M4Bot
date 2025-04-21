@@ -24,6 +24,8 @@
     
     {% block head %}{% endblock %}
     {% block extra_css %}{% endblock %}
+
+    <link rel="stylesheet" href="/static/css/a11y.css">
 </head>
 <body>
     <!-- Navbar -->
@@ -142,5 +144,8 @@
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block scripts %}{% endblock %}
     {% block extra_js %}{% endblock %}
+
+    <script src="/static/js/a11y.js"></script>
+    <script src="/static/js/performance.js"></script>
 </body>
 </html> 

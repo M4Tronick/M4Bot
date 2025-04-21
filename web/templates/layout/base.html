@@ -1,0 +1,95 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema intelligente di gestione per automazione e monitoraggio">
+    <meta name="theme-color" content="#5e45e2">
+    <title>{% block title %}M4Bot{% endblock %}</title>
+    
+    <!-- Manifest per PWA -->
+    <link rel="manifest" href="/static/manifest.json">
+    
+    <!-- Icone per browser e dispositivi -->
+    <link rel="icon" href="/static/img/favicon.ico">
+    <link rel="apple-touch-icon" href="/static/img/icon-192.png">
+    
+    <!-- CSS principale -->
+    <link rel="stylesheet" href="/static/css/main.css">
+    
+    <!-- Font e altre risorse esterne -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    {% block head_extras %}{% endblock %}
+
+    <link rel="stylesheet" href="/static/css/a11y.css">
+</head>
+
+<body>
+    {% block body %}{% endblock %}
+    
+    <!-- Script principali -->
+    <script src="/static/js/main.js"></script>
+    
+    <!-- Registrazione del Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registrato con successo:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Errore nella registrazione del Service Worker:', error);
+                    });
+            });
+        }
+        
+        // Gestione dell'installazione PWA
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Previeni la visualizzazione automatica del prompt
+            e.preventDefault();
+            // Salva l'evento per usarlo dopo
+            deferredPrompt = e;
+            // Mostra il pulsante di installazione
+            showInstallButton();
+        });
+        
+        function showInstallButton() {
+            const installButton = document.getElementById('install-button');
+            if (installButton) {
+                installButton.style.display = 'block';
+                installButton.addEventListener('click', installApp);
+            }
+        }
+        
+        function installApp() {
+            if (!deferredPrompt) return;
+            
+            // Mostra il prompt di installazione
+            deferredPrompt.prompt();
+            
+            // Aspetta che l'utente risponda al prompt
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('Utente ha accettato di installare l\'app');
+                } else {
+                    console.log('Utente ha rifiutato di installare l\'app');
+                }
+                // Resetta la variabile deferredPrompt
+                deferredPrompt = null;
+                
+                // Nascondi il pulsante di installazione
+                const installButton = document.getElementById('install-button');
+                if (installButton) {
+                    installButton.style.display = 'none';
+                }
+            });
+        }
+    </script>
+    
+    {% block scripts %}{% endblock %}
+
+    <script src="/static/js/a11y.js"></script>
+    <script src="/static/js/performance.js"></script>
+</body> 

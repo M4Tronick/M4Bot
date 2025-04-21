@@ -1,0 +1,574 @@
+{% extends "layout.html" %}
+
+{% block title %}Verifica Autenticazione a Due Fattori{% endblock %}
+
+{% block styles %}
+<style>
+    .otp-input-group {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .otp-input {
+        width: 54px;
+        height: 60px;
+        font-size: 1.5rem;
+        text-align: center;
+        border-radius: 8px;
+        border: 1px solid #ced4da;
+        background-color: white;
+        transition: all 0.2s ease;
+    }
+    
+    .otp-input:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(74, 134, 232, 0.25);
+        transform: translateY(-2px);
+    }
+    
+    .countdown-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        font-size: 1.5rem;
+        font-weight: bold;
+        background-color: #f8f9fa;
+        border: 5px solid #e9ecef;
+        position: relative;
+        transition: all 0.3s ease;
+    }
+    
+    .countdown-circle-progress {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        clip: rect(0px, 60px, 60px, 30px);
+        transform: rotate(0deg);
+        transition: transform 1s linear;
+    }
+    
+    .countdown-circle-progress:before {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        clip: rect(0px, 30px, 60px, 0px);
+        background: var(--primary-color);
+        transform: rotate(0deg);
+        transition: transform 1s linear;
+    }
+    
+    @media (max-width: 576px) {
+        .otp-input {
+            width: 40px;
+            height: 50px;
+            font-size: 1.2rem;
+        }
+    }
+    
+    .shake-animation {
+        animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    
+    @keyframes shake {
+        10%, 90% {
+            transform: translate3d(-1px, 0, 0);
+        }
+        20%, 80% {
+            transform: translate3d(2px, 0, 0);
+        }
+        30%, 50%, 70% {
+            transform: translate3d(-4px, 0, 0);
+        }
+        40%, 60% {
+            transform: translate3d(4px, 0, 0);
+        }
+    }
+    
+    .success-checkmark {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto;
+        position: relative;
+        display: none;
+    }
+    
+    .success-checkmark .check-icon {
+        width: 80px;
+        height: 80px;
+        position: relative;
+        border-radius: 50%;
+        box-sizing: content-box;
+        border: 4px solid var(--secondary-color);
+    }
+    
+    .success-checkmark .check-icon::before {
+        top: 3px;
+        left: -2px;
+        transform: rotate(45deg);
+        transform-origin: 100% 50%;
+        animation: checkmark-before 0.4s ease-in-out forwards;
+    }
+    
+    .success-checkmark .check-icon::after {
+        top: 0;
+        left: 30px;
+        transform: rotate(-45deg);
+        transform-origin: 0% 50%;
+        animation: checkmark-after 0.4s ease-in-out forwards;
+    }
+    
+    .success-checkmark .check-icon::before,
+    .success-checkmark .check-icon::after {
+        content: '';
+        height: 4px;
+        background-color: var(--secondary-color);
+        display: block;
+        position: absolute;
+        z-index: 10;
+    }
+    
+    @keyframes checkmark-before {
+        0% { width: 0; opacity: 1; }
+        100% { width: 25px; opacity: 1; }
+    }
+    
+    @keyframes checkmark-after {
+        0% { width: 0; opacity: 1; }
+        100% { width: 50px; opacity: 1; }
+    }
+    
+    .numpad {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-top: 20px;
+        max-width: 250px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .numpad-key {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        user-select: none;
+    }
+    
+    .numpad-key:hover {
+        background-color: #e9ecef;
+        transform: translateY(-2px);
+    }
+    
+    .numpad-key:active {
+        transform: translateY(1px);
+        background-color: #dde2e6;
+    }
+    
+    .numpad-key.backspace {
+        grid-column: span 3;
+        border-radius: 35px;
+        width: 100%;
+    }
+    
+    .auth-device-icon {
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
+        color: var(--primary-color);
+        animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+        100% { transform: translateY(0px); }
+    }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-out forwards;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .alternatives-container {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.5s ease;
+    }
+    
+    .alternatives-container.show {
+        max-height: 300px;
+    }
+    
+    .code-input-container {
+        position: relative;
+    }
+    
+    .code-input-feedback {
+        position: absolute;
+        bottom: -25px;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        font-size: 0.85rem;
+        font-weight: 500;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .code-input-feedback.show {
+        opacity: 1;
+    }
+    
+    .countdown-warning {
+        color: #dc3545;
+        animation: pulse 1s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow animate-fade-in">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Verifica 2FA</h3>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} animate-fade-in" style="animation-delay: 0.1s">
+                                <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'warning' %}exclamation-triangle{% elif category == 'error' %}times-circle{% else %}info-circle{% endif %} me-2"></i>
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <div class="text-center mb-4">
+                        <i class="fas fa-mobile-alt auth-device-icon"></i>
+                        <h4>Verifica la tua identità</h4>
+                        <p class="text-muted">Inserisci il codice a 6 cifre dalla tua app di autenticazione</p>
+                    </div>
+                    
+                    <div class="success-checkmark" id="successMark">
+                        <div class="check-icon"></div>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('two_factor.verify') }}" id="verify2faForm" aria-live="polite">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="form-group mb-4 code-input-container">
+                            <label for="otp_code" class="form-label visually-hidden">Codice di verifica 2FA</label>
+                            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" class="form-control form-control-lg text-center" id="otp_code" name="otp_code" placeholder="Codice a 6 cifre" required autofocus autocomplete="one-time-code" aria-describedby="otpHelp">
+                            <small id="otpHelp" class="form-text text-muted text-center d-block">Il codice cambia ogni 30 secondi</small>
+                            <div class="code-input-feedback" id="codeInputFeedback"></div>
+                        </div>
+                        
+                        <div class="text-center mb-4">
+                            <div class="countdown-container">
+                                <p class="mb-2">Tempo rimanente:</p>
+                                <div class="countdown-circle">
+                                    <div class="countdown-circle-progress" id="countdownProgress"></div>
+                                    <span id="countdownTimer">30</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid mb-4">
+                            <button type="submit" class="btn btn-primary btn-lg" id="verifyButton">
+                                <i class="fas fa-check-circle me-2"></i>Verifica
+                            </button>
+                        </div>
+                        
+                        <div class="text-center mb-2">
+                            <button type="button" class="btn btn-link" id="showNumpadBtn">
+                                <i class="fas fa-keyboard me-1"></i> Usa tastierino numerico
+                            </button>
+                        </div>
+                        
+                        <div class="numpad" id="numpadContainer" style="display: none;">
+                            <div class="numpad-key" data-value="1">1</div>
+                            <div class="numpad-key" data-value="2">2</div>
+                            <div class="numpad-key" data-value="3">3</div>
+                            <div class="numpad-key" data-value="4">4</div>
+                            <div class="numpad-key" data-value="5">5</div>
+                            <div class="numpad-key" data-value="6">6</div>
+                            <div class="numpad-key" data-value="7">7</div>
+                            <div class="numpad-key" data-value="8">8</div>
+                            <div class="numpad-key" data-value="9">9</div>
+                            <div class="numpad-key" data-value="0">0</div>
+                            <div class="numpad-key backspace" data-value="backspace">
+                                <i class="fas fa-backspace"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button type="button" class="btn btn-link text-secondary w-100" id="showAlternativesBtn">
+                                <i class="fas fa-question-circle me-2"></i>Problemi ad accedere?
+                            </button>
+                            <div class="alternatives-container" id="alternativesContainer">
+                                <hr>
+                                <div class="list-group mt-3">
+                                    <a href="{{ url_for('two_factor.backup_code') }}" class="list-group-item list-group-item-action">
+                                        <div class="d-flex w-100 justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">Usa un codice di backup</h6>
+                                                <p class="mb-1 small text-muted">Hai salvato codici di backup per le emergenze</p>
+                                            </div>
+                                            <i class="fas fa-key text-muted"></i>
+                                        </div>
+                                    </a>
+                                    <button type="button" class="list-group-item list-group-item-action" data-bs-toggle="modal" data-bs-target="#instructionsModal">
+                                        <div class="d-flex w-100 justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">Come trovare il mio codice?</h6>
+                                                <p class="mb-1 small text-muted">Guida all'utilizzo dell'app authenticator</p>
+                                            </div>
+                                            <i class="fas fa-info-circle text-muted"></i>
+                                        </div>
+                                    </button>
+                                    <a href="{{ url_for('auth.reset_password_request') }}" class="list-group-item list-group-item-action">
+                                        <div class="d-flex w-100 justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">Ho perso l'accesso al mio dispositivo</h6>
+                                                <p class="mb-1 small text-muted">Recupera l'accesso al tuo account</p>
+                                            </div>
+                                            <i class="fas fa-mobile-alt text-muted"></i>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center">
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-link text-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Torna alla pagina di accesso
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="instructionsModal" tabindex="-1" aria-labelledby="instructionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="instructionsModalLabel">Come trovare il codice 2FA</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            </div>
+            <div class="modal-body">
+                <ol>
+                    <li class="mb-3">Apri l'app di autenticazione sul tuo dispositivo mobile (Google Authenticator, Authy, Microsoft Authenticator, ecc.)</li>
+                    <li class="mb-3">Cerca l'account <strong>{{ email|default('del tuo account') }}</strong></li>
+                    <li class="mb-3">Inserisci il codice a 6 cifre mostrato dall'app</li>
+                    <li>Il codice cambia ogni 30 secondi, quindi assicurati di inserirlo rapidamente</li>
+                </ol>
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Suggerimento:</strong> Se hai perso l'accesso al tuo dispositivo, puoi utilizzare uno dei codici di backup che hai salvato in precedenza.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Ho capito</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Elementi
+        const otpInput = document.getElementById('otp_code');
+        const countdownTimer = document.getElementById('countdownTimer');
+        const countdownProgress = document.getElementById('countdownProgress');
+        const successMark = document.getElementById('successMark');
+        const verifyForm = document.getElementById('verify2faForm');
+        const numpadContainer = document.getElementById('numpadContainer');
+        const showNumpadBtn = document.getElementById('showNumpadBtn');
+        const numpadKeys = document.querySelectorAll('.numpad-key');
+        const alternativesContainer = document.getElementById('alternativesContainer');
+        const showAlternativesBtn = document.getElementById('showAlternativesBtn');
+        const codeInputFeedback = document.getElementById('codeInputFeedback');
+        
+        // Assicurati che l'input sia focalizzato all'apertura della pagina
+        otpInput.focus();
+        
+        // Conteggio alla rovescia
+        let timeLeft = 30;
+        let timerId = setInterval(countdown, 1000);
+        
+        function countdown() {
+            if (timeLeft <= 0) {
+                clearInterval(timerId);
+                // Ricarica la pagina per ottenere un nuovo token
+                location.reload();
+                return;
+            }
+            
+            timeLeft--;
+            countdownTimer.textContent = timeLeft;
+            
+            // Aggiorna la grafica del countdown
+            const progressDegrees = (30 - timeLeft) / 30 * 360;
+            countdownProgress.style.transform = `rotate(${progressDegrees}deg)`;
+            
+            if (progressDegrees > 180) {
+                countdownProgress.style.clip = 'rect(0px, 60px, 60px, 0px)';
+                countdownProgress.querySelector(':before').style.transform = `rotate(${progressDegrees - 180}deg)`;
+                countdownProgress.querySelector(':before').style.backgroundColor = '#dc3545';
+            }
+            
+            // Avviso quando rimane poco tempo
+            if (timeLeft <= 10) {
+                countdownTimer.classList.add('countdown-warning');
+                
+                if (timeLeft <= 5 && otpInput.value.length < 6) {
+                    showFeedback("Inserisci il codice velocemente!", "warning");
+                }
+            }
+        }
+        
+        // Gestione input numerico
+        otpInput.addEventListener('input', function(e) {
+            // Mantieni solo i numeri
+            this.value = this.value.replace(/[^0-9]/g, '');
+            
+            // Controlla la lunghezza
+            if (this.value.length === 6) {
+                showFeedback("Codice completo, verifica in corso...", "success");
+                
+                // Mostra l'indicatore di successo
+                setTimeout(() => {
+                    successMark.style.display = 'block';
+                    
+                    // Invia il form automaticamente dopo un breve ritardo
+                    setTimeout(() => {
+                        verifyForm.submit();
+                    }, 800);
+                }, 300);
+            } else if (this.value.length > 0) {
+                const remaining = 6 - this.value.length;
+                showFeedback(`Ancora ${remaining} ${remaining === 1 ? 'cifra' : 'cifre'}...`, "info");
+            } else {
+                hideFeedback();
+            }
+        });
+        
+        // Impedisci input non numerici
+        otpInput.addEventListener('keypress', function(e) {
+            const key = String.fromCharCode(e.keyCode || e.which);
+            const regex = /[0-9]/;
+            
+            if (!regex.test(key)) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // Mostra/nascondi tastierino numerico
+        showNumpadBtn.addEventListener('click', function() {
+            if (numpadContainer.style.display === 'none') {
+                numpadContainer.style.display = 'grid';
+                this.innerHTML = '<i class="fas fa-keyboard me-1"></i> Nascondi tastierino';
+            } else {
+                numpadContainer.style.display = 'none';
+                this.innerHTML = '<i class="fas fa-keyboard me-1"></i> Usa tastierino numerico';
+            }
+        });
+        
+        // Gestione tastierino numerico
+        numpadKeys.forEach(key => {
+            key.addEventListener('click', function() {
+                const value = this.getAttribute('data-value');
+                
+                if (value === 'backspace') {
+                    // Cancella l'ultimo carattere
+                    otpInput.value = otpInput.value.slice(0, -1);
+                } else {
+                    // Aggiungi il numero se non supera 6 cifre
+                    if (otpInput.value.length < 6) {
+                        otpInput.value += value;
+                    }
+                }
+                
+                // Attiva manualmente l'evento input
+                const event = new Event('input');
+                otpInput.dispatchEvent(event);
+                
+                // Mantieni il focus sull'input
+                otpInput.focus();
+            });
+        });
+        
+        // Mostra/nascondi alternative
+        showAlternativesBtn.addEventListener('click', function() {
+            alternativesContainer.classList.toggle('show');
+        });
+        
+        // Funzioni di feedback
+        function showFeedback(message, type) {
+            codeInputFeedback.textContent = message;
+            codeInputFeedback.className = 'code-input-feedback show';
+            
+            if (type === 'success') {
+                codeInputFeedback.style.color = '#28a745';
+            } else if (type === 'warning') {
+                codeInputFeedback.style.color = '#dc3545';
+            } else {
+                codeInputFeedback.style.color = '#6c757d';
+            }
+        }
+        
+        function hideFeedback() {
+            codeInputFeedback.classList.remove('show');
+        }
+        
+        // Accessibilità per il tastierino numerico
+        numpadKeys.forEach(key => {
+            // Aggiungi attributi di accessibilità
+            key.setAttribute('role', 'button');
+            key.setAttribute('tabindex', '0');
+            key.setAttribute('aria-label', `Tasto ${key.getAttribute('data-value')}`);
+            
+            // Supporto per tastiera
+            key.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.click();
+                }
+            });
+        });
+    });
+</script>
+{% endblock %} 
