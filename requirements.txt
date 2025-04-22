@@ -30,7 +30,7 @@ MarkupSafe>=2.1.3  # Necessario per Jinja2
 
 # Nuove dipendenze
 discord.py>=2.3.2
-simpleobsws>=5.4.0
+simpleobsws>=1.4.2  # Modificato alla versione disponibile più recente
 aiofiles>=23.2.1
 psutil>=5.9.8
 translate>=3.6.1
@@ -61,15 +61,13 @@ paramiko>=2.7.2
 websockets>=10.0
 pyotp>=2.6.0
 qrcode>=7.3
-pillow>=9.0.0
-cryptography>=36.0.0
 
 # M4Bot - Requisiti Python
 # Versione 3.0 - Supporto per VPS Linux e nuove funzionalità
 # Ottimizzato per Python 3.8+
 
 # Core e Web
-Flask-Babel==3.1.0
+# Flask-Babel rimosso perché in conflitto con flask-babel>=4.0.0
 Flask-Login==0.6.2
 Flask-SQLAlchemy==3.0.5
 Flask-WTF==1.1.1
@@ -79,59 +77,47 @@ Flask-Compress==1.13
 Flask-Limiter==3.3.1
 Flask-CORS==4.0.0
 Flask-Assets==2.0
-Werkzeug==2.3.7
-Jinja2==3.1.2
-gunicorn==21.2.0
-uvicorn==0.23.2
+# Werkzeug e Jinja2 rimossi perché già specificati sopra con versioni più recenti
+# gunicorn e uvicorn rimossi perché già specificati sopra con versioni più recenti
 uvloop==0.17.0
 httptools==0.6.0
 whitenoise==6.5.0
-python-dotenv==1.0.0
+# python-dotenv rimosso perché già specificato sopra
 loguru==0.7.0
 structlog==23.1.0
 waitress==2.1.2
 
 # Database e Cache
-SQLAlchemy==2.0.19
-SQLAlchemy-Utils==0.41.1
-alembic==1.11.2
-psycopg2-binary==2.9.6
+# SQLAlchemy e alembic rimossi perché già specificati sopra con versioni più recenti
+# psycopg2-binary rimosso perché già specificato sopra
 aioredis==2.0.1
 SQLAlchemy-JSON==0.6.0
+SQLAlchemy-Utils==0.41.1
 marshmallow==3.20.1
 marshmallow-sqlalchemy==0.29.0
 
 # Sicurezza
-bcrypt==4.0.1
-cryptography==41.0.3
-passlib==1.7.4
-PyJWT==2.8.0
+# bcrypt, cryptography, passlib, PyJWT, argon2-cffi rimossi perché già specificati sopra
 Flask-Security-Too==5.1.3
 Flask-Talisman==1.0.0
 Flask-SeaSurf==1.1.1
 itsdangerous==2.1.2
 email-validator==2.0.0
-pyotp==2.9.0
-argon2-cffi==23.1.0
+# pyotp rimosso perché già specificato sopra
 authlib==1.2.1
 
 # API e Networking
 requests==2.31.0
-aiohttp==3.8.5
-websockets==11.0.3
-httpx==0.24.1
-fastapi==0.101.1
+# aiohttp, websockets, httpx, fastapi, ujson rimossi perché già specificati sopra
 pydantic==2.1.1
 pydantic-settings==2.0.3
 orjson==3.9.2
-ujson==5.8.0
 
 # OAuth & Integrazioni piattaforme
 oauthlib==3.2.2
 requests-oauthlib==1.3.1
-tweepy==4.14.0
+# tweepy e discord.py rimossi perché già specificati sopra
 python-telegram-bot==20.4
-discord.py==2.3.1
 google-api-python-client==2.97.0
 google-auth==2.22.0
 google-auth-oauthlib==1.0.0
@@ -144,8 +130,7 @@ webassets==2.0
 Flask-CDN==1.5.3
 cssmin==0.2.0
 jsmin==3.0.1
-pillow==9.5.0
-qrcode==7.4.2
+# pillow e qrcode rimossi perché già specificati sopra
 blinker==1.6.2
 
 # PWA e Service Workers
@@ -155,8 +140,7 @@ webpush==0.2.2
 
 # Utilità
 APScheduler==3.10.1
-python-dateutil==2.8.2
-pytz==2023.3
+# python-dateutil e pytz rimossi perché già specificati sopra
 shortuuid==1.0.11
 phonenumbers==8.13.18
 python-slugify==8.0.1
@@ -169,7 +153,7 @@ tzlocal==5.0.1
 
 # Analisi dati e intelligenza artificiale
 numpy==1.25.2
-pandas==2.0.3
+# pandas rimosso perché già specificato sopra
 scikit-learn==1.3.0
 scipy==1.11.2
 nltk==3.8.1
@@ -187,7 +171,7 @@ pytest-flask==1.2.0
 pytest-cov==4.1.0
 coverage==7.2.2
 flake8==6.1.0
-black==23.7.0
+# black rimosso perché già specificato sopra con versione più recente
 mypy==1.4.1
 hypothesis==6.82.2
 tox==4.10.0
@@ -195,7 +179,7 @@ faker==19.3.1
 factory-boy==3.3.0
 
 # Servizi cloud e monitoring
-boto3==1.28.15
+# boto3 rimosso perché già specificato sopra
 sentry-sdk==1.29.2
 prometheus-client==0.17.1
 newrelic==8.9.0
