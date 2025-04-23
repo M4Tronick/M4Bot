@@ -1,0 +1,171 @@
+# Base Python dependencies (no versions specified)
+quart
+quart-cors
+flask
+Flask-CORS
+Flask-Login
+Flask-SQLAlchemy
+Flask-WTF
+Flask-Migrate
+Flask-Caching
+Flask-Compress
+Flask-Limiter
+Flask-Assets
+Flask-Security-Too
+Flask-Talisman
+Flask-SeaSurf
+Flask-CDN
+
+# ASGI/WSGI servers
+uvicorn
+gunicorn
+waitress
+uvloop
+httptools
+whitenoise
+
+# Async & HTTP clients
+aiohttp
+httpx
+websockets
+simpleobsws
+aiofiles
+aioredis
+aiosqlite
+
+# Databases & ORMs
+asyncpg
+psycopg2-binary
+pymysql
+pymongo
+SQLAlchemy
+alembic
+SQLAlchemy-JSON
+SQLAlchemy-Utils
+marshmallow
+marshmallow-sqlalchemy
+
+# Caching & messaging
+redis
+
+# Auth & security
+bcrypt
+cryptography
+pyjwt
+passlib
+argon2-cffi
+itsdangerous
+pyotp
+authlib
+email-validator
+
+# Utilities
+python-dotenv
+isort
+black
+ujson
+python-dateutil
+pytz
+backports.zoneinfo
+tzdata
+shortuuid
+phonenumbers
+python-slugify
+user-agents
+pendulum
+python-magic
+tzlocal
+pytz-deprecation-shim
+
+# Data processing & analysis
+numpy
+pandas
+matplotlib
+openpyxl
+scipy
+scikit-learn
+nltk
+spacy
+
+# AI & NLP
+transformers
+torch
+openai
+sentence-transformers
+langchain
+llama-index
+
+# Cloud & storage
+azure-storage-blob
+boto3
+
+# Messaging & social media APIs
+tweepy
+discord.py
+python-telegram-bot==20.8
+google-api-python-client==2.127.0
+google-auth==2.29.0
+google-auth-oauthlib==1.2.0
+twitch-python==0.0.20
+TikTokApi==7.1.0
+instagrapi==1.0.2  # Downgrade dalla versione 2.0.0 alla 1.0.2 per risolvere i problemi di installazione
+oauthlib
+requests-oauthlib
+requests
+
+# Frontend asset management
+webassets
+cssmin
+jsmin
+
+# PWA & web push
+Flask-PWA
+pywebpush
+webpush
+
+# Scheduling
+APScheduler
+schedule
+
+# Logging & monitoring
+loguru
+structlog
+sentry-sdk
+prometheus-client
+newrelic
+watchtower
+datadog
+
+# Documentation
+tools
+Sphinx
+sphinx-rtd-theme
+mkdocs
+mkdocs-material
+pdoc3
+
+# Packaging & deployment
+wheel
+setuptools
+pip
+gevent
+ipython
+
+# Development & testing
+pytest
+pytest-flask
+pytest-cov
+coverage
+flake8
+mypy
+hypothesis
+tox
+faker
+factory-boy
+
+# M4Bot - Requisiti Python
+
+# OAuth & Integrazioni piattaforme
+
+# Gestione Assets e frontend
+
