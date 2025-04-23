@@ -10,6 +10,12 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+# Verifica che il sistema sia Linux
+if [[ "$OSTYPE" != "linux-gnu"* ]]; then
+    echo -e "${RED}Errore: Questo script è progettato per essere eseguito su Linux.${NC}"
+    exit 1
+fi
+
 # Directory e configurazioni
 INSTALL_DIR="/opt/m4bot"
 DB_NAME="m4bot_db"

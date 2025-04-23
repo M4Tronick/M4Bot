@@ -58,6 +58,9 @@ print_success "Fine riga nei file Python convertiti correttamente"
 # Converti fine riga nei file di configurazione
 print_message "Conversione fine riga nei file di configurazione..."
 find . -type f -name "*.cfg" -exec dos2unix {} \; || print_warning "Errore durante la conversione dei file di configurazione"
+find . -type f -name "*.conf" -exec dos2unix {} \; || print_warning "Errore durante la conversione dei file di configurazione .conf"
+find . -type f -name "*.ini" -exec dos2unix {} \; || print_warning "Errore durante la conversione dei file di configurazione .ini"
+find . -type f -name "*.json" -exec dos2unix {} \; || print_warning "Errore durante la conversione dei file JSON"
 print_success "Fine riga nei file di configurazione convertiti correttamente"
 
 # Converti fine riga nei file di servizio
@@ -72,6 +75,11 @@ if [ -f .env ]; then
     sed -i 's/\\/\//g' .env || print_warning "Errore durante la correzione dei percorsi in .env"
     print_success "Percorsi in .env corretti"
 fi
+
+# Correggi percorsi in altri file di configurazione
+find config -type f -name "*.json" -exec sed -i 's/\\/\//g' {} \; || print_warning "Errore durante la correzione dei percorsi nei file JSON"
+find config -type f -name "*.cfg" -exec sed -i 's/\\/\//g' {} \; || print_warning "Errore durante la correzione dei percorsi nei file di configurazione"
+find config -type f -name "*.conf" -exec sed -i 's/\\/\//g' {} \; || print_warning "Errore durante la correzione dei percorsi nei file di configurazione"
 
 print_message "Conversione completata con successo!"
 print_success "Il progetto è pronto per essere utilizzato su VPS Linux."
